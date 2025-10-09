@@ -1,0 +1,73 @@
+[tools]
+cmake = "latest"
+ninja = "latest"
+
+[tasks.build]
+description = "Build the Prong static library"
+depends = ["check-deps"]
+run = """
+cd {{config_root}}
+if [ '{{flag(name='clean')}}' = 'true' ]; then
+  echo "Cleaning build directory..."
+  rm -rf build || true
+fi
+mkdir -p build
+cd build
+cmake .. -G Ninja -DPRONG_BUILD_EXAMPLES=OFF -DPRONG_BUILD_TESTS=OFF
+cmake --build .
+"""
+
+[tasks.check-deps]
+description = "Check for required dependencies"
+run = """
+echo "Checking for required dependencies..."
+if ! command -v clang-format &> /dev/null; then
+  echo "clang-format could not be found. Please install it as it is required by our build system."
+  exit 1
+fi
+if ! command -v include-what-you-use &> /dev/null; then
+  echo "include-what-you-use could not be found. Please install it as it is required by our build system."
+  exit 1
+fi
+"""
+
+[tasks.build-examples]
+description = "Build the Prong examples"
+depends = ["build"]
+run = """
+cd {{config_root}}/build
+cmake .. -G Ninja -DPRONG_BUILD_EXAMPLES=ON -DPRONG_BUILD_TESTS=OFF
+cmake --build .
+"""
+
+[tasks.build-tests]
+description = "Build the Prong tests"
+depends = ["build"]
+run = """
+cd {{config_root}}/build
+cmake .. -G Ninja -DPRONG_BUILD_EXAMPLES=OFF -DPRONG_BUILD_TESTS=ON
+cmake --build .
+"""
+
+[tasks.test]
+description = "Run the test suite with CTest"
+depends = ["build-tests"]
+run = """
+cd {{config_root}}/build
+if [ '{{flag(name='verbose')}}' = 'true' ]; then
+  ctest --verbose
+else
+  ctest --output-on-failure
+fi
+"""
+
+[tasks.demo]
+description = "Build and run the Prong demo application"
+depends = ["build-examples"]
+run = """
+cd {{config_root}}
+echo ""
+echo "Starting Prong UI Framework Demo..."
+echo "====================================="
+./build/examples/prong_simple_app
+"""
