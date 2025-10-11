@@ -165,3 +165,4 @@ The namespace for the installed target is `bombfork::prong`.
 - The demo app located in @examples/simple_app/ is used to test the library's UX, it is built and run with the `mise demo` command. It is meant to gather feedback from the user, and for overall feature validation.
 - Use gh cli to interact with the github repo when needed
 - ALWAYS use ninja generator when using cmake.
+- NEVER bypass iwyu or clang-format

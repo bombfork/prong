@@ -159,6 +159,7 @@ public:
    * @param deltaTime Time since last update in seconds
    */
   void update(double deltaTime) override {
+    (void)deltaTime; // Unused - scene has no internal state to update
     // Scene itself has no update logic, just propagate to children
     // (updateAll() will be called externally, which calls this then children)
   }
