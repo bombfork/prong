@@ -163,3 +163,5 @@ The namespace for the installed target is `bombfork::prong`.
 - **Thread safety**: ThemeManager is thread-safe; other components assume single-threaded use
 - Always use the `mise build` command to build the library, tests and examples.
 - The demo app located in @examples/simple_app/ is used to test the library's UX, it is built and run with the `mise demo` command. It is meant to gather feedback from the user, and for overall feature validation.
+- Use gh cli to interact with the github repo when needed
+- ALWAYS use ninja generator when using cmake.
