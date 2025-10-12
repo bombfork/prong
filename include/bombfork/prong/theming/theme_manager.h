@@ -43,7 +43,7 @@ private:
 
   // User preferences
   std::string preferencesFile = "theme_preferences.json";
-  bool autoSavePreferences = true;
+  bool autoSavePreferences = false;
 
   /**
    * @brief Private constructor for singleton pattern

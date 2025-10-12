@@ -208,6 +208,8 @@ private:
   }
 
   float calculateJustifyGap(float contentSize, float availableSize, size_t itemCount, size_t currentIndex) {
+    (void)currentIndex; // Unused - may be used in future for per-item spacing
+
     if (itemCount <= 1)
       return config_.gap;
 
@@ -262,4 +264,31 @@ private:
   std::vector<FlexItemProperties> itemProperties_;
 };
 
+/**
+ * @brief Concrete FlexLayout class for use with Panel
+ *
+ * Provides a clean API for flexbox-style layouts without exposing
+ * the CRTP implementation details.
+ */
+class FlexLayout : public FlexLayoutManager<FlexLayout> {
+public:
+  // Re-export Configuration at the concrete class level for clean API
+  using Configuration = FlexLayoutManager<FlexLayout>::Configuration;
+  using FlexItemProperties = FlexLayoutManager<FlexLayout>::FlexItemProperties;
+
+  FlexLayout() = default;
+  ~FlexLayout() = default;
+};
+
 } // namespace bombfork::prong::layout
+
+namespace bombfork::prong {
+
+// Forward declare Panel template
+template <typename LayoutT>
+class Panel;
+
+// Type alias for FlexPanel - hides the CRTP implementation
+using FlexPanel = Panel<layout::FlexLayoutManager<layout::FlexLayout>>;
+
+} // namespace bombfork::prong

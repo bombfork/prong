@@ -166,8 +166,22 @@ private:
  */
 class StackLayout : public StackLayoutManager<StackLayout> {
 public:
+  // Re-export Configuration for clean API
+  using Configuration = StackLayoutManager<StackLayout>::Configuration;
+
   StackLayout() = default;
   ~StackLayout() = default;
 };
 
 } // namespace bombfork::prong::layout
+
+namespace bombfork::prong {
+
+// Forward declare Panel template
+template <typename LayoutT>
+class Panel;
+
+// Type alias for StackPanel - hides CRTP implementation
+using StackPanel = Panel<layout::StackLayoutManager<layout::StackLayout>>;
+
+} // namespace bombfork::prong

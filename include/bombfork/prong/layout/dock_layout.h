@@ -180,4 +180,28 @@ private:
   std::vector<DockRegion> regions_;
 };
 
+/**
+ * @brief Concrete DockLayout class for use with Panel
+ */
+class DockLayout : public DockLayoutManager<DockLayout> {
+public:
+  // Re-export types for clean API
+  using DockConfiguration = DockLayoutManager<DockLayout>::DockConfiguration;
+  using DockRegion = DockLayoutManager<DockLayout>::DockRegion;
+
+  DockLayout() = default;
+  ~DockLayout() = default;
+};
+
 } // namespace bombfork::prong::layout
+
+namespace bombfork::prong {
+
+// Forward declare Panel template
+template <typename LayoutT>
+class Panel;
+
+// Type alias for DockPanel - hides CRTP implementation
+using DockPanel = Panel<layout::DockLayoutManager<layout::DockLayout>>;
+
+} // namespace bombfork::prong
