@@ -15,9 +15,6 @@
 
 namespace bombfork {
 namespace prong {
-namespace rendering {
-class IRenderer;
-}
 namespace theming {
 class AdvancedTheme;
 }
@@ -26,7 +23,7 @@ class AdvancedTheme;
 
 namespace bombfork::prong {
 
-ToolBar::ToolBar(bombfork::prong::rendering::IRenderer* renderer) : bombfork::prong::Component(renderer) {
+ToolBar::ToolBar() : bombfork::prong::Component(nullptr) {
   initializeLayout();
 }
 
@@ -504,8 +501,8 @@ std::unique_ptr<bombfork::prong::Button> ToolBar::createToolButton(ToolItem* too
   if (!renderer)
     return nullptr;
 
-  auto button = std::make_unique<bombfork::prong::Button>(renderer);
-  button->setText(tool->text);
+  auto button = std::make_unique<bombfork::prong::Button>(tool->text);
+  button->setRenderer(renderer);
 
   // Configure button based on tool type
   // Note: We always use NORMAL button type because ToolBar manages the toggle state manually.
@@ -579,8 +576,8 @@ bool ToolBar::needsOverflow() const {
 void ToolBar::updateOverflow() {
   if (needsOverflow()) {
     if (!overflowButton) {
-      overflowButton = std::make_unique<bombfork::prong::Button>(renderer);
-      overflowButton->setText("▼");
+      overflowButton = std::make_unique<bombfork::prong::Button>("▼");
+      overflowButton->setRenderer(renderer);
     }
 
     // Calculate which tools need to go in overflow

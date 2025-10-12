@@ -172,7 +172,7 @@ private:
   bool verticalScrollbarDrag = false;
 
 public:
-  explicit Viewport(bombfork::prong::rendering::IRenderer* renderer = nullptr);
+  explicit Viewport();
   ~Viewport() override = default;
 
   // === Configuration ===

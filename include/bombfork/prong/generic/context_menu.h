@@ -154,7 +154,7 @@ private:
   static ContextMenu* activeMenu;
 
 public:
-  explicit ContextMenu(bombfork::prong::rendering::IRenderer* renderer = nullptr);
+  explicit ContextMenu();
   ~ContextMenu() override;
 
   // === Menu Construction ===

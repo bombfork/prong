@@ -83,9 +83,8 @@ private:
   ValidationCallback validationCallback;
 
 public:
-  explicit TextInput(bombfork::prong::rendering::IRenderer* renderer = nullptr,
-                     const std::string& debugName = "TextInput")
-    : Component(renderer, debugName), lastCursorBlink(std::chrono::steady_clock::now()) {}
+  explicit TextInput(const std::string& debugName = "TextInput")
+    : Component(nullptr, debugName), lastCursorBlink(std::chrono::steady_clock::now()) {}
 
   virtual ~TextInput() = default;
 

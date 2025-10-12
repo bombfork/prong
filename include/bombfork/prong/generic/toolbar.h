@@ -152,7 +152,7 @@ private:
   ToolStateCallback toolStateCallback;
 
 public:
-  explicit ToolBar(bombfork::prong::rendering::IRenderer* renderer = nullptr);
+  explicit ToolBar();
   ~ToolBar() override = default;
 
   // === Configuration ===

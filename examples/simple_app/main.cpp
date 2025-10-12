@@ -141,7 +141,8 @@ int main() {
   std::vector<std::unique_ptr<Component>> components;
 
   // Left Panel - Control Panel
-  auto leftPanel = std::make_unique<Panel>(renderer.get());
+  auto leftPanel = std::make_unique<Panel<>>();
+  leftPanel->setRenderer(renderer.get());
   leftPanel->setBounds(20, 20, 300, 680);
   leftPanel->setBackgroundColor(theming::Color(0.15f, 0.15f, 0.18f, 1.0f));
   leftPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
@@ -150,17 +151,19 @@ int main() {
   dispatcher.registerComponent(leftPanel.get());
 
   // Text Input
-  auto textInput = std::make_unique<TextInput>(renderer.get());
+  auto textInput = std::make_unique<TextInput>();
+  textInput->setRenderer(renderer.get());
   textInput->setBounds(40, 80, 260, 30);
   textInput->setPlaceholder("Enter text here...");
   textInput->setOnTextChanged([](const std::string& text) { std::cout << "Text changed: " << text << std::endl; });
   dispatcher.registerComponent(textInput.get());
 
   // Button Row 1
-  auto addButton = std::make_unique<Button>(renderer.get(), "Add Item");
+  auto addButton = std::make_unique<Button>("Add Item");
+  addButton->setRenderer(renderer.get());
   addButton->setBounds(40, 130, 120, 35);
   int clickCount = 0;
-  auto listBoxPtr = std::make_unique<ListBox>(renderer.get());
+  auto listBoxPtr = std::make_unique<ListBox>();
   auto textInputPtr = textInput.get();
   addButton->setClickCallback([&clickCount, listBoxPtr = listBoxPtr.get(), textInputPtr]() {
     clickCount++;
@@ -174,7 +177,8 @@ int main() {
   });
   dispatcher.registerComponent(addButton.get());
 
-  auto clearButton = std::make_unique<Button>(renderer.get(), "Clear");
+  auto clearButton = std::make_unique<Button>("Clear");
+  clearButton->setRenderer(renderer.get());
   clearButton->setBounds(180, 130, 120, 35);
   clearButton->setClickCallback([listBoxPtr = listBoxPtr.get()]() {
     listBoxPtr->clearItems();
@@ -183,7 +187,8 @@ int main() {
   dispatcher.registerComponent(clearButton.get());
 
   // Button Row 2
-  auto infoButton = std::make_unique<Button>(renderer.get(), "Show Info");
+  auto infoButton = std::make_unique<Button>("Show Info");
+  infoButton->setRenderer(renderer.get());
   infoButton->setBounds(40, 180, 260, 35);
   infoButton->setClickCallback([]() {
     std::cout << "\n=== Prong UI Framework ===" << std::endl;
@@ -198,7 +203,8 @@ int main() {
   dispatcher.registerComponent(infoButton.get());
 
   // Exit Button
-  auto exitButton = std::make_unique<Button>(renderer.get(), "Exit Application");
+  auto exitButton = std::make_unique<Button>("Exit Application");
+  exitButton->setRenderer(renderer.get());
   exitButton->setBounds(40, 650, 260, 35);
   exitButton->setBackgroundColor(theming::Color(0.6f, 0.2f, 0.2f, 1.0f));
   exitButton->setClickCallback([&glfwWindow]() {
@@ -208,7 +214,8 @@ int main() {
   dispatcher.registerComponent(exitButton.get());
 
   // Right Panel - Display Area
-  auto rightPanel = std::make_unique<Panel>(renderer.get());
+  auto rightPanel = std::make_unique<Panel<>>();
+  rightPanel->setRenderer(renderer.get());
   rightPanel->setBounds(340, 20, 920, 680);
   rightPanel->setBackgroundColor(theming::Color(0.18f, 0.18f, 0.2f, 1.0f));
   rightPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
@@ -217,6 +224,7 @@ int main() {
   dispatcher.registerComponent(rightPanel.get());
 
   // ListBox
+  listBoxPtr->setRenderer(renderer.get());
   listBoxPtr->setBounds(360, 80, 880, 600);
   listBoxPtr->setSelectionCallback(
     [](int index, const std::string& item) { std::cout << "Selected item " << index << ": " << item << std::endl; });
