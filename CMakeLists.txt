@@ -20,14 +20,46 @@ find_program(IWYU_PATH NAMES include-what-you-use iwyu REQUIRED)
 if(NOT IWYU_PATH)
     message(FATAL_ERROR "include-what-you-use is required but not found. Install it with: sudo apt install iwyu (Ubuntu/Debian) or brew install include-what-you-use (macOS)")
 endif()
-message(STATUS "Found include-what-you-use: ${IWYU_PATH}")
+
+# Get iwyu version
+execute_process(
+    COMMAND ${IWYU_PATH} --version
+    OUTPUT_VARIABLE IWYU_VERSION_OUTPUT
+    ERROR_VARIABLE IWYU_VERSION_OUTPUT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
+)
+string(REGEX MATCH "include-what-you-use ([0-9]+\\.[0-9]+)" IWYU_VERSION_MATCH "${IWYU_VERSION_OUTPUT}")
+if(CMAKE_MATCH_1)
+    set(IWYU_VERSION ${CMAKE_MATCH_1})
+else()
+    set(IWYU_VERSION "unknown")
+endif()
+
+message(STATUS "Found include-what-you-use: ${IWYU_PATH} (version ${IWYU_VERSION})")
 
 # === Mandatory clang-format ===
 find_program(CLANG_FORMAT_PATH NAMES clang-format REQUIRED)
 if(NOT CLANG_FORMAT_PATH)
     message(FATAL_ERROR "clang-format is required but not found. Install it with: sudo apt install clang-format (Ubuntu/Debian) or brew install clang-format (macOS)")
 endif()
-message(STATUS "Found clang-format: ${CLANG_FORMAT_PATH}")
+
+# Get clang-format version
+execute_process(
+    COMMAND ${CLANG_FORMAT_PATH} --version
+    OUTPUT_VARIABLE CLANG_FORMAT_VERSION_OUTPUT
+    ERROR_VARIABLE CLANG_FORMAT_VERSION_OUTPUT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
+)
+string(REGEX MATCH "version ([0-9]+\\.[0-9]+\\.[0-9]+)" CLANG_FORMAT_VERSION_MATCH "${CLANG_FORMAT_VERSION_OUTPUT}")
+if(CMAKE_MATCH_1)
+    set(CLANG_FORMAT_VERSION ${CMAKE_MATCH_1})
+else()
+    set(CLANG_FORMAT_VERSION "unknown")
+endif()
+
+message(STATUS "Found clang-format: ${CLANG_FORMAT_PATH} (version ${CLANG_FORMAT_VERSION})")
 
 # === Compiler warnings (all warnings as errors) ===
 if(MSVC)
@@ -160,8 +192,8 @@ message(STATUS "  Version: ${PROJECT_VERSION}")
 message(STATUS "  C++ Standard: C++20")
 message(STATUS "  Library Type: STATIC")
 message(STATUS "  Warnings as Errors: ENABLED")
-message(STATUS "  include-what-you-use: ${IWYU_PATH}")
-message(STATUS "  clang-format: ${CLANG_FORMAT_PATH}")
+message(STATUS "  include-what-you-use: ${IWYU_PATH} (version ${IWYU_VERSION})")
+message(STATUS "  clang-format: ${CLANG_FORMAT_PATH} (version ${CLANG_FORMAT_VERSION})")
 message(STATUS "  Build Examples: ${PRONG_BUILD_EXAMPLES}")
 message(STATUS "  Build Tests: ${PRONG_BUILD_TESTS}")
 message(STATUS "  Install Prefix: ${CMAKE_INSTALL_PREFIX}")
