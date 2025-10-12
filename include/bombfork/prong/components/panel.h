@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bombfork/prong/core/component.h>
+#include <bombfork/prong/rendering/irenderer.h>
 #include <bombfork/prong/theming/color.h>
 
 #include <memory>

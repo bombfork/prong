@@ -2,6 +2,7 @@
 
 #include <GLFW/glfw3.h>
 #include <bombfork/prong/core/component.h>
+#include <bombfork/prong/rendering/irenderer.h>
 #include <bombfork/prong/theming/color.h>
 
 #include <algorithm>

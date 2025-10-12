@@ -1,15 +1,39 @@
 #pragma once
 
-#include <bombfork/prong/rendering/irenderer.h>
-#include <bombfork/prong/theming/color.h>
+#include <bombfork/prong/layout/layout_manager.h>
 
 #include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
+namespace bombfork::prong::rendering {
+class IRenderer;
+}
+
 namespace bombfork::prong {
+
+// Forward declaration
+class Component;
+
+namespace detail {
+/**
+ * @brief Adapter class that wraps a prong::Component to provide layout::Component interface
+ */
+class ComponentAdapter : public layout::Component {
+public:
+  explicit ComponentAdapter(bombfork::prong::Component* component) : prongComponent_(component) {}
+
+  layout::Dimensions measure() const override;
+  layout::Dimensions measureLayout() const override { return measure(); }
+  void setBounds(const layout::Rect& bounds) override;
+
+private:
+  bombfork::prong::Component* prongComponent_;
+};
+} // namespace detail
 
 /**
  * @brief Base class for all new UI system components
@@ -46,6 +70,11 @@ protected:
   // Parent/child relationships
   Component* parent = nullptr;
   std::vector<std::unique_ptr<Component>> children;
+
+  // Layout management
+  std::shared_ptr<void> layoutManager; // Type-erased layout manager
+  std::function<void(std::vector<std::shared_ptr<layout::Component>>&, const layout::Dimensions&)> layoutFunc;
+  bool layoutInvalid = true;
 
   // Callbacks
   FocusCallback focusCallback;
@@ -170,6 +199,7 @@ public:
       child->parent = this;
       child->setRenderer(renderer);
       children.push_back(std::move(child));
+      invalidateLayout();
     }
   }
 
@@ -188,6 +218,82 @@ public:
   Component* getParent() const { return parent; }
 
   const std::vector<std::unique_ptr<Component>>& getChildren() const { return children; }
+
+  // === Layout Management ===
+
+  /**
+   * @brief Set the layout manager for this component
+   * @tparam LayoutT The layout manager type (must derive from LayoutManager<LayoutT>)
+   * @param layout Shared pointer to the layout manager
+   */
+  template <typename LayoutT>
+  void setLayout(std::shared_ptr<LayoutT> layout) {
+    layoutManager = layout;
+    // Store a type-erased function that calls the layout manager's layout method
+    layoutFunc = [layout](std::vector<std::shared_ptr<layout::Component>>& components,
+                          const layout::Dimensions& availableSpace) { layout->layout(components, availableSpace); };
+    invalidateLayout();
+  }
+
+  /**
+   * @brief Clear the layout manager
+   */
+  void clearLayout() {
+    layoutManager.reset();
+    layoutFunc = nullptr;
+    invalidateLayout();
+  }
+
+  /**
+   * @brief Check if this component has a layout manager
+   */
+  bool hasLayout() const { return layoutManager != nullptr; }
+
+  /**
+   * @brief Mark the layout as invalid, requiring recalculation
+   */
+  void invalidateLayout() { layoutInvalid = true; }
+
+  /**
+   * @brief Perform layout on children if a layout manager is set
+   */
+  void performLayout() {
+    if (!layoutInvalid || !layoutFunc) {
+      return;
+    }
+
+    // Mark layout as valid first to avoid infinite recursion
+    layoutInvalid = false;
+
+    // Create adapter wrappers for children to match layout::Component interface
+    std::vector<std::shared_ptr<layout::Component>> adaptedChildren;
+    adaptedChildren.reserve(children.size());
+
+    for (auto& child : children) {
+      if (child) {
+        adaptedChildren.push_back(std::make_shared<detail::ComponentAdapter>(child.get()));
+      }
+    }
+
+    // Create available space from current component dimensions
+    layout::Dimensions availableSpace{width, height};
+
+    // Call the layout manager through the type-erased function
+    layoutFunc(adaptedChildren, availableSpace);
+
+    // Recursively perform layout on children
+    for (auto& child : children) {
+      if (child) {
+        child->performLayout();
+      }
+    }
+  }
+
+  /**
+   * @brief Get the preferred size of this component
+   * @return Dimensions struct with preferred width and height
+   */
+  virtual layout::Dimensions getPreferredSize() const { return {width, height}; }
 
   // === Event Handling ===
 
@@ -340,5 +446,23 @@ public:
   const std::string& getDebugName() const { return debugName; }
   void setDebugName(const std::string& name) { debugName = name; }
 };
+
+// === Inline implementations for detail::ComponentAdapter ===
+
+inline layout::Dimensions detail::ComponentAdapter::measure() const {
+  if (prongComponent_) {
+    auto preferred = prongComponent_->getPreferredSize();
+    return {static_cast<int>(preferred.width), static_cast<int>(preferred.height)};
+  }
+  return {0, 0};
+}
+
+inline void detail::ComponentAdapter::setBounds(const layout::Rect& bounds) {
+  if (prongComponent_) {
+    // bombfork::prong::Component::setBounds takes 4 ints, not a Rect
+    prongComponent_->setBounds(static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.width),
+                               static_cast<int>(bounds.height));
+  }
+}
 
 } // namespace bombfork::prong
