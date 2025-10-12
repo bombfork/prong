@@ -11,7 +11,7 @@
 
 namespace bombfork::prong {
 
-Dialog::Dialog(bombfork::prong::rendering::IRenderer* renderer) : Component(renderer, "Dialog") {
+Dialog::Dialog() : Component(nullptr, "Dialog") {
   // Initialize default theme
   theme = DialogTheme();
 

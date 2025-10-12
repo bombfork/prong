@@ -147,7 +147,7 @@ private:
   ValueFormatterCallback valueFormatter;
 
 public:
-  explicit Slider(bombfork::prong::rendering::IRenderer* renderer = nullptr);
+  explicit Slider();
   ~Slider() override = default;
 
   // === Configuration ===

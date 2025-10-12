@@ -46,8 +46,7 @@ private:
   SelectionCallback selectionCallback;
 
 public:
-  explicit ListBox(bombfork::prong::rendering::IRenderer* renderer = nullptr, const std::string& debugName = "ListBox")
-    : Component(renderer, debugName) {}
+  explicit ListBox(const std::string& debugName = "ListBox") : Component(nullptr, debugName) {}
 
   virtual ~ListBox() = default;
 

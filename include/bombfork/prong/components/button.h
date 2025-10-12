@@ -55,8 +55,7 @@ private:
   ClickCallback clickCallback;
 
 public:
-  explicit Button(bombfork::prong::rendering::IRenderer* renderer = nullptr, const std::string& label = "Button")
-    : Component(renderer, label), text(label) {}
+  explicit Button(const std::string& label = "Button") : Component(nullptr, label), text(label) {}
 
   virtual ~Button() = default;
 

@@ -30,8 +30,8 @@ namespace bombfork::prong {
  * Scene scene(window, renderer);
  * scene.attach();
  *
- * // Add UI components
- * auto panel = std::make_unique<Panel>(renderer);
+ * // Add UI components - renderer is inherited from scene
+ * auto panel = std::make_unique<Panel<>>();
  * scene.addChild(std::move(panel));
  *
  * // Main loop

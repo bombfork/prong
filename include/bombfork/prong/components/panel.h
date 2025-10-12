@@ -1,6 +1,8 @@
 #pragma once
 
 #include <bombfork/prong/core/component.h>
+#include <bombfork/prong/layout/layout_manager.h>
+#include <bombfork/prong/layout/no_layout.h>
 #include <bombfork/prong/rendering/irenderer.h>
 #include <bombfork/prong/theming/color.h>
 
@@ -16,8 +18,13 @@ namespace bombfork::prong {
  * A container component that can hold child components with optional
  * title bar, borders, padding, and background styling.
  *
- * This is the canonical Panel class for t4c::ui namespace components.
+ * Template parameter LayoutT specifies the layout manager type.
+ * Use NoLayout (default) for manual positioning, or any layout manager
+ * (FlexLayout, GridLayout, etc.) for automatic child positioning.
+ *
+ * @tparam LayoutT Layout manager type (default: NoLayout for manual positioning)
  */
+template <typename LayoutT = layout::NoLayout>
 class Panel : public Component {
 public:
   struct BorderStyle {
@@ -53,14 +60,51 @@ public:
 private:
   Style style;
   std::string title;
+  std::shared_ptr<LayoutT> layoutManager;
+  bool autoFillParent = false;
 
   static constexpr int TITLE_BAR_HEIGHT = 25;
 
 public:
-  explicit Panel(bombfork::prong::rendering::IRenderer* renderer = nullptr, const std::string& debugName = "Panel")
-    : Component(renderer, debugName) {}
+  explicit Panel(const std::string& debugName = "Panel") : Component(nullptr, debugName) {}
 
   virtual ~Panel() = default;
+
+  // === Layout Management ===
+
+  /**
+   * @brief Set the layout manager for this panel
+   *
+   * This configures how children will be automatically positioned.
+   * Only available if LayoutT is not NoLayout.
+   */
+  template <typename T = LayoutT>
+  typename std::enable_if<!std::is_same<T, layout::NoLayout>::value>::type
+  setLayoutManager(std::shared_ptr<LayoutT> layout) {
+    layoutManager = layout;
+    Component::setLayout(layout);
+  }
+
+  /**
+   * @brief Configure the layout manager
+   *
+   * Provides access to the layout manager for configuration.
+   * Returns nullptr if no layout manager is set or if using NoLayout.
+   */
+  std::shared_ptr<LayoutT> getLayoutManager() { return layoutManager; }
+
+  /**
+   * @brief Enable auto-fill to parent's content area
+   *
+   * When enabled, the panel will automatically resize to fill its parent's
+   * content area (accounting for padding) when width or height is 0.
+   */
+  void setAutoFillParent(bool enable) { autoFillParent = enable; }
+
+  /**
+   * @brief Check if auto-fill parent is enabled
+   */
+  bool isAutoFillParent() const { return autoFillParent; }
 
   // === Style Management ===
 
@@ -139,9 +183,31 @@ public:
     contentHeight = height - (borderOffset + style.padding) * 2 - titleBarOffset;
   }
 
+  // === Parent/Child Management ===
+
+  /**
+   * @brief Add a child component
+   *
+   * Overridden to ensure renderer is inherited and auto-fill is applied
+   */
+  void addChild(std::unique_ptr<Component> child) {
+    if (child) {
+      // Set renderer on child before adding
+      child->setRenderer(renderer);
+
+      // Call parent implementation
+      Component::addChild(std::move(child));
+    }
+  }
+
   // === Update ===
 
   void update(double deltaTime) override {
+    // Apply auto-fill if enabled
+    if (autoFillParent && parent) {
+      applyAutoFill();
+    }
+
     (void)deltaTime; // Unused - panels are static containers
   }
 
@@ -153,6 +219,11 @@ public:
   void render() override {
     if (!visible || !renderer) {
       return;
+    }
+
+    // Perform layout before rendering if we have a layout manager
+    if (layoutManager) {
+      performLayout();
     }
 
     // Render background
@@ -185,6 +256,41 @@ public:
   }
 
 protected:
+  /**
+   * @brief Apply auto-fill behavior to match parent's content area
+   */
+  void applyAutoFill() {
+    if (!parent || (width != 0 && height != 0)) {
+      return; // Only fill if width or height is 0
+    }
+
+    // Try to get content bounds from parent if it's a Panel
+    Panel* parentPanel = dynamic_cast<Panel*>(parent);
+    if (parentPanel) {
+      int contentX, contentY, contentWidth, contentHeight;
+      parentPanel->getContentBounds(contentX, contentY, contentWidth, contentHeight);
+
+      if (width == 0) {
+        x = contentX;
+        width = contentWidth;
+      }
+      if (height == 0) {
+        y = contentY;
+        height = contentHeight;
+      }
+    } else {
+      // Parent is not a Panel, use parent's full bounds
+      if (width == 0) {
+        x = parent->x;
+        width = parent->width;
+      }
+      if (height == 0) {
+        y = parent->y;
+        height = parent->height;
+      }
+    }
+  }
+
   /**
    * @brief Render title bar
    */

@@ -11,7 +11,7 @@
 
 namespace bombfork::prong {
 
-Viewport::Viewport(bombfork::prong::rendering::IRenderer* renderer) : Component(renderer, "Viewport") {
+Viewport::Viewport() : Component(nullptr, "Viewport") {
   // Initialize default theme
   theme = ViewportTheme();
 

@@ -117,9 +117,9 @@ private:
 
   // Layout components
   std::unique_ptr<bombfork::prong::layout::StackLayout> mainLayout;
-  std::unique_ptr<bombfork::prong::Panel> titleBarPanel;
-  std::unique_ptr<bombfork::prong::Panel> contentPanel;
-  std::unique_ptr<bombfork::prong::Panel> buttonPanel;
+  std::unique_ptr<bombfork::prong::Panel<>> titleBarPanel;
+  std::unique_ptr<bombfork::prong::Panel<>> contentPanel;
+  std::unique_ptr<bombfork::prong::Panel<>> buttonPanel;
   std::unique_ptr<bombfork::prong::layout::FlowLayout> buttonLayout;
 
   // Standard buttons
@@ -136,7 +136,7 @@ private:
   int parentWindowWidth = 0, parentWindowHeight = 0;
 
 public:
-  explicit Dialog(bombfork::prong::rendering::IRenderer* renderer = nullptr);
+  explicit Dialog();
   ~Dialog() override = default;
 
   // === Configuration ===
@@ -201,7 +201,7 @@ public:
   /**
    * @brief Get content panel for adding components
    */
-  bombfork::prong::Panel* getContentPanel() const { return contentPanel.get(); }
+  bombfork::prong::Panel<>* getContentPanel() const { return contentPanel.get(); }
 
   /**
    * @brief Add content component to the content panel
