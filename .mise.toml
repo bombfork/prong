@@ -33,8 +33,8 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   fi
   brew install clang-format include-what-you-use
 elif [[ -f /etc/arch-release ]]; then
-  echo "Detected Arch Linux - installing dependencies via pacman..."
-  sudo pacman -S --needed --noconfirm clang include-what-you-use
+  echo "Detected Arch Linux - installing dependencies via paru..."
+  sudo paru -S --needed --noconfirm clang include-what-you-use
 elif [[ -f /etc/debian_version ]]; then
   echo "Detected Debian-based Linux - installing dependencies via apt..."
   sudo apt-get update
@@ -108,6 +108,13 @@ mkdir -p build
 cd build
 cmake .. -G Ninja -DPRONG_BUILD_EXAMPLES=ON -DPRONG_BUILD_TESTS=ON
 cmake --build .
+"""
+
+[tasks.build-ci]
+description = "Build the Prong static library, tests and examples, but fail if clang-format changed anything"
+depends = ["build-all"]
+run = """
+git diff --exit-code || (echo "Error: Code is not properly formatted. Please run 'mise run format'." && exit 1)
 """
 
 [tasks.test]
