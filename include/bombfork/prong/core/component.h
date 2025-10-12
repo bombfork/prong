@@ -414,6 +414,7 @@ public:
   void renderAll() {
     if (!visible)
       return;
+    performLayout();
     render();
     for (auto& child : children) {
       if (child && child->isVisible()) {
