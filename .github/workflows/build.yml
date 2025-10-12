@@ -1,0 +1,26 @@
+name: build
+
+on:
+  workflow_dispatch:
+  # Disable automatic triggers until we have up to date runners
+  # pull_request:
+  #   branches: ["main"]
+  # push:
+  #   tags: ["*"]
+  #   branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MISE_EXPERIMENTAL: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - run: mise run build-ci

@@ -1,6 +1,56 @@
 [tools]
-cmake = "latest"
-ninja = "latest"
+cmake = "3.28.6"
+hk = "1.18.3"
+ninja = "1.13.1"
+pkl = "0.29.1"
+
+[tasks.check-deps]
+description = "Check for required dependencies"
+run = """
+# Install mise-managed tools
+echo "Installing mise-managed tools..."
+mise install
+echo ""
+
+echo "Checking for required dependencies..."
+if ! command -v clang-format &> /dev/null; then
+  mise install-deps
+fi
+if ! command -v include-what-you-use &> /dev/null; then
+  mise install-deps
+fi
+"""
+
+[tasks.install-deps]
+description = "Install all required dependencies (mise tools and system packages)"
+run = """
+# Detect platform and install system packages
+if [ "$(uname)" = "Darwin" ]; then
+  echo "Detected macOS - installing dependencies via Homebrew..."
+  if ! command -v brew > /dev/null 2>&1; then
+    echo "Error: Homebrew not found. Please install Homebrew first: https://brew.sh"
+    exit 1
+  fi
+  brew install clang-format include-what-you-use
+elif [ -f /etc/arch-release ]; then
+  echo "Detected Arch Linux - installing dependencies via paru..."
+  sudo paru -S --needed --noconfirm clang include-what-you-use
+elif [ -f /etc/os-release ] && (grep -q "^ID=debian" /etc/os-release || grep -q "^ID_LIKE=.*debian" /etc/os-release); then
+  echo "Detected Debian-based Linux - installing dependencies via apt..."
+  sudo apt-get update
+  sudo apt-get install -y clang-format iwyu
+else
+  echo "Warning: Unsupported platform. Please manually install:"
+  echo "  - clang-format"
+  echo "  - include-what-you-use (iwyu)"
+  echo "Here is /etc/os-release for reference:"
+  cat /etc/os-release || true
+  exit 1
+fi
+
+echo ""
+echo "All dependencies installed successfully!"
+"""
 
 [tasks.build]
 description = "Build the Prong static library"
@@ -17,36 +67,56 @@ cmake .. -G Ninja -DPRONG_BUILD_EXAMPLES=OFF -DPRONG_BUILD_TESTS=OFF
 cmake --build .
 """
 
-[tasks.check-deps]
-description = "Check for required dependencies"
+[tasks.build-tests]
+description = "Build the Prong tests"
+depends = ["build"]
 run = """
-echo "Checking for required dependencies..."
-if ! command -v clang-format &> /dev/null; then
-  echo "clang-format could not be found. Please install it as it is required by our build system."
-  exit 1
+cd {{config_root}}
+if [ '{{flag(name='clean')}}' = 'true' ]; then
+  echo "Cleaning build directory..."
+  rm -rf build || true
 fi
-if ! command -v include-what-you-use &> /dev/null; then
-  echo "include-what-you-use could not be found. Please install it as it is required by our build system."
-  exit 1
-fi
+mkdir -p build
+cd build
+cmake .. -G Ninja -DPRONG_BUILD_EXAMPLES=OFF -DPRONG_BUILD_TESTS=ON
+cmake --build .
 """
 
 [tasks.build-examples]
 description = "Build the Prong examples"
 depends = ["build"]
 run = """
-cd {{config_root}}/build
+cd {{config_root}}
+if [ '{{flag(name='clean')}}' = 'true' ]; then
+  echo "Cleaning build directory..."
+  rm -rf build || true
+fi
+mkdir -p build
+cd build
 cmake .. -G Ninja -DPRONG_BUILD_EXAMPLES=ON -DPRONG_BUILD_TESTS=OFF
 cmake --build .
 """
 
-[tasks.build-tests]
-description = "Build the Prong tests"
-depends = ["build"]
+[tasks.build-all]
+description = "Build the Prong static library, tests and examples"
+depends = ["check-deps"]
 run = """
-cd {{config_root}}/build
-cmake .. -G Ninja -DPRONG_BUILD_EXAMPLES=OFF -DPRONG_BUILD_TESTS=ON
+cd {{config_root}}
+if [ '{{flag(name='clean')}}' = 'true' ]; then
+  echo "Cleaning build directory..."
+  rm -rf build || true
+fi
+mkdir -p build
+cd build
+cmake .. -G Ninja -DPRONG_BUILD_EXAMPLES=ON -DPRONG_BUILD_TESTS=ON
 cmake --build .
+"""
+
+[tasks.build-ci]
+description = "Build the Prong static library, tests and examples, but fail if clang-format changed anything"
+depends = ["build-all"]
+run = """
+git diff --exit-code || (echo "Error: Code is not properly formatted. Please run 'mise run format'." && exit 1)
 """
 
 [tasks.test]
@@ -59,6 +129,20 @@ if [ '{{flag(name='verbose')}}' = 'true' ]; then
 else
   ctest --output-on-failure
 fi
+"""
+
+[tasks.format-check]
+description = "Run clang-format check"
+depends = ["check-deps"]
+run = """
+clang-format --dry-run --Werror
+"""
+
+[tasks.format]
+description = "Run clang-format fix"
+depends = ["check-deps"]
+run = """
+clang-format -i
 """
 
 [tasks.demo]

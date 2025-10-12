@@ -36,6 +36,8 @@
 #include <vector>
 
 #ifdef __linux__
+#include <sys/types.h>
+
 #include <limits.h>
 #include <unistd.h>
 #elif __APPLE__

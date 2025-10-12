@@ -1,0 +1,18 @@
+// Git hooks configuration for Prong
+// Requires hk: https://github.com/jdx/hk
+amends "package://github.com/jdx/hk/releases/download/v1.18.3/hk@1.18.3#/Config.pkl"
+
+hooks {
+    ["pre-commit"] {
+        fix = true  // Enable automatic fixing when checks fail
+        steps = new Mapping<String, Step> {
+            ["format-check"] {
+                // Check formatting first, then fix if needed
+                glob = List("**/*.cpp", "**/*.h")
+                check = "mise run format-check {{ files }}"
+                fix = "mise run format {{ files }}"
+                stage = List("**/*.cpp", "**/*.h")
+            }
+        }
+    }
+}
