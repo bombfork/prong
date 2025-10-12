@@ -25,17 +25,17 @@ fi
 description = "Install all required dependencies (mise tools and system packages)"
 run = """
 # Detect platform and install system packages
-if [[ "$OSTYPE" == "darwin"* ]]; then
+if [ "$(uname)" = "Darwin" ]; then
   echo "Detected macOS - installing dependencies via Homebrew..."
-  if ! command -v brew &> /dev/null; then
+  if ! command -v brew > /dev/null 2>&1; then
     echo "Error: Homebrew not found. Please install Homebrew first: https://brew.sh"
     exit 1
   fi
   brew install clang-format include-what-you-use
-elif [[ -f /etc/arch-release ]]; then
+elif [ -f /etc/arch-release ]; then
   echo "Detected Arch Linux - installing dependencies via paru..."
   sudo paru -S --needed --noconfirm clang include-what-you-use
-elif [[ -f /etc/debian_version ]]; then
+elif [ -f /etc/os-release ] && (grep -q "^ID=debian" /etc/os-release || grep -q "^ID_LIKE=.*debian" /etc/os-release); then
   echo "Detected Debian-based Linux - installing dependencies via apt..."
   sudo apt-get update
   sudo apt-get install -y clang-format iwyu
@@ -43,6 +43,8 @@ else
   echo "Warning: Unsupported platform. Please manually install:"
   echo "  - clang-format"
   echo "  - include-what-you-use (iwyu)"
+  echo "Here is /etc/os-release for reference:"
+  cat /etc/os-release || true
   exit 1
 fi
 
