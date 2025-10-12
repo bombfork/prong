@@ -174,4 +174,27 @@ private:
   Configuration config_;
 };
 
+/**
+ * @brief Concrete GridLayout class for use with Panel
+ */
+class GridLayout : public GridLayoutManager<GridLayout> {
+public:
+  // Re-export Configuration for clean API
+  using Configuration = GridLayoutManager<GridLayout>::Configuration;
+
+  GridLayout() = default;
+  ~GridLayout() = default;
+};
+
 } // namespace bombfork::prong::layout
+
+namespace bombfork::prong {
+
+// Forward declare Panel template
+template <typename LayoutT>
+class Panel;
+
+// Type alias for GridPanel - hides CRTP implementation
+using GridPanel = Panel<layout::GridLayoutManager<layout::GridLayout>>;
+
+} // namespace bombfork::prong

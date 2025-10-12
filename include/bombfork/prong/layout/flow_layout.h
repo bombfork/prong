@@ -229,8 +229,22 @@ private:
  */
 class FlowLayout : public FlowLayoutManager<FlowLayout> {
 public:
+  // Re-export Configuration for clean API
+  using Configuration = FlowLayoutManager<FlowLayout>::Configuration;
+
   FlowLayout() = default;
   ~FlowLayout() = default;
 };
 
 } // namespace bombfork::prong::layout
+
+namespace bombfork::prong {
+
+// Forward declare Panel template
+template <typename LayoutT>
+class Panel;
+
+// Type alias for FlowPanel - hides CRTP implementation
+using FlowPanel = Panel<layout::FlowLayoutManager<layout::FlowLayout>>;
+
+} // namespace bombfork::prong
