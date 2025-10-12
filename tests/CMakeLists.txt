@@ -21,52 +21,64 @@ add_custom_target(format-test-sources ALL
     SOURCES ${TEST_SOURCE_FILES}
 )
 
-# Test executable for Color class
-add_executable(test_color test_color.cpp)
-target_link_libraries(test_color PRIVATE prong)
-set_target_properties(test_color PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
-)
-add_dependencies(test_color format-test-sources)
-add_test(NAME ColorTest COMMAND test_color)
+# === Auto-discover and build tests ===
 
-# Test executable for CoordinateSystem class
-add_executable(test_coordinate_system test_coordinate_system.cpp)
-target_link_libraries(test_coordinate_system PRIVATE prong)
-set_target_properties(test_coordinate_system PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
-)
-add_dependencies(test_coordinate_system format-test-sources)
-add_test(NAME CoordinateSystemTest COMMAND test_coordinate_system)
+# Find all test_*.cpp files in the tests directory
+file(GLOB TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp)
 
-# Test executable for Scene class
-add_executable(test_scene test_scene.cpp)
-target_link_libraries(test_scene PRIVATE prong)
-set_target_properties(test_scene PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
-)
-add_dependencies(test_scene format-test-sources)
-add_test(NAME SceneTest COMMAND test_scene)
+# Function to convert test filename to test name
+# Example: test_color.cpp -> ColorTest, test_coordinate_system.cpp -> CoordinateSystemTest
+function(get_test_name test_file out_var)
+    get_filename_component(test_name ${test_file} NAME_WE)
+    # Remove "test_" prefix
+    string(REGEX REPLACE "^test_" "" name_without_prefix ${test_name})
+    # Convert to CamelCase: split by underscore, capitalize each word
+    string(REPLACE "_" ";" name_parts ${name_without_prefix})
+    set(camel_name "")
+    foreach(part ${name_parts})
+        string(SUBSTRING ${part} 0 1 first_char)
+        string(SUBSTRING ${part} 1 -1 rest_chars)
+        string(TOUPPER ${first_char} first_char_upper)
+        string(APPEND camel_name "${first_char_upper}${rest_chars}")
+    endforeach()
+    string(APPEND camel_name "Test")
+    set(${out_var} ${camel_name} PARENT_SCOPE)
+endfunction()
 
-# Test executable for Component class
-add_executable(test_component test_component.cpp)
-target_link_libraries(test_component PRIVATE prong)
-set_target_properties(test_component PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
-)
-add_dependencies(test_component format-test-sources)
-add_test(NAME ComponentTest COMMAND test_component)
+# Build and register each test
+set(TEST_NAMES "")
+foreach(test_source ${TEST_SOURCES})
+    # Get the test executable name (e.g., test_color)
+    get_filename_component(test_exec_name ${test_source} NAME_WE)
 
+    # Get the test name for CTest (e.g., ColorTest)
+    get_test_name(${test_source} test_name)
+
+    # Create executable
+    add_executable(${test_exec_name} ${test_source})
+
+    # Link with prong library
+    target_link_libraries(${test_exec_name} PRIVATE prong)
+
+    # Set properties
+    set_target_properties(${test_exec_name} PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED ON
+        CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
+    )
+
+    # Ensure formatting runs before building
+    add_dependencies(${test_exec_name} format-test-sources)
+
+    # Register test with CTest
+    add_test(NAME ${test_name} COMMAND ${test_exec_name})
+
+    # Track test names for summary
+    list(APPEND TEST_NAMES ${test_name})
+endforeach()
+
+# Print summary
 message(STATUS "Tests configured:")
-message(STATUS "  - ColorTest")
-message(STATUS "  - CoordinateSystemTest")
-message(STATUS "  - SceneTest")
-message(STATUS "  - ComponentTest")
+foreach(test_name ${TEST_NAMES})
+    message(STATUS "  - ${test_name}")
+endforeach()
