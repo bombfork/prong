@@ -90,6 +90,7 @@ add_custom_target(format-library-sources ALL
 
 # Source files (implementation files only - headers are interface)
 set(PRONG_SOURCES
+    src/core/component.cpp
     src/core/coordinate_system.cpp
     src/core/async_callback_queue.cpp
     src/theming/theme_manager.cpp

@@ -54,7 +54,19 @@ set_target_properties(test_scene PROPERTIES
 add_dependencies(test_scene format-test-sources)
 add_test(NAME SceneTest COMMAND test_scene)
 
+# Test executable for Component class
+add_executable(test_component test_component.cpp)
+target_link_libraries(test_component PRIVATE prong)
+set_target_properties(test_component PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
+)
+add_dependencies(test_component format-test-sources)
+add_test(NAME ComponentTest COMMAND test_component)
+
 message(STATUS "Tests configured:")
 message(STATUS "  - ColorTest")
 message(STATUS "  - CoordinateSystemTest")
 message(STATUS "  - SceneTest")
+message(STATUS "  - ComponentTest")

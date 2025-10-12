@@ -1,13 +1,17 @@
 #pragma once
 
-#include <bombfork/prong/rendering/irenderer.h>
-#include <bombfork/prong/theming/color.h>
+#include <bombfork/prong/layout/layout_manager.h>
 
 #include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
+
+namespace bombfork::prong::rendering {
+class IRenderer;
+}
 
 namespace bombfork::prong {
 
@@ -46,6 +50,11 @@ protected:
   // Parent/child relationships
   Component* parent = nullptr;
   std::vector<std::unique_ptr<Component>> children;
+
+  // Layout management
+  std::shared_ptr<void> layoutManager; // Type-erased layout manager
+  std::function<void(std::vector<std::shared_ptr<layout::Component>>&, const layout::Dimensions&)> layoutFunc;
+  bool layoutInvalid = true;
 
   // Callbacks
   FocusCallback focusCallback;
@@ -170,6 +179,7 @@ public:
       child->parent = this;
       child->setRenderer(renderer);
       children.push_back(std::move(child));
+      invalidateLayout();
     }
   }
 
@@ -188,6 +198,52 @@ public:
   Component* getParent() const { return parent; }
 
   const std::vector<std::unique_ptr<Component>>& getChildren() const { return children; }
+
+  // === Layout Management ===
+
+  /**
+   * @brief Set the layout manager for this component
+   * @tparam LayoutT The layout manager type (must derive from LayoutManager<LayoutT>)
+   * @param layout Shared pointer to the layout manager
+   */
+  template <typename LayoutT>
+  void setLayout(std::shared_ptr<LayoutT> layout) {
+    layoutManager = layout;
+    // Store a type-erased function that calls the layout manager's layout method
+    layoutFunc = [layout](std::vector<std::shared_ptr<layout::Component>>& components,
+                          const layout::Dimensions& availableSpace) { layout->layout(components, availableSpace); };
+    invalidateLayout();
+  }
+
+  /**
+   * @brief Clear the layout manager
+   */
+  void clearLayout() {
+    layoutManager.reset();
+    layoutFunc = nullptr;
+    invalidateLayout();
+  }
+
+  /**
+   * @brief Check if this component has a layout manager
+   */
+  bool hasLayout() const { return layoutManager != nullptr; }
+
+  /**
+   * @brief Mark the layout as invalid, requiring recalculation
+   */
+  void invalidateLayout() { layoutInvalid = true; }
+
+  /**
+   * @brief Perform layout on children if a layout manager is set
+   */
+  void performLayout();
+
+  /**
+   * @brief Get the preferred size of this component
+   * @return Dimensions struct with preferred width and height
+   */
+  virtual layout::Dimensions getPreferredSize() const { return {width, height}; }
 
   // === Event Handling ===
 
