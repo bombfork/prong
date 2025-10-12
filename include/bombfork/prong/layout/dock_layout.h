@@ -34,7 +34,7 @@ public:
 
   struct DockRegion {
     DockArea area;
-    std::vector<std::shared_ptr<Component>> components;
+    std::vector<bombfork::prong::Component*> components;
     DockSplitterConfig splitterConfig;
     std::optional<size_t> activeComponentIndex;
   };
@@ -48,30 +48,30 @@ public:
 
   void addRegion(const DockRegion& region) { regions_.push_back(region); }
 
-  Dimensions measureLayout(const std::vector<std::shared_ptr<Component>>& components) override {
+  Dimensions measureLayout(const std::vector<bombfork::prong::Component*>& components) override {
     return calculateDockDimensions(components);
   }
 
-  void layout(std::vector<std::shared_ptr<Component>>& components, const Dimensions& availableSpace) override {
+  void layout(std::vector<bombfork::prong::Component*>& components, const Dimensions& availableSpace) override {
     performDockLayout(components, availableSpace);
   }
 
 private:
-  Dimensions calculateDockDimensions(const std::vector<std::shared_ptr<Component>>& components) {
+  Dimensions calculateDockDimensions(const std::vector<bombfork::prong::Component*>& components) {
     Dimensions totalDimensions{0, 0};
 
     // Measure region components
     for (const auto& region : regions_) {
-      for (const auto& component : region.components) {
-        auto componentDims = component->measure();
+      for (const auto* component : region.components) {
+        auto componentDims = component->getPreferredSize();
         totalDimensions.width = std::max(totalDimensions.width, componentDims.width);
         totalDimensions.height = std::max(totalDimensions.height, componentDims.height);
       }
     }
 
     // Also measure any components passed directly
-    for (const auto& component : components) {
-      auto componentDims = component->measure();
+    for (const auto* component : components) {
+      auto componentDims = component->getPreferredSize();
       totalDimensions.width = std::max(totalDimensions.width, componentDims.width);
       totalDimensions.height = std::max(totalDimensions.height, componentDims.height);
     }
@@ -79,7 +79,7 @@ private:
     return totalDimensions;
   }
 
-  void performDockLayout(std::vector<std::shared_ptr<Component>>& components, const Dimensions& availableSpace) {
+  void performDockLayout(std::vector<bombfork::prong::Component*>& components, const Dimensions& availableSpace) {
     // If no regions configured and we have components, create a center region
     if (regions_.empty() && !components.empty()) {
       DockRegion centerRegion;
@@ -164,12 +164,14 @@ private:
 
       // Position active component(s) in this region
       if (region.activeComponentIndex.has_value() && *region.activeComponentIndex < region.components.size()) {
-        auto& component = region.components[*region.activeComponentIndex];
-        component->setBounds({regionX, regionY, regionWidth, regionHeight});
+        auto* component = region.components[*region.activeComponentIndex];
+        component->setBounds(static_cast<int>(regionX), static_cast<int>(regionY), static_cast<int>(regionWidth),
+                             static_cast<int>(regionHeight));
       } else if (!region.components.empty()) {
         // If no active component specified, use the first one
-        auto& component = region.components[0];
-        component->setBounds({regionX, regionY, regionWidth, regionHeight});
+        auto* component = region.components[0];
+        component->setBounds(static_cast<int>(regionX), static_cast<int>(regionY), static_cast<int>(regionWidth),
+                             static_cast<int>(regionHeight));
       }
     }
   }

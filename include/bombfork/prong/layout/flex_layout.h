@@ -67,19 +67,19 @@ public:
 
   void setItemProperties(const std::vector<FlexItemProperties>& props) { itemProperties_ = props; }
 
-  Dimensions measureLayout(const std::vector<std::shared_ptr<Component>>& components) override {
+  Dimensions measureLayout(const std::vector<bombfork::prong::Component*>& components) override {
     // Implement comprehensive flex measurement strategy
     // Consider grow/shrink factors, direction, wrapping
     return calculateFlexDimensions(components);
   }
 
-  void layout(std::vector<std::shared_ptr<Component>>& components, const Dimensions& availableSpace) override {
+  void layout(std::vector<bombfork::prong::Component*>& components, const Dimensions& availableSpace) override {
     // Implement flex layout algorithm
     performFlexLayout(components, availableSpace);
   }
 
 private:
-  Dimensions calculateFlexDimensions(const std::vector<std::shared_ptr<Component>>& components) {
+  Dimensions calculateFlexDimensions(const std::vector<bombfork::prong::Component*>& components) {
     if (components.empty())
       return {0, 0};
 
@@ -87,8 +87,8 @@ private:
     float crossAxisSize = 0.0f;
     float totalGrowFactor = 0.0f;
 
-    for (const auto& component : components) {
-      auto componentDims = component->measure();
+    for (const auto* component : components) {
+      auto componentDims = component->getPreferredSize();
 
       if (config_.direction == FlexDirection::ROW || config_.direction == FlexDirection::ROW_REVERSE) {
         mainAxisSize += static_cast<float>(componentDims.width);
@@ -114,7 +114,7 @@ private:
              : Dimensions{static_cast<int>(crossAxisSize), static_cast<int>(mainAxisSize)};
   }
 
-  void performFlexLayout(std::vector<std::shared_ptr<Component>>& components, const Dimensions& availableSpace) {
+  void performFlexLayout(std::vector<bombfork::prong::Component*>& components, const Dimensions& availableSpace) {
     if (components.empty())
       return;
 
@@ -129,7 +129,7 @@ private:
     std::vector<float> growFactors;
 
     for (size_t i = 0; i < components.size(); ++i) {
-      auto dims = components[i]->measure();
+      auto dims = components[i]->getPreferredSize();
       componentDimensions.push_back(dims);
 
       float componentMainAxisSize = isHorizontal ? static_cast<float>(dims.width) : static_cast<float>(dims.height);
@@ -148,7 +148,7 @@ private:
     // Calculate starting position based on justify content
     float currentPosition = calculateJustifyStartPosition(totalMainAxisSize, mainAxisTotal, components.size());
     for (size_t i = 0; i < components.size(); ++i) {
-      auto& component = components[i];
+      auto* component = components[i];
       auto& dims = componentDimensions[i];
 
       // Determine main axis size
@@ -167,13 +167,15 @@ private:
                     ? (mainAxisTotal - currentPosition - componentMainAxisSize)
                     : currentPosition;
         float y = determineCrossAxisPosition(componentCrossAxisSize, crossAxisTotal);
-        component->setBounds({x, y, componentMainAxisSize, componentCrossAxisSize});
+        component->setBounds(static_cast<int>(x), static_cast<int>(y), static_cast<int>(componentMainAxisSize),
+                             static_cast<int>(componentCrossAxisSize));
       } else {
         float x = determineCrossAxisPosition(componentCrossAxisSize, crossAxisTotal);
         float y = config_.direction == FlexDirection::COLUMN_REVERSE
                     ? (mainAxisTotal - currentPosition - componentMainAxisSize)
                     : currentPosition;
-        component->setBounds({x, y, componentCrossAxisSize, componentMainAxisSize});
+        component->setBounds(static_cast<int>(x), static_cast<int>(y), static_cast<int>(componentCrossAxisSize),
+                             static_cast<int>(componentMainAxisSize));
       }
 
       // Update position for next component based on justify content

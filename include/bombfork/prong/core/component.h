@@ -18,23 +18,6 @@ namespace bombfork::prong {
 // Forward declaration
 class Component;
 
-namespace detail {
-/**
- * @brief Adapter class that wraps a prong::Component to provide layout::Component interface
- */
-class ComponentAdapter : public layout::Component {
-public:
-  explicit ComponentAdapter(bombfork::prong::Component* component) : prongComponent_(component) {}
-
-  layout::Dimensions measure() const override;
-  layout::Dimensions measureLayout() const override { return measure(); }
-  void setBounds(const layout::Rect& bounds) override;
-
-private:
-  bombfork::prong::Component* prongComponent_;
-};
-} // namespace detail
-
 /**
  * @brief Base class for all new UI system components
  *
@@ -73,7 +56,7 @@ protected:
 
   // Layout management
   std::shared_ptr<void> layoutManager; // Type-erased layout manager
-  std::function<void(std::vector<std::shared_ptr<layout::Component>>&, const layout::Dimensions&)> layoutFunc;
+  std::function<void(std::vector<bombfork::prong::Component*>&, const layout::Dimensions&)> layoutFunc;
   bool layoutInvalid = true;
 
   // Callbacks
@@ -230,7 +213,7 @@ public:
   void setLayout(std::shared_ptr<LayoutT> layout) {
     layoutManager = layout;
     // Store a type-erased function that calls the layout manager's layout method
-    layoutFunc = [layout](std::vector<std::shared_ptr<layout::Component>>& components,
+    layoutFunc = [layout](std::vector<bombfork::prong::Component*>& components,
                           const layout::Dimensions& availableSpace) { layout->layout(components, availableSpace); };
     invalidateLayout();
   }
@@ -265,13 +248,13 @@ public:
     // Mark layout as valid first to avoid infinite recursion
     layoutInvalid = false;
 
-    // Create adapter wrappers for children to match layout::Component interface
-    std::vector<std::shared_ptr<layout::Component>> adaptedChildren;
-    adaptedChildren.reserve(children.size());
+    // Create vector of raw pointers to children
+    std::vector<bombfork::prong::Component*> childPointers;
+    childPointers.reserve(children.size());
 
     for (auto& child : children) {
       if (child) {
-        adaptedChildren.push_back(std::make_shared<detail::ComponentAdapter>(child.get()));
+        childPointers.push_back(child.get());
       }
     }
 
@@ -279,7 +262,7 @@ public:
     layout::Dimensions availableSpace{width, height};
 
     // Call the layout manager through the type-erased function
-    layoutFunc(adaptedChildren, availableSpace);
+    layoutFunc(childPointers, availableSpace);
 
     // Recursively perform layout on children
     for (auto& child : children) {
@@ -446,23 +429,5 @@ public:
   const std::string& getDebugName() const { return debugName; }
   void setDebugName(const std::string& name) { debugName = name; }
 };
-
-// === Inline implementations for detail::ComponentAdapter ===
-
-inline layout::Dimensions detail::ComponentAdapter::measure() const {
-  if (prongComponent_) {
-    auto preferred = prongComponent_->getPreferredSize();
-    return {static_cast<int>(preferred.width), static_cast<int>(preferred.height)};
-  }
-  return {0, 0};
-}
-
-inline void detail::ComponentAdapter::setBounds(const layout::Rect& bounds) {
-  if (prongComponent_) {
-    // bombfork::prong::Component::setBounds takes 4 ints, not a Rect
-    prongComponent_->setBounds(static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.width),
-                               static_cast<int>(bounds.height));
-  }
-}
 
 } // namespace bombfork::prong

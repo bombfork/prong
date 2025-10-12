@@ -35,13 +35,12 @@ public:
 template <typename DerivedT>
 class TestLayoutManager : public layout::LayoutManager<DerivedT> {
 public:
-  layout::Dimensions measureLayout(const std::vector<std::shared_ptr<layout::Component>>& components) override {
+  layout::Dimensions measureLayout(const std::vector<Component*>& components) override {
     (void)components;
     return {100, 50};
   }
 
-  void layout(std::vector<std::shared_ptr<layout::Component>>& components,
-              const layout::Dimensions& availableSpace) override {
+  void layout(std::vector<Component*>& components, const layout::Dimensions& availableSpace) override {
     (void)components;
     (void)availableSpace;
   }

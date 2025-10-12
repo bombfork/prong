@@ -67,11 +67,11 @@ public:
    * @param components List of components to measure
    * @return Calculated dimensions
    */
-  Dimensions measureLayout(const std::vector<std::shared_ptr<Component>>& components) override {
+  Dimensions measureLayout(const std::vector<bombfork::prong::Component*>& components) override {
     Dimensions totalSize{0, 0};
 
-    for (const auto& component : components) {
-      auto componentSize = component->measure();
+    for (const auto* component : components) {
+      auto componentSize = component->getPreferredSize();
 
       if (config_.orientation == StackOrientation::VERTICAL) {
         totalSize.height += componentSize.height + config_.spacing;
@@ -96,15 +96,15 @@ public:
    * @param components List of components to layout
    * @param availableSpace Total available space
    */
-  void layout(std::vector<std::shared_ptr<Component>>& components, const Dimensions& availableSpace) override {
+  void layout(std::vector<bombfork::prong::Component*>& components, const Dimensions& availableSpace) override {
     if (components.empty())
       return;
 
     (void)measureLayout(components); // Unused but kept for potential future use
     float currentOffset = 0.0f;
 
-    for (auto& component : components) {
-      auto componentSize = component->measure();
+    for (auto* component : components) {
+      auto componentSize = component->getPreferredSize();
       Rect componentBounds{0, 0, static_cast<float>(componentSize.width), static_cast<float>(componentSize.height)};
 
       // Determine main and cross axis sizes
@@ -146,7 +146,8 @@ public:
       }
 
       // Set component bounds and advance offset
-      component->setBounds(componentBounds);
+      component->setBounds(static_cast<int>(componentBounds.x), static_cast<int>(componentBounds.y),
+                           static_cast<int>(componentBounds.width), static_cast<int>(componentBounds.height));
       currentOffset += mainSize + config_.spacing;
     }
   }

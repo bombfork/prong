@@ -74,21 +74,21 @@ public:
    * @param components List of components to measure
    * @return Calculated dimensions
    */
-  Dimensions measureLayout(const std::vector<std::shared_ptr<Component>>& components) override {
+  Dimensions measureLayout(const std::vector<bombfork::prong::Component*>& components) override {
     if (components.empty())
       return {0, 0};
 
     std::vector<Dimensions> lineDimensions;
-    std::vector<std::shared_ptr<Component>> currentLine;
+    size_t currentLineCount = 0;
     float currentLineWidth = 0.0f;
     float currentLineHeight = 0.0f;
     float totalHeight = 0.0f;
     size_t maxItemsPerLine = config_.maxItemsPerLine > 0 ? config_.maxItemsPerLine : std::numeric_limits<size_t>::max();
 
-    for (const auto& component : components) {
-      auto componentSize = component->measure();
+    for (const auto* component : components) {
+      auto componentSize = component->getPreferredSize();
 
-      if (currentLine.size() >= maxItemsPerLine ||
+      if (currentLineCount >= maxItemsPerLine ||
           (currentLineWidth + componentSize.width + config_.spacing >
            (config_.horizontal ? std::numeric_limits<float>::max() : maxLineWidth_))) {
 
@@ -98,18 +98,18 @@ public:
         totalHeight += currentLineHeight + config_.crossSpacing;
 
         // Reset line trackers
-        currentLine.clear();
+        currentLineCount = 0;
         currentLineWidth = 0.0f;
         currentLineHeight = 0.0f;
       }
 
-      currentLine.push_back(component);
+      currentLineCount++;
       currentLineWidth += componentSize.width + config_.spacing;
       currentLineHeight = std::max(currentLineHeight, static_cast<float>(componentSize.height));
     }
 
     // Handle last line
-    if (!currentLine.empty()) {
+    if (currentLineCount > 0) {
       lineDimensions.push_back(
         {static_cast<int>(currentLineWidth - config_.spacing), static_cast<int>(currentLineHeight)});
       totalHeight += currentLineHeight;
@@ -129,19 +129,19 @@ public:
    * @param components List of components to layout
    * @param availableSpace Total available space
    */
-  void layout(std::vector<std::shared_ptr<Component>>& components, const Dimensions& availableSpace) override {
+  void layout(std::vector<bombfork::prong::Component*>& components, const Dimensions& availableSpace) override {
     if (components.empty())
       return;
 
-    std::vector<std::vector<std::shared_ptr<Component>>> lines;
-    std::vector<std::shared_ptr<Component>> currentLine;
+    std::vector<std::vector<bombfork::prong::Component*>> lines;
+    std::vector<bombfork::prong::Component*> currentLine;
     float currentLineWidth = 0.0f;
     float currentLineHeight = 0.0f;
     size_t maxItemsPerLine = config_.maxItemsPerLine > 0 ? config_.maxItemsPerLine : std::numeric_limits<size_t>::max();
 
     // Group components into lines
-    for (auto& component : components) {
-      auto componentSize = component->measure();
+    for (auto* component : components) {
+      auto componentSize = component->getPreferredSize();
 
       if (currentLine.size() >= maxItemsPerLine ||
           (currentLineWidth + componentSize.width + config_.spacing >
@@ -166,17 +166,18 @@ public:
     float currentY = 0.0f;
     for (auto& line : lines) {
       float lineWidth = std::accumulate(line.begin(), line.end(), 0.0f,
-                                        [this](float acc, const auto& component) {
-                                          return acc + component->measure().width + config_.spacing;
+                                        [this](float acc, const auto* component) {
+                                          return acc + component->getPreferredSize().width + config_.spacing;
                                         }) -
                         config_.spacing;
 
       float currentX = 0.0f;
-      float lineHeight =
-        (*std::max_element(line.begin(), line.end(),
-                           [](const auto& a, const auto& b) { return a->measure().height < b->measure().height; }))
-          ->measure()
-          .height;
+      float lineHeight = (*std::max_element(line.begin(), line.end(),
+                                            [](const auto* a, const auto* b) {
+                                              return a->getPreferredSize().height < b->getPreferredSize().height;
+                                            }))
+                           ->getPreferredSize()
+                           .height;
 
       // Horizontal alignment
       switch (config_.mainAlignment) {
@@ -191,8 +192,8 @@ public:
         break;
       }
 
-      for (auto& component : line) {
-        auto componentSize = component->measure();
+      for (auto* component : line) {
+        auto componentSize = component->getPreferredSize();
         Rect bounds{currentX, currentY, static_cast<float>(componentSize.width),
                     static_cast<float>(componentSize.height)};
 
@@ -208,7 +209,8 @@ public:
           break;
         }
 
-        component->setBounds(bounds);
+        component->setBounds(static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.width),
+                             static_cast<int>(bounds.height));
         currentX += componentSize.width + config_.spacing;
       }
 
