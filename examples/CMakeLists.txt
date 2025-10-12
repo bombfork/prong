@@ -57,36 +57,36 @@ target_include_directories(stb_headers INTERFACE ${stb_SOURCE_DIR})
 
 message(STATUS "  STB: ${stb_SOURCE_DIR}")
 
-# === Simple App Example ===
+# === Demo App Example ===
 
-add_executable(prong_simple_app
-    simple_app/main.cpp
+add_executable(prong_demo_app
+    demo_app/main.cpp
     adapters/stb_impl.cpp
 )
 
-target_link_libraries(prong_simple_app PRIVATE
+target_link_libraries(prong_demo_app PRIVATE
     bombfork::prong
     glfw
     OpenGL::GL
     stb_headers
 )
 
-target_include_directories(prong_simple_app PRIVATE
+target_include_directories(prong_demo_app PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Set C++20 standard
-target_compile_features(prong_simple_app PRIVATE cxx_std_20)
+target_compile_features(prong_demo_app PRIVATE cxx_std_20)
 
 # Suppress unused function warnings for STB (header-only library with many utilities)
-target_compile_options(prong_simple_app PRIVATE -Wno-unused-function)
+target_compile_options(prong_demo_app PRIVATE -Wno-unused-function)
 
 # Make example depend on formatting target
-add_dependencies(prong_simple_app format-example-sources)
+add_dependencies(prong_demo_app format-example-sources)
 
 # Platform-specific settings
 if(APPLE)
-    target_link_libraries(prong_simple_app PRIVATE
+    target_link_libraries(prong_demo_app PRIVATE
         "-framework Cocoa"
         "-framework IOKit"
         "-framework CoreFoundation"
@@ -94,12 +94,12 @@ if(APPLE)
 endif()
 
 # Copy to examples directory in build
-set_target_properties(prong_simple_app PROPERTIES
+set_target_properties(prong_demo_app PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples"
 )
 
 # Copy fonts folder to build directory
-add_custom_command(TARGET prong_simple_app POST_BUILD
+add_custom_command(TARGET prong_demo_app POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/fonts
         ${CMAKE_BINARY_DIR}/examples/fonts
@@ -107,5 +107,5 @@ add_custom_command(TARGET prong_simple_app POST_BUILD
     VERBATIM
 )
 
-message(STATUS "  + prong_simple_app")
+message(STATUS "  + prong_demo_app")
 message(STATUS "")

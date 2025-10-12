@@ -208,6 +208,8 @@ private:
   }
 
   float calculateJustifyGap(float contentSize, float availableSize, size_t itemCount, size_t currentIndex) {
+    (void)currentIndex; // Unused - may be used in future for per-item spacing
+
     if (itemCount <= 1)
       return config_.gap;
 
@@ -260,6 +262,15 @@ private:
 
   Configuration config_;
   std::vector<FlexItemProperties> itemProperties_;
+};
+
+/**
+ * @brief Concrete FlexLayout class for use with Panel
+ */
+class FlexLayout : public FlexLayoutManager<FlexLayout> {
+public:
+  FlexLayout() = default;
+  ~FlexLayout() = default;
 };
 
 } // namespace bombfork::prong::layout

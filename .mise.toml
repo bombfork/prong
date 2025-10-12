@@ -153,5 +153,5 @@ cd {{config_root}}
 echo ""
 echo "Starting Prong UI Framework Demo..."
 echo "====================================="
-./build/examples/prong_simple_app
+./build/examples/prong_demo_app
 """
