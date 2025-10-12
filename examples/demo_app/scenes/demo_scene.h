@@ -86,19 +86,34 @@ private:
 
     // === ComponentBuilder Pattern (Recommended) ===
     // Build UI using fluent ComponentBuilder API
-    // Note: No withBounds() needed - layout managers handle sizing!
+    //
+    // CURRENT LIMITATION: Components don't yet calculate intrinsic sizes
+    // (e.g., Button doesn't auto-size from text, TextInput doesn't have default height).
+    // For now, we provide minimal size hints where needed. Future improvement will add
+    // intrinsic sizing so components can be created without any size specification.
+    //
+    // SIZE SPECIFICATIONS EXPLAINED:
+    // - withSize(0, height): Height needed for vertical layout, width stretched by FlexAlign::STRETCH
+    // - withSize(width, 0): Width needed for horizontal layout, height stretched by FlexAlign::STRETCH
+    // - No withSize(): Component needs intrinsic size calculation (TODO: implement)
+    //
+    // The layout handles:
+    // - Cross-axis sizing (perpendicular to flex direction) via FlexAlign::STRETCH
+    // - Main-axis positioning and spacing via FlexJustify
+    // - Position calculation (no manual x,y coordinates needed)
 
-    // Text Input - only specify height, width filled by layout
+    // Text Input - height for line height, width stretched by layout
     auto textInput =
       create<TextInput>()
-        .withSize(0, 30)
+        .withSize(0, 30) // Height: 30px line + padding; Width: filled by FlexAlign::STRETCH
         .withPlaceholder("Enter text here...")
         .withTextChangedCallback([](const std::string& text) { std::cout << "Text changed: " << text << std::endl; })
         .build();
     textInputPtr = textInput.get();
 
-    // Add Button - no size needed, layout decides
+    // Buttons - TODO: should calculate size from text + padding automatically
     auto addButton = create<Button>("Add Item")
+                       .withSize(120, 35)
                        .withClickCallback([this]() {
                          clickCount++;
                          std::string newItem = "Item " + std::to_string(clickCount);
@@ -113,8 +128,8 @@ private:
                        })
                        .build();
 
-    // Clear Button - no size needed, layout decides
     auto clearButton = create<Button>("Clear")
+                         .withSize(120, 35)
                          .withClickCallback([this]() {
                            if (listBoxPtr) {
                              listBoxPtr->clearItems();
@@ -123,16 +138,17 @@ private:
                          })
                          .build();
 
-    // Button Row - only specify height, layout handles button widths
+    // Button Row container - height for buttons, width stretched by parent
     auto buttonRow = create<FlexPanel>()
-                       .withSize(0, 35)
+                       .withSize(0, 35) // Height: match button height; Width: filled by parent
                        .withLayout(buttonRowLayout)
                        .withChildren(std::move(addButton), std::move(clearButton))
                        .build();
     buttonRow->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f)); // Transparent
 
-    // Info Button - no size needed, layout stretches to fill width
+    // Info Button - width stretched by FlexAlign::STRETCH, height from base size
     auto infoButton = create<Button>("Show Info")
+                        .withSize(0, 35) // Height: 35px; Width: filled by FlexAlign::STRETCH
                         .withClickCallback([]() {
                           std::cout << "\n=== Prong UI Framework ===" << std::endl;
                           std::cout << "A modern C++20 UI framework" << std::endl;
@@ -147,12 +163,13 @@ private:
                         })
                         .build();
 
-    // Spacer - grows to fill remaining space, pushing exit button to bottom
-    auto spacer = create<Panel<>>().build();
+    // Spacer - no size, grows to fill all remaining vertical space
+    auto spacer = create<Panel<>>().withSize(0, 1).build();             // Minimal height, grows with flex
     spacer->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f)); // Transparent
 
-    // Exit Button - no size needed, layout handles it
+    // Exit Button - width stretched, fixed height
     auto exitButton = create<Button>("Exit Application")
+                        .withSize(0, 35) // Height: 35px; Width: filled by FlexAlign::STRETCH
                         .withClickCallback([this]() {
                           std::cout << "Exiting application..." << std::endl;
                           if (glfwWindow) {
