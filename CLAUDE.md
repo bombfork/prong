@@ -166,3 +166,4 @@ The namespace for the installed target is `bombfork::prong`.
 - Use gh cli to interact with the github repo when needed
 - ALWAYS use ninja generator when using cmake.
 - NEVER bypass iwyu or clang-format
+- NEVER bypass git hooks
