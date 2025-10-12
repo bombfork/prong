@@ -124,7 +124,7 @@ private:
                          .build();
 
     // Button Row - only specify height, layout handles button widths
-    auto buttonRow = create<Panel<FlexLayoutManager<FlexLayout>>>()
+    auto buttonRow = create<FlexPanel>()
                        .withSize(0, 35)
                        .withLayout(buttonRowLayout)
                        .withChildren(std::move(addButton), std::move(clearButton))
@@ -164,7 +164,7 @@ private:
     exitButtonPtr = exitButton.get();
 
     // Left Panel - Fixed width, height stretched by parent layout
-    auto leftPanel = create<Panel<FlexLayoutManager<FlexLayout>>>()
+    auto leftPanel = create<FlexPanel>()
                        .withSize(300, 0)
                        .withLayout(leftLayout)
                        .withChildren(std::move(textInput), std::move(buttonRow), std::move(infoButton),
@@ -180,7 +180,7 @@ private:
     // === Traditional Pattern (also supported, shown for comparison) ===
     // Right Panel - Display Area using traditional approach
 
-    auto rightPanel = std::make_unique<Panel<FlexLayoutManager<FlexLayout>>>();
+    auto rightPanel = std::make_unique<FlexPanel>();
     rightPanel->setSize(0, 0); // Both dimensions filled by parent layout
     rightPanel->setBackgroundColor(theming::Color(0.18f, 0.18f, 0.2f, 1.0f));
     rightPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
@@ -209,17 +209,14 @@ private:
     listBoxPtr = listBox.get();
     rightPanel->addChild(std::move(listBox));
 
-    // === Main Panel - Top-level container, needs fixed size ===
-    auto mainPanel = create<Panel<FlexLayoutManager<FlexLayout>>>()
-                       .withSize(1280, 720)
-                       .withLayout(mainLayout)
-                       .withChildren(std::move(leftPanel), std::move(rightPanel))
-                       .build();
+    // === Main Panel - Inherits size from Scene (which gets it from window) ===
+    auto mainPanel =
+      create<FlexPanel>().withLayout(mainLayout).withChildren(std::move(leftPanel), std::move(rightPanel)).build();
 
     mainPanel->setBackgroundColor(theming::Color(0.08f, 0.08f, 0.1f, 1.0f));
     mainPanel->setPadding(20);
 
-    // Add main panel to scene
+    // Add main panel to scene (will be sized by onWindowResize)
     addChild(std::move(mainPanel));
 
     // Print welcome message

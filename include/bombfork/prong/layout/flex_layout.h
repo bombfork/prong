@@ -281,3 +281,14 @@ public:
 };
 
 } // namespace bombfork::prong::layout
+
+namespace bombfork::prong {
+
+// Forward declare Panel template
+template <typename LayoutT>
+class Panel;
+
+// Type alias for FlexPanel - hides the CRTP implementation
+using FlexPanel = Panel<layout::FlexLayoutManager<layout::FlexLayout>>;
+
+} // namespace bombfork::prong
