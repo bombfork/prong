@@ -60,7 +60,7 @@ public:
    * @param components List of components to measure
    * @return Calculated dimensions
    */
-  Dimensions measureLayout(const std::vector<std::shared_ptr<Component>>& components) override {
+  Dimensions measureLayout(const std::vector<bombfork::prong::Component*>& components) override {
     size_t rows = calculateRows(components);
     size_t cols = config_.columns;
 
@@ -69,7 +69,7 @@ public:
 
     // Measure cell sizes
     for (size_t i = 0; i < components.size(); ++i) {
-      auto componentSize = components[i]->measure();
+      auto componentSize = components[i]->getPreferredSize();
       size_t row = i / cols;
       size_t col = i % cols;
 
@@ -92,7 +92,7 @@ public:
    * @param components List of components to layout
    * @param availableSpace Total available space
    */
-  void layout(std::vector<std::shared_ptr<Component>>& components, const Dimensions& availableSpace) override {
+  void layout(std::vector<bombfork::prong::Component*>& components, const Dimensions& availableSpace) override {
     size_t rows = calculateRows(components);
     size_t cols = config_.columns;
 
@@ -101,7 +101,7 @@ public:
 
     // First pass: determine cell sizes
     for (size_t i = 0; i < components.size(); ++i) {
-      auto componentSize = components[i]->measure();
+      auto componentSize = components[i]->getPreferredSize();
       size_t row = i / cols;
       size_t col = i % cols;
 
@@ -127,8 +127,8 @@ public:
         if (index >= components.size())
           break;
 
-        auto& component = components[index];
-        auto componentSize = component->measure();
+        auto* component = components[index];
+        auto componentSize = component->getPreferredSize();
 
         Rect cellBounds{currentX, currentY, columnWidths[col], rowHeights[row]};
 
@@ -151,7 +151,8 @@ public:
           break;
         }
 
-        component->setBounds(cellBounds);
+        component->setBounds(static_cast<int>(cellBounds.x), static_cast<int>(cellBounds.y),
+                             static_cast<int>(cellBounds.width), static_cast<int>(cellBounds.height));
         currentX += columnWidths[col] + config_.horizontalSpacing;
       }
       currentY += rowHeights[row] + config_.verticalSpacing;
@@ -164,7 +165,7 @@ private:
    * @param components List of components
    * @return Number of rows
    */
-  size_t calculateRows(const std::vector<std::shared_ptr<Component>>& components) const {
+  size_t calculateRows(const std::vector<bombfork::prong::Component*>& components) const {
     if (config_.rows > 0)
       return config_.rows;
     return std::ceil(static_cast<float>(components.size()) / config_.columns);

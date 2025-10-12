@@ -3,10 +3,12 @@
 #include <memory>
 #include <vector>
 
-namespace bombfork::prong::layout {
-
-// Forward declarations
+namespace bombfork::prong {
+// Forward declaration of prong::Component
 class Component;
+} // namespace bombfork::prong
+
+namespace bombfork::prong::layout {
 
 /**
  * @brief Basic dimensions structure
@@ -28,6 +30,10 @@ struct Rect {
 
 /**
  * @brief Base layout manager class using CRTP
+ *
+ * Layout managers now work directly with prong::Component pointers.
+ * Components are owned by their parent via unique_ptr and passed to
+ * layout managers as raw pointers for positioning.
  */
 template <typename DerivedT>
 class LayoutManager {
@@ -37,28 +43,15 @@ public:
   /**
    * @brief Measure required space for components
    */
-  virtual Dimensions measureLayout(const std::vector<std::shared_ptr<Component>>& components) = 0;
+  virtual Dimensions measureLayout(const std::vector<bombfork::prong::Component*>& components) = 0;
 
   /**
    * @brief Layout components within available space
    */
-  virtual void layout(std::vector<std::shared_ptr<Component>>& components, const Dimensions& availableSpace) = 0;
+  virtual void layout(std::vector<bombfork::prong::Component*>& components, const Dimensions& availableSpace) = 0;
 
 protected:
   LayoutManager() = default;
-};
-
-/**
- * @brief Minimal component interface for layout testing
- */
-class Component {
-public:
-  virtual ~Component() = default;
-  virtual Dimensions measure() const { return {100, 30}; }
-  virtual Dimensions measureLayout() const { return measure(); }
-  virtual void setBounds(const Rect& bounds) { (void)bounds; }
-  virtual void setPosition(const Rect& position) { setBounds(position); }
-  virtual void setSize(const Rect& size) { setBounds(size); }
 };
 
 } // namespace bombfork::prong::layout
