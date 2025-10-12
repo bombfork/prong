@@ -69,36 +69,36 @@ private:
 
     // Configure horizontal flex layout for main panel
     auto mainLayout = std::make_shared<FlexLayout>();
-    mainLayout->configure(FlexLayoutManager<FlexLayout>::Configuration{
+    mainLayout->configure(FlexLayout::Configuration{
       .direction = FlexDirection::ROW, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 20.0f});
 
     // Configure vertical flex layout for left panel
     auto leftLayout = std::make_shared<FlexLayout>();
-    leftLayout->configure(FlexLayoutManager<FlexLayout>::Configuration{
+    leftLayout->configure(FlexLayout::Configuration{
       .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 10.0f});
 
     // Configure horizontal flex layout for button row
     auto buttonRowLayout = std::make_shared<FlexLayout>();
-    buttonRowLayout->configure(FlexLayoutManager<FlexLayout>::Configuration{.direction = FlexDirection::ROW,
-                                                                            .justify = FlexJustify::SPACE_BETWEEN,
-                                                                            .align = FlexAlign::STRETCH,
-                                                                            .gap = 10.0f});
+    buttonRowLayout->configure(FlexLayout::Configuration{.direction = FlexDirection::ROW,
+                                                         .justify = FlexJustify::SPACE_BETWEEN,
+                                                         .align = FlexAlign::STRETCH,
+                                                         .gap = 10.0f});
 
     // === ComponentBuilder Pattern (Recommended) ===
     // Build UI using fluent ComponentBuilder API
+    // Note: No withBounds() needed - layout managers handle sizing!
 
-    // Text Input - build first, then capture pointer
+    // Text Input - only specify height, width filled by layout
     auto textInput =
       create<TextInput>()
-        .withBounds(0, 0, 0, 30)
+        .withSize(0, 30)
         .withPlaceholder("Enter text here...")
         .withTextChangedCallback([](const std::string& text) { std::cout << "Text changed: " << text << std::endl; })
         .build();
     textInputPtr = textInput.get();
 
-    // Add Button
+    // Add Button - no size needed, layout decides
     auto addButton = create<Button>("Add Item")
-                       .withBounds(0, 0, 120, 35)
                        .withClickCallback([this]() {
                          clickCount++;
                          std::string newItem = "Item " + std::to_string(clickCount);
@@ -113,9 +113,8 @@ private:
                        })
                        .build();
 
-    // Clear Button
+    // Clear Button - no size needed, layout decides
     auto clearButton = create<Button>("Clear")
-                         .withBounds(0, 0, 120, 35)
                          .withClickCallback([this]() {
                            if (listBoxPtr) {
                              listBoxPtr->clearItems();
@@ -124,17 +123,16 @@ private:
                          })
                          .build();
 
-    // Button Row with Add and Clear buttons
+    // Button Row - only specify height, layout handles button widths
     auto buttonRow = create<Panel<FlexLayoutManager<FlexLayout>>>()
-                       .withBounds(0, 0, 0, 35)
+                       .withSize(0, 35)
                        .withLayout(buttonRowLayout)
                        .withChildren(std::move(addButton), std::move(clearButton))
                        .build();
     buttonRow->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f)); // Transparent
 
-    // Info Button
+    // Info Button - no size needed, layout stretches to fill width
     auto infoButton = create<Button>("Show Info")
-                        .withBounds(0, 0, 0, 35)
                         .withClickCallback([]() {
                           std::cout << "\n=== Prong UI Framework ===" << std::endl;
                           std::cout << "A modern C++20 UI framework" << std::endl;
@@ -149,13 +147,12 @@ private:
                         })
                         .build();
 
-    // Spacer to push exit button to bottom
-    auto spacer = create<Panel<>>().withBounds(0, 0, 0, 400).build();
+    // Spacer - grows to fill remaining space, pushing exit button to bottom
+    auto spacer = create<Panel<>>().build();
     spacer->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f)); // Transparent
 
-    // Exit Button - build first, then set additional properties and capture pointer
+    // Exit Button - no size needed, layout handles it
     auto exitButton = create<Button>("Exit Application")
-                        .withBounds(0, 0, 0, 35)
                         .withClickCallback([this]() {
                           std::cout << "Exiting application..." << std::endl;
                           if (glfwWindow) {
@@ -166,9 +163,9 @@ private:
     exitButton->setBackgroundColor(theming::Color(0.6f, 0.2f, 0.2f, 1.0f));
     exitButtonPtr = exitButton.get();
 
-    // Left Panel - Control Panel with all controls
+    // Left Panel - Fixed width, height stretched by parent layout
     auto leftPanel = create<Panel<FlexLayoutManager<FlexLayout>>>()
-                       .withBounds(0, 0, 300, 680)
+                       .withSize(300, 0)
                        .withLayout(leftLayout)
                        .withChildren(std::move(textInput), std::move(buttonRow), std::move(infoButton),
                                      std::move(spacer), std::move(exitButton))
@@ -184,7 +181,7 @@ private:
     // Right Panel - Display Area using traditional approach
 
     auto rightPanel = std::make_unique<Panel<FlexLayoutManager<FlexLayout>>>();
-    rightPanel->setBounds(0, 0, 920, 680);
+    rightPanel->setSize(0, 0); // Both dimensions filled by parent layout
     rightPanel->setBackgroundColor(theming::Color(0.18f, 0.18f, 0.2f, 1.0f));
     rightPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     rightPanel->setBorderWidth(2);
@@ -192,13 +189,12 @@ private:
     rightPanel->setPadding(20);
 
     auto rightLayout = std::make_shared<FlexLayout>();
-    rightLayout->configure(FlexLayoutManager<FlexLayout>::Configuration{
+    rightLayout->configure(FlexLayout::Configuration{
       .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 0.0f});
     rightPanel->setLayoutManager(rightLayout);
 
-    // ListBox with default items
+    // ListBox - no size needed, fills parent
     auto listBox = std::make_unique<ListBox>();
-    listBox->setBounds(0, 0, 0, 600);
     listBox->setSelectionCallback(
       [](int index, const std::string& item) { std::cout << "Selected item " << index << ": " << item << std::endl; });
     listBox->addItem("Welcome to Prong UI Framework!");
@@ -208,13 +204,14 @@ private:
     listBox->addItem("This demo uses ComponentBuilder pattern");
     listBox->addItem("Layouts are automatic with FlexLayout");
     listBox->addItem("Clean, fluent API for building UIs!");
+    listBox->addItem("No manual positioning needed!");
 
     listBoxPtr = listBox.get();
     rightPanel->addChild(std::move(listBox));
 
-    // === Main Panel - Combine both panels ===
+    // === Main Panel - Top-level container, needs fixed size ===
     auto mainPanel = create<Panel<FlexLayoutManager<FlexLayout>>>()
-                       .withBounds(0, 0, 1280, 720)
+                       .withSize(1280, 720)
                        .withLayout(mainLayout)
                        .withChildren(std::move(leftPanel), std::move(rightPanel))
                        .build();

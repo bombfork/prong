@@ -266,9 +266,16 @@ private:
 
 /**
  * @brief Concrete FlexLayout class for use with Panel
+ *
+ * Provides a clean API for flexbox-style layouts without exposing
+ * the CRTP implementation details.
  */
 class FlexLayout : public FlexLayoutManager<FlexLayout> {
 public:
+  // Re-export Configuration at the concrete class level for clean API
+  using Configuration = FlexLayoutManager<FlexLayout>::Configuration;
+  using FlexItemProperties = FlexLayoutManager<FlexLayout>::FlexItemProperties;
+
   FlexLayout() = default;
   ~FlexLayout() = default;
 };
