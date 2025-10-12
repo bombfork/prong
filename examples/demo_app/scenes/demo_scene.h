@@ -4,6 +4,7 @@
  *
  * This scene demonstrates:
  * - Scene-based architecture
+ * - ComponentBuilder pattern (recommended approach)
  * - Automatic layout with FlexLayout
  * - Component hierarchy without manual positioning
  * - Event callbacks
@@ -17,6 +18,7 @@
 #include <bombfork/prong/components/list_box.h>
 #include <bombfork/prong/components/panel.h>
 #include <bombfork/prong/components/text_input.h>
+#include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/scene.h>
 #include <bombfork/prong/layout/flex_layout.h>
 #include <bombfork/prong/theming/color.h>
@@ -59,124 +61,128 @@ public:
 
 private:
   /**
-   * @brief Build the UI hierarchy
+   * @brief Build the UI hierarchy using ComponentBuilder (recommended pattern)
    */
   void buildUI() {
     // Set theme
     theming::ThemeManager::getInstance().setCurrentTheme("default");
 
-    // Create main horizontal layout (left panel and right panel side by side)
-    auto mainPanel = std::make_unique<Panel<FlexLayoutManager<FlexLayout>>>();
-    mainPanel->setBounds(0, 0, 1280, 720);
-
-    // Configure FlexLayout for horizontal layout
+    // Configure horizontal flex layout for main panel
     auto mainLayout = std::make_shared<FlexLayout>();
     mainLayout->configure(FlexLayoutManager<FlexLayout>::Configuration{
       .direction = FlexDirection::ROW, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 20.0f});
-    mainPanel->setLayoutManager(mainLayout);
-    mainPanel->setBackgroundColor(theming::Color(0.08f, 0.08f, 0.1f, 1.0f));
-    mainPanel->setPadding(20);
 
-    // === Left Panel - Control Panel ===
-    auto leftPanel = std::make_unique<Panel<FlexLayoutManager<FlexLayout>>>();
-    leftPanel->setBounds(0, 0, 300, 680);
+    // Configure vertical flex layout for left panel
+    auto leftLayout = std::make_shared<FlexLayout>();
+    leftLayout->configure(FlexLayoutManager<FlexLayout>::Configuration{
+      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 10.0f});
+
+    // Configure horizontal flex layout for button row
+    auto buttonRowLayout = std::make_shared<FlexLayout>();
+    buttonRowLayout->configure(FlexLayoutManager<FlexLayout>::Configuration{.direction = FlexDirection::ROW,
+                                                                            .justify = FlexJustify::SPACE_BETWEEN,
+                                                                            .align = FlexAlign::STRETCH,
+                                                                            .gap = 10.0f});
+
+    // === ComponentBuilder Pattern (Recommended) ===
+    // Build UI using fluent ComponentBuilder API
+
+    // Text Input - build first, then capture pointer
+    auto textInput =
+      create<TextInput>()
+        .withBounds(0, 0, 0, 30)
+        .withPlaceholder("Enter text here...")
+        .withTextChangedCallback([](const std::string& text) { std::cout << "Text changed: " << text << std::endl; })
+        .build();
+    textInputPtr = textInput.get();
+
+    // Add Button
+    auto addButton = create<Button>("Add Item")
+                       .withBounds(0, 0, 120, 35)
+                       .withClickCallback([this]() {
+                         clickCount++;
+                         std::string newItem = "Item " + std::to_string(clickCount);
+                         if (textInputPtr && !textInputPtr->getText().empty()) {
+                           newItem = textInputPtr->getText();
+                           textInputPtr->setText("");
+                         }
+                         if (listBoxPtr) {
+                           listBoxPtr->addItem(newItem);
+                           std::cout << "Added: " << newItem << std::endl;
+                         }
+                       })
+                       .build();
+
+    // Clear Button
+    auto clearButton = create<Button>("Clear")
+                         .withBounds(0, 0, 120, 35)
+                         .withClickCallback([this]() {
+                           if (listBoxPtr) {
+                             listBoxPtr->clearItems();
+                             std::cout << "List cleared" << std::endl;
+                           }
+                         })
+                         .build();
+
+    // Button Row with Add and Clear buttons
+    auto buttonRow = create<Panel<FlexLayoutManager<FlexLayout>>>()
+                       .withBounds(0, 0, 0, 35)
+                       .withLayout(buttonRowLayout)
+                       .withChildren(std::move(addButton), std::move(clearButton))
+                       .build();
+    buttonRow->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f)); // Transparent
+
+    // Info Button
+    auto infoButton = create<Button>("Show Info")
+                        .withBounds(0, 0, 0, 35)
+                        .withClickCallback([]() {
+                          std::cout << "\n=== Prong UI Framework ===" << std::endl;
+                          std::cout << "A modern C++20 UI framework" << std::endl;
+                          std::cout << "Features:" << std::endl;
+                          std::cout << "  - ComponentBuilder pattern for clean API" << std::endl;
+                          std::cout << "  - Header-mostly architecture" << std::endl;
+                          std::cout << "  - CRTP for zero-cost abstractions" << std::endl;
+                          std::cout << "  - Renderer and window agnostic" << std::endl;
+                          std::cout << "  - Scene-based architecture" << std::endl;
+                          std::cout << "  - Automatic layout managers" << std::endl;
+                          std::cout << "=========================\n" << std::endl;
+                        })
+                        .build();
+
+    // Spacer to push exit button to bottom
+    auto spacer = create<Panel<>>().withBounds(0, 0, 0, 400).build();
+    spacer->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f)); // Transparent
+
+    // Exit Button - build first, then set additional properties and capture pointer
+    auto exitButton = create<Button>("Exit Application")
+                        .withBounds(0, 0, 0, 35)
+                        .withClickCallback([this]() {
+                          std::cout << "Exiting application..." << std::endl;
+                          if (glfwWindow) {
+                            glfwSetWindowShouldClose(glfwWindow, GLFW_TRUE);
+                          }
+                        })
+                        .build();
+    exitButton->setBackgroundColor(theming::Color(0.6f, 0.2f, 0.2f, 1.0f));
+    exitButtonPtr = exitButton.get();
+
+    // Left Panel - Control Panel with all controls
+    auto leftPanel = create<Panel<FlexLayoutManager<FlexLayout>>>()
+                       .withBounds(0, 0, 300, 680)
+                       .withLayout(leftLayout)
+                       .withChildren(std::move(textInput), std::move(buttonRow), std::move(infoButton),
+                                     std::move(spacer), std::move(exitButton))
+                       .build();
+
     leftPanel->setBackgroundColor(theming::Color(0.15f, 0.15f, 0.18f, 1.0f));
     leftPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     leftPanel->setBorderWidth(2);
     leftPanel->setTitle("Control Panel");
     leftPanel->setPadding(20);
 
-    // Configure vertical layout for left panel
-    auto leftLayout = std::make_shared<FlexLayout>();
-    leftLayout->configure(FlexLayoutManager<FlexLayout>::Configuration{
-      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 10.0f});
-    leftPanel->setLayoutManager(leftLayout);
+    // === Traditional Pattern (also supported, shown for comparison) ===
+    // Right Panel - Display Area using traditional approach
 
-    // Text Input
-    auto textInput = std::make_unique<TextInput>();
-    textInput->setBounds(0, 0, 0, 30); // Width auto-filled, height fixed
-    textInput->setPlaceholder("Enter text here...");
-    textInput->setOnTextChanged([](const std::string& text) { std::cout << "Text changed: " << text << std::endl; });
-    textInputPtr = textInput.get();
-
-    // Button Row - Add and Clear
-    auto buttonRow = std::make_unique<Panel<FlexLayoutManager<FlexLayout>>>();
-    buttonRow->setBounds(0, 0, 0, 35);
-    auto buttonRowLayout = std::make_shared<FlexLayout>();
-    buttonRowLayout->configure(FlexLayoutManager<FlexLayout>::Configuration{.direction = FlexDirection::ROW,
-                                                                            .justify = FlexJustify::SPACE_BETWEEN,
-                                                                            .align = FlexAlign::STRETCH,
-                                                                            .gap = 10.0f});
-    buttonRow->setLayoutManager(buttonRowLayout);
-    buttonRow->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f)); // Transparent
-
-    auto addButton = std::make_unique<Button>("Add Item");
-    addButton->setBounds(0, 0, 120, 35);
-    addButton->setClickCallback([this]() {
-      clickCount++;
-      std::string newItem = "Item " + std::to_string(clickCount);
-      if (textInputPtr && !textInputPtr->getText().empty()) {
-        newItem = textInputPtr->getText();
-        textInputPtr->setText("");
-      }
-      if (listBoxPtr) {
-        listBoxPtr->addItem(newItem);
-        std::cout << "Added: " << newItem << std::endl;
-      }
-    });
-
-    auto clearButton = std::make_unique<Button>("Clear");
-    clearButton->setBounds(0, 0, 120, 35);
-    clearButton->setClickCallback([this]() {
-      if (listBoxPtr) {
-        listBoxPtr->clearItems();
-        std::cout << "List cleared" << std::endl;
-      }
-    });
-
-    buttonRow->addChild(std::move(addButton));
-    buttonRow->addChild(std::move(clearButton));
-
-    // Info Button
-    auto infoButton = std::make_unique<Button>("Show Info");
-    infoButton->setBounds(0, 0, 0, 35);
-    infoButton->setClickCallback([]() {
-      std::cout << "\n=== Prong UI Framework ===" << std::endl;
-      std::cout << "A modern C++20 UI framework" << std::endl;
-      std::cout << "Features:" << std::endl;
-      std::cout << "  - Header-mostly architecture" << std::endl;
-      std::cout << "  - CRTP for zero-cost abstractions" << std::endl;
-      std::cout << "  - Renderer and window agnostic" << std::endl;
-      std::cout << "  - Scene-based architecture" << std::endl;
-      std::cout << "  - Automatic layout managers" << std::endl;
-      std::cout << "=========================\n" << std::endl;
-    });
-
-    // Spacer to push exit button to bottom
-    auto spacer = std::make_unique<Panel<>>();
-    spacer->setBounds(0, 0, 0, 400);                                    // Height will be filled by flex grow
-    spacer->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f)); // Transparent
-
-    // Exit Button
-    auto exitButton = std::make_unique<Button>("Exit Application");
-    exitButton->setBounds(0, 0, 0, 35);
-    exitButton->setBackgroundColor(theming::Color(0.6f, 0.2f, 0.2f, 1.0f));
-    exitButton->setClickCallback([this]() {
-      std::cout << "Exiting application..." << std::endl;
-      if (glfwWindow) {
-        glfwSetWindowShouldClose(glfwWindow, GLFW_TRUE);
-      }
-    });
-    exitButtonPtr = exitButton.get();
-
-    // Add all components to left panel
-    leftPanel->addChild(std::move(textInput));
-    leftPanel->addChild(std::move(buttonRow));
-    leftPanel->addChild(std::move(infoButton));
-    leftPanel->addChild(std::move(spacer));
-    leftPanel->addChild(std::move(exitButton));
-
-    // === Right Panel - Display Area ===
     auto rightPanel = std::make_unique<Panel<FlexLayoutManager<FlexLayout>>>();
     rightPanel->setBounds(0, 0, 920, 680);
     rightPanel->setBackgroundColor(theming::Color(0.18f, 0.18f, 0.2f, 1.0f));
@@ -185,40 +191,43 @@ private:
     rightPanel->setTitle("Items List");
     rightPanel->setPadding(20);
 
-    // Configure vertical layout for right panel
     auto rightLayout = std::make_shared<FlexLayout>();
     rightLayout->configure(FlexLayoutManager<FlexLayout>::Configuration{
       .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 0.0f});
     rightPanel->setLayoutManager(rightLayout);
 
-    // ListBox - fill remaining space
+    // ListBox with default items
     auto listBox = std::make_unique<ListBox>();
-    listBox->setBounds(0, 0, 0, 600); // Auto-fill width and height
+    listBox->setBounds(0, 0, 0, 600);
     listBox->setSelectionCallback(
       [](int index, const std::string& item) { std::cout << "Selected item " << index << ": " << item << std::endl; });
-
-    // Add default items
     listBox->addItem("Welcome to Prong UI Framework!");
     listBox->addItem("Click 'Add Item' to add more items");
     listBox->addItem("Click items to select them");
     listBox->addItem("Type in the text field to customize new items");
-    listBox->addItem("This demo uses Scene-based architecture");
+    listBox->addItem("This demo uses ComponentBuilder pattern");
     listBox->addItem("Layouts are automatic with FlexLayout");
-    listBox->addItem("No manual setBounds() positioning!");
+    listBox->addItem("Clean, fluent API for building UIs!");
 
     listBoxPtr = listBox.get();
     rightPanel->addChild(std::move(listBox));
 
-    // Add panels to main panel
-    mainPanel->addChild(std::move(leftPanel));
-    mainPanel->addChild(std::move(rightPanel));
+    // === Main Panel - Combine both panels ===
+    auto mainPanel = create<Panel<FlexLayoutManager<FlexLayout>>>()
+                       .withBounds(0, 0, 1280, 720)
+                       .withLayout(mainLayout)
+                       .withChildren(std::move(leftPanel), std::move(rightPanel))
+                       .build();
+
+    mainPanel->setBackgroundColor(theming::Color(0.08f, 0.08f, 0.1f, 1.0f));
+    mainPanel->setPadding(20);
 
     // Add main panel to scene
     addChild(std::move(mainPanel));
 
     // Print welcome message
     std::cout << "\n=== Prong UI Framework Demo ===" << std::endl;
-    std::cout << "Scene-based Architecture with Automatic Layouts" << std::endl;
+    std::cout << "ComponentBuilder Pattern with Scene-Based Architecture" << std::endl;
     std::cout << "Controls:" << std::endl;
     std::cout << "  - Type in the text field and click 'Add Item'" << std::endl;
     std::cout << "  - Click items in the list to select them" << std::endl;
