@@ -272,6 +272,8 @@ See the `examples/` directory for complete applications:
 
 ## Building from Source
 
+### Native Build
+
 ```bash
 # Clone repository
 git clone https://github.com/bombfork/prong.git
@@ -286,11 +288,47 @@ cmake --build .
 sudo cmake --install .
 ```
 
+### Docker Build (Recommended)
+
+For reproducible builds across different platforms, use the containerized build system with mise tasks:
+
+```bash
+# Build the Docker image
+mise docker-build
+
+# Build the library
+mise docker-build-lib
+
+# Build and run tests
+mise docker-build-tests
+mise docker-test
+
+# Build examples
+mise docker-build-examples
+
+# Run clang-format
+mise docker-format
+
+# Open interactive shell
+mise docker-shell
+```
+
+The mise Docker tasks provide a convenient, consistent interface and handle all volume mounts and image management automatically. See [docs/docker.md](docs/docker.md) for complete Docker build system documentation.
+
 ## Requirements
+
+### Native Build Requirements
 
 - **C++20** compatible compiler (GCC 10+, Clang 13+, MSVC 2019+)
 - **CMake 3.14+**
+- **clang-format** (for code formatting)
+- **include-what-you-use** (for header dependency checking)
 - No runtime dependencies (header-only core)
+
+### Docker Build Requirements
+
+- **Docker 20.10+** with BuildKit support
+- **mise** (for running Docker tasks)
 
 ## License
 

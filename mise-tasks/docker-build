@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#MISE description="Build the Prong Docker image"
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_ROOT}"
+
+IMAGE_NAME="prong-builder"
+TAG="${PRONG_DOCKER_TAG:-latest}"
+
+# Get current user UID and GID for build args
+USER_ID=$(id -u)
+GROUP_ID=$(id -g)
+
+echo "Building Docker image: ${IMAGE_NAME}:${TAG}"
+echo "Using USER_ID=${USER_ID} GROUP_ID=${GROUP_ID}"
+docker build \
+  --build-arg USER_ID="${USER_ID}" \
+  --build-arg GROUP_ID="${GROUP_ID}" \
+  -t "${IMAGE_NAME}:${TAG}" \
+  .
+
+echo ""
+echo "Docker image built successfully!"
+echo "Image: ${IMAGE_NAME}:${TAG}"
