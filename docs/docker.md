@@ -49,60 +49,56 @@ mise docker-format
 mise docker-shell
 ```
 
-All mise Docker tasks are located in `mise-tasks/` and automatically handle image names, volume mounts, and path resolution.
+All mise Docker tasks are located in `mise-tasks/` and automatically handle:
+- Image names and tags
+- Volume mounts
+- User ID/GID mapping (prevents permission issues)
+- Path resolution
 
 ### Building the Docker Image Manually
 
 Build the prong-builder image:
 
 ```bash
-docker build -t prong-builder:latest .
+docker build \
+  --build-arg USER_ID=$(id -u) \
+  --build-arg GROUP_ID=$(id -g) \
+  -t prong-builder:latest .
 ```
 
-The image includes all dependencies for building the library, tests, and examples.
+The image includes all dependencies for building the library, tests, and examples. The build args ensure files created in mounted volumes have correct ownership.
 
-### Using Docker Compose
+### Manual Docker Commands
 
-Docker Compose provides an alternative workflow:
+If you need to run Docker commands directly (not recommended - use mise tasks instead):
 
 ```bash
-# Build the images
-docker compose build
+# Build library
+docker run --rm \
+  -e HOST_USER_ID=$(id -u) \
+  -e HOST_GROUP_ID=$(id -g) \
+  -v $(pwd):/workspace \
+  prong-builder:latest \
+  mise build
 
-# Start an interactive shell in the builder container
-docker compose run --rm builder
+# Build with tests
+docker run --rm \
+  -e HOST_USER_ID=$(id -u) \
+  -e HOST_GROUP_ID=$(id -g) \
+  -v $(pwd):/workspace \
+  prong-builder:latest \
+  mise build-tests
 
-# Inside the container, build the library
-mkdir -p build && cd build
-cmake .. -G Ninja -DPRONG_BUILD_EXAMPLES=OFF -DPRONG_BUILD_TESTS=OFF
-ninja
-
-# Or use mise tasks
-mise run build
+# Interactive shell
+docker run --rm -it \
+  -e HOST_USER_ID=$(id -u) \
+  -e HOST_GROUP_ID=$(id -g) \
+  -v $(pwd):/workspace \
+  prong-builder:latest \
+  bash
 ```
 
-### One-Line Build Commands
-
-Build library without entering container:
-
-```bash
-docker run --rm -v $(pwd):/workspace prong-builder:latest \
-  bash -c "rm -rf build && mise run build"
-```
-
-Build with tests:
-
-```bash
-docker run --rm -v $(pwd):/workspace prong-builder:latest \
-  bash -c "rm -rf build && mise run build-tests"
-```
-
-Build with examples:
-
-```bash
-docker run --rm -v $(pwd):/workspace prong-builder:latest \
-  bash -c "rm -rf build && mise run build-examples"
-```
+**Note:** The mise tasks handle all of this automatically, including UID/GID mapping.
 
 ## Installed Tools and Versions
 
@@ -230,15 +226,16 @@ Available through `mise run <task>` inside the container:
 - `format-check`: Check if code is properly formatted
 - `demo`: Build and run demo application (requires examples)
 
-## Volume Mounts
+## Volume Mounts and Permissions
 
-The Docker Compose configuration uses volume mounts for:
+The mise Docker tasks mount your source code at `/workspace` inside the container. To prevent permission issues:
 
-1. **Source code**: `.:/workspace` - Your source is mounted into the container
-2. **Build cache**: Named volume `build-cache` - Preserves build artifacts between runs
-3. **Mise cache**: Named volume `mise-cache` - Caches mise installations
+- The Docker image creates a `prong` user
+- The mise tasks automatically pass your host UID/GID to the container
+- The entrypoint script adjusts the `prong` user's UID/GID to match yours
+- All files created by the container will be owned by your host user
 
-This provides a good balance between flexibility and performance.
+This means **no more `sudo rm -rf build`** - everything is owned by you!
 
 ## Performance Optimization
 
@@ -270,18 +267,41 @@ docker compose run --rm builder mise run build
 
 To run graphical examples from the container, you need X11 forwarding:
 
-### Linux
+### Wayland (Linux - Recommended)
+
+Arch Linux now defaults to Wayland, and the Docker image includes glfw-wayland:
+
+```bash
+# Run with Wayland forwarding
+docker run --rm \
+  -e HOST_USER_ID=$(id -u) \
+  -e HOST_GROUP_ID=$(id -g) \
+  -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
+  -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR \
+  -v $(pwd):/workspace \
+  -v $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY:$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY \
+  prong-builder:latest \
+  mise run demo
+```
+
+### X11 (Linux - Fallback)
+
+For X11-based systems:
 
 ```bash
 # Allow X11 connections
 xhost +local:docker
 
 # Run with X11 and GPU forwarding
-docker compose run --rm \
+docker run --rm \
+  -e HOST_USER_ID=$(id -u) \
+  -e HOST_GROUP_ID=$(id -g) \
   -e DISPLAY=$DISPLAY \
+  -v $(pwd):/workspace \
   -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
   --device /dev/dri:/dev/dri \
-  builder mise run demo
+  prong-builder:latest \
+  mise run demo
 
 # Restore X11 permissions
 xhost -local:docker
@@ -293,10 +313,13 @@ xhost -local:docker
 # Install XQuartz first: https://www.xquartz.org/
 # Allow network connections in XQuartz preferences
 
-# Run with X11 forwarding
-docker compose run --rm \
+docker run --rm \
+  -e HOST_USER_ID=$(id -u) \
+  -e HOST_GROUP_ID=$(id -g) \
   -e DISPLAY=host.docker.internal:0 \
-  builder mise run demo
+  -v $(pwd):/workspace \
+  prong-builder:latest \
+  mise run demo
 ```
 
 ### Windows (WSL2)
@@ -304,12 +327,16 @@ docker compose run --rm \
 ```bash
 # With WSLg (Windows 11)
 export DISPLAY=:0
-docker compose run --rm \
+docker run --rm \
+  -e HOST_USER_ID=$(id -u) \
+  -e HOST_GROUP_ID=$(id -g) \
   -e DISPLAY=$DISPLAY \
   -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
+  -v $(pwd):/workspace \
   -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
   -v /mnt/wslg:/mnt/wslg \
-  builder mise run demo
+  prong-builder:latest \
+  mise run demo
 ```
 
 ## Troubleshooting
@@ -345,10 +372,17 @@ The container uses specific tool versions defined in `.mise.toml`. If you need d
 
 ### Permission Issues
 
-Build artifacts created in the container are owned by root. To fix ownership:
+The mise Docker tasks automatically handle permissions by mapping your host user's UID/GID to the container's `prong` user. Files created in mounted volumes will have correct ownership.
+
+If you're running Docker commands manually without the mise tasks, you'll need to pass the environment variables:
 
 ```bash
-docker compose run --rm builder chown -R $(id -u):$(id -g) /workspace/build
+docker run --rm \
+  -e HOST_USER_ID=$(id -u) \
+  -e HOST_GROUP_ID=$(id -g) \
+  -v $(pwd):/workspace \
+  prong-builder:latest \
+  <command>
 ```
 
 ## Advanced Usage
@@ -453,4 +487,12 @@ docker pull localhost:5000/prong-builder:latest
 
 ## Summary
 
-The Docker build system provides a single, unified `prong-builder` image that includes all dependencies for building the library, tests, and examples. The multi-stage build ensures efficient caching and fast rebuilds, while mise tasks provide a convenient interface for all Docker operations.
+The Docker build system provides:
+
+- **Single unified image**: `prong-builder` includes all dependencies (library, tests, examples)
+- **Permission handling**: Automatic UID/GID mapping prevents permission issues
+- **Wayland support**: Uses glfw-wayland for modern Linux systems
+- **Mise task integration**: Simple, consistent commands for all operations
+- **Multi-stage build**: Efficient caching for fast rebuilds
+
+No more Docker Compose files or manual volume mounts - the mise tasks handle everything!

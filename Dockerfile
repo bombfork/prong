@@ -90,11 +90,13 @@ COPY --from=mise-tools /root/.local /root/.local
 
 # Install example dependencies (GLFW, OpenGL) in main image
 # This allows a single image to build library, tests, and examples
+# Note: Using glfw-wayland as Arch Linux now defaults to Wayland
 RUN pacman -S --needed --noconfirm \
-        glfw-x11 \
+        glfw-wayland \
         mesa \
         libgl \
-        libglvnd && \
+        libglvnd \
+        sudo && \
     pacman -Scc --noconfirm
 
 # Verify all tools are available
@@ -114,9 +116,65 @@ RUN --mount=type=cache,target=/root/.cache/mise \
     mise trust && \
     mise install
 
+# Create non-root user that will match host user
+# This prevents permission issues with mounted volumes
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+RUN groupadd -g ${GROUP_ID} prong && \
+    useradd -m -u ${USER_ID} -g prong -G wheel -s /bin/bash prong && \
+    echo 'prong ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+# Copy mise configuration to user home
+RUN mkdir -p /home/prong/.local && \
+    cp -r /root/.local/bin /home/prong/.local/ && \
+    cp -r /root/.local/share /home/prong/.local/ && \
+    chown -R prong:prong /home/prong/.local
+
+# Add mise to PATH for prong user
+USER prong
+ENV PATH="/home/prong/.local/bin:${PATH}"
+RUN echo 'eval "$(mise activate bash)"' >> /home/prong/.bashrc
+
+# Set up working directory with correct ownership
+WORKDIR /workspace
+
 # Set up entrypoint to ensure mise is available
-RUN printf '#!/bin/bash\neval "$(mise activate bash)"\nexec "$@"\n' > /entrypoint.sh && \
-    chmod +x /entrypoint.sh
+USER root
+RUN cat > /entrypoint.sh << 'ENTRYPOINT_EOF'
+#!/bin/bash
+set -e
+
+# Fix ownership of workspace if needed
+if [ -n "$HOST_USER_ID" ] && [ -n "$HOST_GROUP_ID" ]; then
+    usermod -u $HOST_USER_ID prong 2>/dev/null || true
+    groupmod -g $HOST_GROUP_ID prong 2>/dev/null || true
+fi
+
+# Trust mise config as prong user
+if [ -f /workspace/.mise.toml ]; then
+    su prong -c "cd /workspace && /home/prong/.local/bin/mise trust" 2>/dev/null || true
+fi
+
+# Create a temporary script to execute the command
+cat > /tmp/run-command.sh << 'RUNSCRIPT_EOF'
+#!/bin/bash
+export PATH=/home/prong/.local/bin:$PATH
+cd /workspace
+eval "$(mise activate bash)"
+exec "$@"
+RUNSCRIPT_EOF
+chmod +x /tmp/run-command.sh
+
+# Switch to prong user and execute
+if [ "$(id -u)" = "0" ]; then
+    exec su prong /tmp/run-command.sh "$@"
+else
+    exec /tmp/run-command.sh "$@"
+fi
+ENTRYPOINT_EOF
+
+RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 

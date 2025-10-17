@@ -10,8 +10,15 @@ cd "${PROJECT_ROOT}"
 IMAGE_NAME="prong-builder"
 TAG="${PRONG_DOCKER_TAG:-latest}"
 
+# Pass host user ID and group ID to container
+USER_ID=$(id -u)
+GROUP_ID=$(id -g)
+
 echo "Opening interactive shell in Docker container..."
+echo "You are running as user 'prong' (UID=${USER_ID}, GID=${GROUP_ID})"
 docker run --rm -it \
+  -e HOST_USER_ID="${USER_ID}" \
+  -e HOST_GROUP_ID="${GROUP_ID}" \
   -v "${PROJECT_ROOT}:/workspace" \
   -w /workspace \
   "${IMAGE_NAME}:${TAG}" \
