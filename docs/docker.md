@@ -1,32 +1,8 @@
-# Docker Build System for Prong
+# Docker Build System
 
-This document describes how to use the containerized build system for the Prong C++20 UI Framework. The Docker-based build environment ensures reproducible builds across different development machines and CI/CD systems.
-
-## Overview
-
-The containerized build system provides:
-
-- **Reproducible builds**: All dependencies and tools are version-pinned
-- **Isolated environment**: No interference with host system packages
-- **Multi-stage optimization**: Efficient layer caching for fast rebuilds
-- **Flexible workflows**: Support for library-only, tests, and example builds
-
-## Architecture
-
-The build system uses a multi-stage Dockerfile with the following stages:
-
-1. **toolchain**: Base Arch Linux with C++ compiler and build tools
-2. **iwyu-builder**: Builds and installs include-what-you-use from AUR
-3. **mise-tools**: Installs mise-managed tools (cmake, ninja, hk, pkl)
-4. **builder**: Final build environment with all dependencies (library, tests, and examples)
-
-The single `prong-builder` image includes all dependencies needed to build the library, tests, and examples (including GLFW and OpenGL).
+Docker-based build environment for reproducible builds across all development and CI/CD systems.
 
 ## Quick Start
-
-### Using Mise Tasks (Recommended)
-
-The easiest way to use the Docker build system is through mise tasks:
 
 ```bash
 # Build the Docker image
@@ -49,450 +25,106 @@ mise docker-format
 mise docker-shell
 ```
 
-All mise Docker tasks are located in `mise-tasks/` and automatically handle:
+All mise Docker tasks are in `mise-tasks/` and automatically handle:
 - Image names and tags
 - Volume mounts
 - User ID/GID mapping (prevents permission issues)
 - Path resolution
 
-### Building the Docker Image Manually
+## Why Docker?
 
-Build the prong-builder image:
+- **Reproducible**: All dependencies version-pinned (see `.mise.toml` for tool versions)
+- **Isolated**: No interference with host system
+- **Modern**: Wayland support, Arch Linux base
+- **Convenient**: Files owned by your user, not root
 
-```bash
-docker build \
-  --build-arg USER_ID=$(id -u) \
-  --build-arg GROUP_ID=$(id -g) \
-  -t prong-builder:latest .
-```
+## Architecture
 
-The image includes all dependencies for building the library, tests, and examples. The build args ensure files created in mounted volumes have correct ownership.
+Multi-stage Dockerfile:
+1. **toolchain**: Base Arch Linux with C++ compiler
+2. **iwyu-builder**: Builds include-what-you-use from AUR
+3. **mise-tools**: Installs mise-managed tools
+4. **builder**: Final image with all dependencies (library, tests, examples)
 
-### Manual Docker Commands
+Single unified `prong-builder` image includes:
+- System packages: clang-format, include-what-you-use
+- Mise tools: cmake, ninja, hk, pkl (versions in `.mise.toml`)
+- Example deps: glfw-wayland, mesa, libgl, libglvnd
 
-If you need to run Docker commands directly (not recommended - use mise tasks instead):
+## Permission Handling
 
-```bash
-# Build library
-docker run --rm \
-  -e HOST_USER_ID=$(id -u) \
-  -e HOST_GROUP_ID=$(id -g) \
-  -v $(pwd):/workspace \
-  prong-builder:latest \
-  mise build
+The Docker setup prevents root-owned files in your build directory:
 
-# Build with tests
-docker run --rm \
-  -e HOST_USER_ID=$(id -u) \
-  -e HOST_GROUP_ID=$(id -g) \
-  -v $(pwd):/workspace \
-  prong-builder:latest \
-  mise build-tests
+- Container has `prong` user (non-root)
+- Mise tasks pass your UID/GID: `-e HOST_USER_ID=$(id -u) HOST_GROUP_ID=$(id -g)`
+- Entrypoint adjusts `prong` user to match your host user
+- Build artifacts owned by you - **no more `sudo rm -rf build`!**
 
-# Interactive shell
-docker run --rm -it \
-  -e HOST_USER_ID=$(id -u) \
-  -e HOST_GROUP_ID=$(id -g) \
-  -v $(pwd):/workspace \
-  prong-builder:latest \
-  bash
-```
+## Manual Usage
 
-**Note:** The mise tasks handle all of this automatically, including UID/GID mapping.
+If you need to run Docker commands without mise tasks, see the task files in `mise-tasks/` for exact commands. Key points:
 
-## Installed Tools and Versions
+- Pass `--build-arg USER_ID=$(id -u) GROUP_ID=$(id -g)` when building
+- Pass `-e HOST_USER_ID=$(id -u) HOST_GROUP_ID=$(id -g)` when running
+- Mount source: `-v $(pwd):/workspace`
 
-### System Packages (Arch Linux)
-
-- **C++ Compiler**: GCC 15.2.1 (default), Clang 20.1.8 (available)
-- **clang-format**: 20.1.8 (from official repos)
-- **include-what-you-use**: 0.24 (from AUR)
-
-### Mise-Managed Tools (Version-Pinned)
-
-As defined in `.mise.toml`:
-
-- **cmake**: 3.28.6
-- **ninja**: 1.13.1
-- **hk**: 1.18.3 (git hook manager)
-- **pkl**: 0.29.1
-
-All mise-managed tools are available through the container's entrypoint, which automatically activates mise.
-
-## Development Workflows
-
-### Interactive Development
-
-Start an interactive shell with your source mounted:
-
-```bash
-docker compose run --rm builder
-
-# Inside container, all tools are available
-cmake --version
-ninja --version
-clang-format --version
-include-what-you-use --version
-
-# Build the library
-mise run build
-
-# Run tests (if built)
-mise run test
-```
-
-### CI/CD Integration
-
-The containerized build system is designed for CI/CD workflows:
-
-```yaml
-# Example GitHub Actions workflow
-- name: Build Prong in Docker
-  run: |
-    docker build --target builder -t prong-builder:latest .
-    docker run --rm -v $(pwd):/workspace prong-builder:latest \
-      bash -c "rm -rf build && mise run build-ci"
-```
-
-For BombFork's self-hosted runners, the images can be pre-built and cached for faster builds.
-
-### Format Checking and Fixing
-
-Run clang-format through the container:
-
-```bash
-# Check formatting
-docker run --rm -v $(pwd):/workspace prong-builder:latest \
-  bash -c "mise run format-check"
-
-# Fix formatting
-docker run --rm -v $(pwd):/workspace prong-builder:latest \
-  bash -c "mise run format"
-```
-
-### Git Hooks in Container
-
-The git hooks use `hk` (git hook manager). When running hooks through the container:
-
-```bash
-# Install hooks (run on host)
-hk install
-
-# The hooks will use your host's tools by default
-# To use containerized tools, you can create wrapper scripts
-```
-
-For delegating hooks to the container, create wrapper scripts in `.git/hooks/` that call Docker:
-
-```bash
-#!/bin/bash
-# Example: .git/hooks/pre-commit-docker
-docker run --rm -v $(pwd):/workspace prong-builder:latest \
-  bash -c "hk run pre-commit"
-```
-
-## Build Options
-
-### CMake Build Options
-
-- `PRONG_BUILD_EXAMPLES`: Build example applications (default: ON)
-- `PRONG_BUILD_TESTS`: Build unit tests (default: ON)
-
-### Mise Tasks
-
-#### Docker Tasks (Host)
-
-Available through `mise <task>` on the host machine:
-
-- `docker-build`: Build the Docker image
-- `docker-build-lib`: Build the library inside Docker
-- `docker-build-tests`: Build tests inside Docker
-- `docker-build-examples`: Build examples inside Docker
-- `docker-test`: Run tests inside Docker
-- `docker-format`: Run clang-format inside Docker
-- `docker-shell`: Open an interactive shell inside Docker
-
-#### Build Tasks (Container)
-
-Available through `mise run <task>` inside the container:
-
-- `build`: Build library only
-- `build-tests`: Build library and tests
-- `build-examples`: Build library and examples
-- `build-all`: Build everything
-- `build-ci`: Build all and fail if formatting is needed
-- `test`: Run test suite
-- `format`: Run clang-format to fix code
-- `format-check`: Check if code is properly formatted
-- `demo`: Build and run demo application (requires examples)
-
-## Volume Mounts and Permissions
-
-The mise Docker tasks mount your source code at `/workspace` inside the container. To prevent permission issues:
-
-- The Docker image creates a `prong` user
-- The mise tasks automatically pass your host UID/GID to the container
-- The entrypoint script adjusts the `prong` user's UID/GID to match yours
-- All files created by the container will be owned by your host user
-
-This means **no more `sudo rm -rf build`** - everything is owned by you!
-
-## Performance Optimization
-
-### Build Cache
-
-The multi-stage Dockerfile uses BuildKit cache mounts for:
-
-- Pacman package cache (reduces re-downloads)
-- Mise tool cache (faster tool installation)
-
-Enable BuildKit for optimal performance:
-
-```bash
-export DOCKER_BUILDKIT=1
-docker build --target builder -t prong-builder:latest .
-```
-
-### Incremental Builds
-
-Use volume mounts to preserve build artifacts:
-
-```bash
-docker compose run --rm builder mise run build
-# Subsequent builds will be incremental
-docker compose run --rm builder mise run build
-```
-
-## Running Examples with GUI
-
-To run graphical examples from the container, you need X11 forwarding:
+## Running GUI Examples
 
 ### Wayland (Linux - Recommended)
 
-Arch Linux now defaults to Wayland, and the Docker image includes glfw-wayland:
-
 ```bash
-# Run with Wayland forwarding
 docker run --rm \
-  -e HOST_USER_ID=$(id -u) \
-  -e HOST_GROUP_ID=$(id -g) \
+  -e HOST_USER_ID=$(id -u) -e HOST_GROUP_ID=$(id -g) \
   -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
   -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR \
   -v $(pwd):/workspace \
   -v $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY:$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY \
-  prong-builder:latest \
-  mise run demo
+  prong-builder:latest mise run demo
 ```
 
-### X11 (Linux - Fallback)
-
-For X11-based systems:
+### X11 (Fallback)
 
 ```bash
-# Allow X11 connections
 xhost +local:docker
-
-# Run with X11 and GPU forwarding
 docker run --rm \
-  -e HOST_USER_ID=$(id -u) \
-  -e HOST_GROUP_ID=$(id -g) \
+  -e HOST_USER_ID=$(id -u) -e HOST_GROUP_ID=$(id -g) \
   -e DISPLAY=$DISPLAY \
   -v $(pwd):/workspace \
   -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
   --device /dev/dri:/dev/dri \
-  prong-builder:latest \
-  mise run demo
-
-# Restore X11 permissions
+  prong-builder:latest mise run demo
 xhost -local:docker
-```
-
-### macOS
-
-```bash
-# Install XQuartz first: https://www.xquartz.org/
-# Allow network connections in XQuartz preferences
-
-docker run --rm \
-  -e HOST_USER_ID=$(id -u) \
-  -e HOST_GROUP_ID=$(id -g) \
-  -e DISPLAY=host.docker.internal:0 \
-  -v $(pwd):/workspace \
-  prong-builder:latest \
-  mise run demo
-```
-
-### Windows (WSL2)
-
-```bash
-# With WSLg (Windows 11)
-export DISPLAY=:0
-docker run --rm \
-  -e HOST_USER_ID=$(id -u) \
-  -e HOST_GROUP_ID=$(id -g) \
-  -e DISPLAY=$DISPLAY \
-  -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
-  -v $(pwd):/workspace \
-  -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
-  -v /mnt/wslg:/mnt/wslg \
-  prong-builder:latest \
-  mise run demo
 ```
 
 ## Troubleshooting
 
-### Locale Warnings
+### Permission Issues
 
-The Docker image includes proper locale support (`glibc-locales` package) and sets `LANG=en_US.UTF-8` and `LC_ALL=en_US.UTF-8`. If you still see locale warnings after a rebuild, the image may need to be rebuilt without cache:
+Mise tasks handle this automatically. If running manually, ensure you pass `HOST_USER_ID` and `HOST_GROUP_ID` environment variables.
+
+### Build Cache
 
 ```bash
+# Force rebuild without cache
 docker build --no-cache -t prong-builder:latest .
 ```
 
-### Build Cache Issues
+### Tool Versions
 
-If you encounter stale build artifacts:
-
-```bash
-# Clean build cache
-docker compose down -v
-docker volume rm prong_build-cache
-
-# Or manually clean inside container
-docker compose run --rm builder rm -rf /workspace/build
-```
-
-### Tool Version Mismatches
-
-The container uses specific tool versions defined in `.mise.toml`. If you need different versions:
-
+Tool versions are defined in `.mise.toml`. To update:
 1. Edit `.mise.toml`
-2. Rebuild the Docker image
-3. The new versions will be installed
+2. Rebuild: `mise docker-build`
 
-### Permission Issues
+## CI/CD Integration
 
-The mise Docker tasks automatically handle permissions by mapping your host user's UID/GID to the container's `prong` user. Files created in mounted volumes will have correct ownership.
-
-If you're running Docker commands manually without the mise tasks, you'll need to pass the environment variables:
-
-```bash
-docker run --rm \
-  -e HOST_USER_ID=$(id -u) \
-  -e HOST_GROUP_ID=$(id -g) \
-  -v $(pwd):/workspace \
-  prong-builder:latest \
-  <command>
-```
-
-## Advanced Usage
-
-### Custom Build Targets
-
-Build a specific target:
-
-```bash
-docker run --rm -v $(pwd):/workspace prong-builder:latest \
-  bash -c "cd build && ninja prong"
-```
-
-### Debugging Build Issues
-
-Run with verbose output:
-
-```bash
-docker run --rm -v $(pwd):/workspace prong-builder:latest \
-  bash -c "cd build && cmake .. -G Ninja -DCMAKE_VERBOSE_MAKEFILE=ON && ninja -v"
-```
-
-### Installing Additional Packages
-
-For temporary experimentation:
-
-```bash
-docker compose run --rm builder bash
-# Inside container
-pacman -Sy --noconfirm <package-name>
-```
-
-For permanent additions, modify the Dockerfile and rebuild.
-
-## Integration with Host Git Hooks
-
-To delegate git hooks to the container, create a wrapper script:
-
-```bash
-# scripts/git-hooks-docker.sh
-#!/bin/bash
-set -e
-
-HOOK_NAME=$1
-shift
-
-docker run --rm -v $(pwd):/workspace prong-builder:latest \
-  bash -c "hk run $HOOK_NAME $@"
-```
-
-Then update your `hk.pkl` to use this script when in Docker mode.
-
-## CI/CD Recommendations
-
-### GitHub Actions
+Example GitHub Actions:
 
 ```yaml
-name: Build
-
-on: [push, pull_request]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
-        run: docker build -t prong-builder:latest .
-
-      - name: Build library
-        run: |
-          docker run --rm -v $(pwd):/workspace prong-builder:latest \
-            bash -c "rm -rf build && mise run build-ci"
-
-      - name: Run tests
-        run: |
-          docker run --rm -v $(pwd):/workspace prong-builder:latest \
-            bash -c "mise run test"
+- name: Build and Test
+  run: |
+    mise docker-build
+    mise docker-build-lib
+    mise docker-test
 ```
 
-### Self-Hosted Runners (BombFork)
-
-For self-hosted runners, consider:
-
-1. Pre-building and caching the Docker image
-2. Using local Docker registry for faster pulls
-3. Mounting a persistent build cache volume
-
-```bash
-# Pre-build and tag
-docker build -t prong-builder:latest .
-docker tag prong-builder:latest localhost:5000/prong-builder:latest
-docker push localhost:5000/prong-builder:latest
-
-# In CI, pull from local registry
-docker pull localhost:5000/prong-builder:latest
-```
-
-## Summary
-
-The Docker build system provides:
-
-- **Single unified image**: `prong-builder` includes all dependencies (library, tests, examples)
-- **Permission handling**: Automatic UID/GID mapping prevents permission issues
-- **Wayland support**: Uses glfw-wayland for modern Linux systems
-- **Mise task integration**: Simple, consistent commands for all operations
-- **Multi-stage build**: Efficient caching for fast rebuilds
-
-No more Docker Compose files or manual volume mounts - the mise tasks handle everything!
+For self-hosted runners, consider pre-building and caching the image.
