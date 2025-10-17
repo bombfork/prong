@@ -1,0 +1,42 @@
+# Git metadata
+.git
+.github
+.gitignore
+
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation and markdown (not needed for builds)
+*.md
+docs/
+
+# Claude artifacts
+.claude/
+
+# Mise cache (will be installed fresh in container)
+.mise.local.toml
+
+# Mise tasks for Docker operations (not needed inside container)
+mise-tasks/
+
+# Test artifacts
+tests/build/
+*.test
+
+# Temporary files
+*.tmp
+*.log

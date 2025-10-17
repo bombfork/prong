@@ -272,6 +272,8 @@ See the `examples/` directory for complete applications:
 
 ## Building from Source
 
+### Native Build
+
 ```bash
 # Clone repository
 git clone https://github.com/bombfork/prong.git
@@ -286,11 +288,38 @@ cmake --build .
 sudo cmake --install .
 ```
 
+### Docker Build (Recommended)
+
+For reproducible builds across different platforms, use the containerized build system:
+
+```bash
+# Build using Docker Compose (easiest)
+docker compose run --rm builder mise run build
+
+# Or build the image and use it directly
+docker build --target builder -t prong-builder:latest .
+docker run --rm -v $(pwd):/workspace prong-builder:latest mise run build
+
+# Build with examples
+docker compose run --rm examples mise run build-examples
+```
+
+See [DOCKER.md](DOCKER.md) for complete Docker build system documentation.
+
 ## Requirements
+
+### Native Build Requirements
 
 - **C++20** compatible compiler (GCC 10+, Clang 13+, MSVC 2019+)
 - **CMake 3.14+**
+- **clang-format** (for code formatting)
+- **include-what-you-use** (for header dependency checking)
 - No runtime dependencies (header-only core)
+
+### Docker Build Requirements
+
+- **Docker 20.10+** with BuildKit support
+- **Docker Compose** (optional, for convenience)
 
 ## License
 

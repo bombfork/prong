@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#MISE description="Build the Prong library inside Docker container"
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_ROOT}"
+
+IMAGE_NAME="prong-builder"
+TAG="${PRONG_DOCKER_TAG:-latest}"
+
+echo "Building Prong library in Docker container..."
+docker run --rm \
+  -v "${PROJECT_ROOT}:/workspace" \
+  -w /workspace \
+  "${IMAGE_NAME}:${TAG}" \
+  mise build "$@"
+
+echo ""
+echo "Library built successfully in Docker!"

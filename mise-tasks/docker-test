@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#MISE description="Run the Prong tests inside Docker container"
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_ROOT}"
+
+IMAGE_NAME="prong-builder"
+TAG="${PRONG_DOCKER_TAG:-latest}"
+
+echo "Running Prong tests in Docker container..."
+docker run --rm \
+  -v "${PROJECT_ROOT}:/workspace" \
+  -w /workspace \
+  "${IMAGE_NAME}:${TAG}" \
+  mise test "$@"
