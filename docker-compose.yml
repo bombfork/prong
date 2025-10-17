@@ -2,7 +2,7 @@
 # Provides convenient development workflow with reproducible build environment
 
 services:
-  # Base build service for library-only builds
+  # Build service for library, tests, and examples
   builder:
     image: prong-builder:latest
     build:
@@ -22,33 +22,11 @@ services:
     stdin_open: true
     tty: true
     environment:
-      # Suppress locale warnings (optional)
-      - LANG=C
-      - LC_ALL=C
-
-  # Service for building examples (includes GLFW and OpenGL)
-  examples:
-    image: prong-examples:latest
-    build:
-      context: .
-      target: examples-builder
-      cache_from:
-        - prong-builder:latest
-        - prong-examples:latest
-    volumes:
-      - .:/workspace
-      - build-cache:/workspace/build
-      - mise-cache:/root/.cache/mise
-    working_dir: /workspace
-    command: bash
-    stdin_open: true
-    tty: true
-    environment:
-      - LANG=C
-      - LC_ALL=C
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
       # For X11 forwarding (optional, for running examples)
       - DISPLAY=${DISPLAY:-:0}
-    # Uncomment for GPU passthrough and X11 forwarding
+    # Uncomment for GPU passthrough and X11 forwarding when running examples
     # devices:
     #   - /dev/dri:/dev/dri
     # volumes:

@@ -18,8 +18,9 @@ The build system uses a multi-stage Dockerfile with the following stages:
 1. **toolchain**: Base Arch Linux with C++ compiler and build tools
 2. **iwyu-builder**: Builds and installs include-what-you-use from AUR
 3. **mise-tools**: Installs mise-managed tools (cmake, ninja, hk, pkl)
-4. **builder**: Final build environment for library and tests (default target)
-5. **examples-builder**: Extended environment with GLFW and OpenGL for examples
+4. **builder**: Final build environment with all dependencies (library, tests, and examples)
+
+The single `prong-builder` image includes all dependencies needed to build the library, tests, and examples (including GLFW and OpenGL).
 
 ## Quick Start
 
@@ -52,17 +53,13 @@ All mise Docker tasks are located in `mise-tasks/` and automatically handle imag
 
 ### Building the Docker Image Manually
 
-Build the default builder image (library-only):
+Build the prong-builder image:
 
 ```bash
-docker build --target builder -t prong-builder:latest .
+docker build -t prong-builder:latest .
 ```
 
-Build the examples image (includes GLFW and OpenGL):
-
-```bash
-docker build --target examples-builder -t prong-examples:latest .
-```
+The image includes all dependencies for building the library, tests, and examples.
 
 ### Using Docker Compose
 
@@ -103,7 +100,7 @@ docker run --rm -v $(pwd):/workspace prong-builder:latest \
 Build with examples:
 
 ```bash
-docker run --rm -v $(pwd):/workspace prong-examples:latest \
+docker run --rm -v $(pwd):/workspace prong-builder:latest \
   bash -c "rm -rf build && mise run build-examples"
 ```
 
@@ -284,7 +281,7 @@ docker compose run --rm \
   -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
   --device /dev/dri:/dev/dri \
-  examples mise run demo
+  builder mise run demo
 
 # Restore X11 permissions
 xhost -local:docker
@@ -299,7 +296,7 @@ xhost -local:docker
 # Run with X11 forwarding
 docker compose run --rm \
   -e DISPLAY=host.docker.internal:0 \
-  examples mise run demo
+  builder mise run demo
 ```
 
 ### Windows (WSL2)
@@ -312,7 +309,7 @@ docker compose run --rm \
   -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
   -v /mnt/wslg:/mnt/wslg \
-  examples mise run demo
+  builder mise run demo
 ```
 
 ## Troubleshooting
@@ -423,7 +420,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        run: docker build --target builder -t prong-builder:latest .
+        run: docker build -t prong-builder:latest .
 
       - name: Build library
         run: |
@@ -446,7 +443,7 @@ For self-hosted runners, consider:
 
 ```bash
 # Pre-build and tag
-docker build --target builder -t prong-builder:latest .
+docker build -t prong-builder:latest .
 docker tag prong-builder:latest localhost:5000/prong-builder:latest
 docker push localhost:5000/prong-builder:latest
 
@@ -456,10 +453,4 @@ docker pull localhost:5000/prong-builder:latest
 
 ## Summary
 
-The Docker build system provides:
-
-- Phase 1: Basic build container with all required tools
-- Phase 2: Multi-stage optimization with build caching
-- Phase 3: CI/CD integration ready with volume mounts and git hook support
-
-All phases are complete and tested. The system is production-ready for use in development and CI/CD workflows.
+The Docker build system provides a single, unified `prong-builder` image that includes all dependencies for building the library, tests, and examples. The multi-stage build ensures efficient caching and fast rebuilds, while mise tasks provide a convenient interface for all Docker operations.

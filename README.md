@@ -290,21 +290,30 @@ sudo cmake --install .
 
 ### Docker Build (Recommended)
 
-For reproducible builds across different platforms, use the containerized build system:
+For reproducible builds across different platforms, use the containerized build system with mise tasks:
 
 ```bash
-# Build using Docker Compose (easiest)
-docker compose run --rm builder mise run build
+# Build the Docker image
+mise docker-build
 
-# Or build the image and use it directly
-docker build --target builder -t prong-builder:latest .
-docker run --rm -v $(pwd):/workspace prong-builder:latest mise run build
+# Build the library
+mise docker-build-lib
 
-# Build with examples
-docker compose run --rm examples mise run build-examples
+# Build and run tests
+mise docker-build-tests
+mise docker-test
+
+# Build examples
+mise docker-build-examples
+
+# Run clang-format
+mise docker-format
+
+# Open interactive shell
+mise docker-shell
 ```
 
-See [DOCKER.md](DOCKER.md) for complete Docker build system documentation.
+The mise Docker tasks provide a convenient, consistent interface and handle all volume mounts and image management automatically. See [docs/docker.md](docs/docker.md) for complete Docker build system documentation.
 
 ## Requirements
 
@@ -319,7 +328,7 @@ See [DOCKER.md](DOCKER.md) for complete Docker build system documentation.
 ### Docker Build Requirements
 
 - **Docker 20.10+** with BuildKit support
-- **Docker Compose** (optional, for convenience)
+- **mise** (for running Docker tasks)
 
 ## License
 

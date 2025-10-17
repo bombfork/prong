@@ -79,7 +79,7 @@ RUN --mount=type=cache,target=/root/.cache/mise \
     pkl --version
 
 # ============================================================================
-# Stage 4: Final build environment
+# Stage 4: Final build environment (includes all dependencies)
 # ============================================================================
 FROM toolchain AS builder
 
@@ -87,6 +87,15 @@ FROM toolchain AS builder
 COPY --from=iwyu-builder /usr/bin/include-what-you-use /usr/bin/
 COPY --from=iwyu-builder /usr/lib/clang /usr/lib/clang
 COPY --from=mise-tools /root/.local /root/.local
+
+# Install example dependencies (GLFW, OpenGL) in main image
+# This allows a single image to build library, tests, and examples
+RUN pacman -S --needed --noconfirm \
+        glfw-x11 \
+        mesa \
+        libgl \
+        libglvnd && \
+    pacman -Scc --noconfirm
 
 # Verify all tools are available
 RUN clang-format --version && \
@@ -113,19 +122,3 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 # Default command runs a shell for interactive use
 CMD ["bash"]
-
-# ============================================================================
-# Stage 5: Example build environment (includes GLFW and OpenGL)
-# ============================================================================
-FROM builder AS examples-builder
-
-# Install example dependencies (GLFW, OpenGL)
-RUN pacman -S --needed --noconfirm \
-        glfw-x11 \
-        mesa \
-        libgl \
-        libglvnd && \
-    pacman -Scc --noconfirm
-
-# This stage is used when building examples
-# Usage: docker build --target examples-builder -t prong-examples .
