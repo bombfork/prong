@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "../../common/glfw_adapters/glfw_adapters.h"
 #include <GLFW/glfw3.h>
 #include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/list_box.h>
@@ -44,6 +45,9 @@ private:
   Button* exitButtonPtr = nullptr;
   GLFWwindow* glfwWindow = nullptr;
   int clickCount = 0;
+
+  // GLFW adapters for TextInput (must be kept alive)
+  examples::glfw::GLFWAdapters adapters;
 
 public:
   /**
@@ -102,6 +106,9 @@ private:
     // - Main-axis positioning and spacing via FlexJustify
     // - Position calculation (no manual x,y coordinates needed)
 
+    // Create GLFW adapters for TextInput dependencies
+    adapters = examples::glfw::GLFWAdapters::create(glfwWindow);
+
     // Text Input - height for line height, width stretched by layout
     auto textInput =
       create<TextInput>()
@@ -110,6 +117,10 @@ private:
         .withTextChangedCallback([](const std::string& text) { std::cout << "Text changed: " << text << std::endl; })
         .build();
     textInputPtr = textInput.get();
+
+    // Inject GLFW adapters into TextInput for clipboard and keyboard support
+    textInput->setClipboard(adapters.clipboard.get());
+    textInput->setKeyboard(adapters.keyboard.get());
 
     // Buttons - TODO: should calculate size from text + padding automatically
     auto addButton = create<Button>("Add Item")

@@ -49,6 +49,13 @@ void example2_text_input() {
       .withTextChangedCallback([](const std::string& text) { std::cout << "Text changed to: " << text << std::endl; })
       .build();
 
+  // NOTE: In a real application, you would inject GLFW adapters like this:
+  //   auto adapters = examples::glfw::GLFWAdapters::create(window);
+  //   textInput->setClipboard(adapters.clipboard.get());
+  //   textInput->setKeyboard(adapters.keyboard.get());
+  // This enables copy/paste and proper keyboard handling.
+  // See examples/demo_app/scenes/demo_scene.h for a complete example.
+
   std::cout << "Created text input with placeholder: " << textInput->getPlaceholder() << std::endl;
 }
 
@@ -125,6 +132,13 @@ void example5_complex_form() {
   nameInput = std::shared_ptr<TextInput>(std::move(nameInputPtr));
   emailInput = std::shared_ptr<TextInput>(std::move(emailInputPtr));
   resultList = std::shared_ptr<ListBox>(std::move(resultListPtr));
+
+  // NOTE: In a real application with GLFW, inject adapters for both TextInputs:
+  //   auto adapters = examples::glfw::GLFWAdapters::create(window);
+  //   nameInput->setClipboard(adapters.clipboard.get());
+  //   nameInput->setKeyboard(adapters.keyboard.get());
+  //   emailInput->setClipboard(adapters.clipboard.get());
+  //   emailInput->setKeyboard(adapters.keyboard.get());
 
   // Create submit button that accesses other components
   auto submitButton = create<Button>("Submit")
