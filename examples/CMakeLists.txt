@@ -57,6 +57,24 @@ target_include_directories(stb_headers INTERFACE ${stb_SOURCE_DIR})
 
 message(STATUS "  STB: ${stb_SOURCE_DIR}")
 
+# === Common GLFW Adapters ===
+# These provide reference implementations for GLFW-specific adapters
+
+add_library(glfw_adapters STATIC
+    common/glfw_adapters/glfw_keyboard.cpp
+)
+
+target_link_libraries(glfw_adapters PUBLIC
+    bombfork::prong
+    glfw
+)
+
+target_include_directories(glfw_adapters PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/glfw_adapters
+)
+
+target_compile_features(glfw_adapters PUBLIC cxx_std_20)
+
 # === Demo App Example ===
 
 add_executable(prong_demo_app
@@ -66,6 +84,7 @@ add_executable(prong_demo_app
 
 target_link_libraries(prong_demo_app PRIVATE
     bombfork::prong
+    glfw_adapters
     glfw
     OpenGL::GL
     stb_headers
