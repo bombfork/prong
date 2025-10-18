@@ -1,5 +1,7 @@
 # Prong UI Framework
 
+[![Build Status](https://github.com/bombfork/prong/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/bombfork/prong/actions/workflows/build.yml)
+
 **Sharp, modern C++20 UI framework from BombFork**
 
 Prong is a header-mostly, CRTP-based UI framework designed for high-performance applications requiring flexible layouts, theming support, and renderer-agnostic rendering. Built with modern C++20, it provides zero-cost abstractions while maintaining clean, expressive APIs.
