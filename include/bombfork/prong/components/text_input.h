@@ -1,7 +1,8 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
 #include <bombfork/prong/core/component.h>
+#include <bombfork/prong/events/iclipboard.h>
+#include <bombfork/prong/events/ikeyboard.h>
 #include <bombfork/prong/rendering/irenderer.h>
 #include <bombfork/prong/theming/color.h>
 
@@ -81,6 +82,10 @@ private:
   // Callbacks
   TextChangeCallback textChangeCallback;
   ValidationCallback validationCallback;
+
+  // Dependency injection for platform-agnostic interfaces
+  events::IClipboard* clipboard = nullptr;
+  events::IKeyboard* keyboard = nullptr;
 
 public:
   explicit TextInput(const std::string& debugName = "TextInput")
@@ -210,6 +215,18 @@ public:
    */
   const Style& getStyle() const { return style; }
 
+  // === Dependency Injection ===
+
+  /**
+   * @brief Set clipboard interface for copy/paste operations
+   */
+  void setClipboard(events::IClipboard* cb) { clipboard = cb; }
+
+  /**
+   * @brief Set keyboard interface for key code conversions
+   */
+  void setKeyboard(events::IKeyboard* kb) { keyboard = kb; }
+
   // === Focus Management ===
 
   bool canReceiveFocus() const override { return enabled && visible; }
@@ -271,69 +288,72 @@ public:
   }
 
   bool handleKey(int key, int action, int mods) override {
-    if (!enabled || action == GLFW_RELEASE)
+    if (!enabled || action == static_cast<int>(events::KeyAction::RELEASE))
       return false;
 
     bool consumed = false;
-    bool shift = (mods & GLFW_MOD_SHIFT) != 0;
-    bool ctrl = (mods & GLFW_MOD_CONTROL) != 0;
+    bool shift = events::IKeyboard::hasModifier(static_cast<uint8_t>(mods), events::KeyModifier::SHIFT);
+    bool ctrl = events::IKeyboard::hasModifier(static_cast<uint8_t>(mods), events::KeyModifier::CONTROL);
+
+    // Convert platform key to Prong key if keyboard interface is available
+    events::Key prongKey = keyboard ? keyboard->toProngKey(key) : events::Key::UNKNOWN;
 
     // Reset cursor blink
     resetCursorBlink();
 
-    switch (key) {
-    case GLFW_KEY_LEFT:
+    switch (prongKey) {
+    case events::Key::LEFT:
       handleCursorMove(-1, shift, ctrl);
       consumed = true;
       break;
 
-    case GLFW_KEY_RIGHT:
+    case events::Key::RIGHT:
       handleCursorMove(1, shift, ctrl);
       consumed = true;
       break;
 
-    case GLFW_KEY_HOME:
+    case events::Key::HOME:
       handleHome(shift);
       consumed = true;
       break;
 
-    case GLFW_KEY_END:
+    case events::Key::END:
       handleEnd(shift);
       consumed = true;
       break;
 
-    case GLFW_KEY_BACKSPACE:
+    case events::Key::BACKSPACE:
       handleBackspace();
       consumed = true;
       break;
 
-    case GLFW_KEY_DELETE:
+    case events::Key::DELETE:
       handleDelete();
       consumed = true;
       break;
 
-    case GLFW_KEY_A:
+    case events::Key::A:
       if (ctrl) {
         selectAll();
         consumed = true;
       }
       break;
 
-    case GLFW_KEY_C:
+    case events::Key::C:
       if (ctrl && hasSelection()) {
         copyToClipboard();
         consumed = true;
       }
       break;
 
-    case GLFW_KEY_V:
+    case events::Key::V:
       if (ctrl) {
         pasteFromClipboard();
         consumed = true;
       }
       break;
 
-    case GLFW_KEY_X:
+    case events::Key::X:
       if (ctrl && hasSelection()) {
         copyToClipboard();
         deleteSelection();
@@ -341,10 +361,14 @@ public:
       }
       break;
 
-    case GLFW_KEY_ENTER:
-    case GLFW_KEY_KP_ENTER:
+    case events::Key::ENTER:
+    case events::Key::KP_ENTER:
       // Single-line input - ignore enter
       consumed = true;
+      break;
+
+    default:
+      // Unknown or unhandled key
       break;
     }
 
@@ -599,15 +623,12 @@ private:
    * @brief Copy selection to clipboard
    */
   void copyToClipboard() {
-    if (!hasSelection())
+    if (!hasSelection() || !clipboard)
       return;
 
     std::string selectedText = getSelectedText();
     if (!selectedText.empty()) {
-      auto* window = glfwGetCurrentContext();
-      if (window) {
-        glfwSetClipboardString(window, selectedText.c_str());
-      }
+      clipboard->setString(selectedText);
     }
   }
 
@@ -615,13 +636,12 @@ private:
    * @brief Paste from clipboard
    */
   void pasteFromClipboard() {
-    auto* window = glfwGetCurrentContext();
-    if (!window)
+    if (!clipboard)
       return;
 
-    const char* clipboardText = glfwGetClipboardString(window);
-    if (clipboardText) {
-      insertText(std::string(clipboardText));
+    std::string clipboardText = clipboard->getString();
+    if (!clipboardText.empty()) {
+      insertText(clipboardText);
     }
   }
 
