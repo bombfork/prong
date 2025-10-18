@@ -123,9 +123,69 @@ All code lives under `bombfork::prong` with subnamespaces:
 - `bombfork::prong::components` - UI widgets (Button, Panel, ListBox, TextInput)
 - `bombfork::prong::layout` - Layout managers
 - `bombfork::prong::theming` - Theme system
-- `bombfork::prong::events` - Event handling
+- `bombfork::prong::events` - Event handling and platform abstractions (IClipboard, IKeyboard)
 - `bombfork::prong::generic` - Higher-level components (Dialog, Toolbar, Viewport)
 - `bombfork::prong::rendering` - Renderer interface
+- `bombfork::prong::adapters` - Platform adapters (in examples only)
+
+## Platform Abstractions
+
+### TextInput Dependencies
+
+The `TextInput` component requires two platform-specific interfaces for full functionality:
+
+**IClipboard** (`include/bombfork/prong/events/iclipboard.h`):
+- Provides clipboard access for copy/paste operations
+- Must be injected via `textInput->setClipboard(clipboard)`
+
+**IKeyboard** (`include/bombfork/prong/events/ikeyboard.h`):
+- Converts platform-specific key codes to Prong's agnostic `Key` enum
+- Must be injected via `textInput->setKeyboard(keyboard)`
+
+#### GLFW Usage Example
+
+```cpp
+#include "glfw_adapters/glfw_adapters.h"
+
+// Create GLFW adapters
+auto adapters = examples::glfw::GLFWAdapters::create(window);
+
+// Create TextInput
+auto textInput = create<TextInput>()
+    .withPlaceholder("Enter text...")
+    .build();
+
+// Inject adapters
+textInput->setClipboard(adapters.clipboard.get());
+textInput->setKeyboard(adapters.keyboard.get());
+```
+
+**Important**: Keep the `adapters` object alive for the lifetime of the TextInput!
+
+#### Unit Testing with Mocks
+
+For unit tests, use the mock implementations in `tests/mocks/`:
+
+```cpp
+#include "mocks/mock_clipboard.h"
+#include "mocks/mock_keyboard.h"
+
+// Create mocks
+MockClipboard clipboard;
+MockKeyboard keyboard;
+
+// Create TextInput
+TextInput input;
+input.setClipboard(&clipboard);
+input.setKeyboard(&keyboard);
+
+// Test clipboard operations
+clipboard.setString("Test");
+input.handleKey(static_cast<int>(Key::V), PRESS, CTRL); // Paste
+assert(input.getText() == "Test");
+```
+
+The mock implementations provide simple in-memory storage for testing without requiring a windowing system.
 
 ## C++20 Features
 
