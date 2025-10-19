@@ -278,6 +278,18 @@ public:
    */
   virtual layout::Dimensions getPreferredSize() const { return {width, height}; }
 
+  /**
+   * @brief Get the minimum width of this component
+   * @return Minimum width in pixels (default: 0)
+   */
+  virtual int getMinimumWidth() const { return 0; }
+
+  /**
+   * @brief Get the minimum height of this component
+   * @return Minimum height in pixels (default: 0)
+   */
+  virtual int getMinimumHeight() const { return 0; }
+
   // === Event Handling ===
 
   virtual bool handleClick(int localX, int localY) {
