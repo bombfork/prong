@@ -200,6 +200,57 @@ public:
     }
   }
 
+  // === Minimum Size ===
+
+  /**
+   * @brief Get minimum width for panel
+   * @return Minimum width based on layout manager measurements plus borders and padding
+   */
+  int getMinimumWidth() const override {
+    if (layoutManager) {
+      // Create vector of raw pointers to children (const-correct)
+      std::vector<bombfork::prong::Component*> childPointers;
+      childPointers.reserve(children.size());
+
+      for (const auto& child : children) {
+        if (child) {
+          childPointers.push_back(const_cast<bombfork::prong::Component*>(child.get()));
+        }
+      }
+
+      // Measure layout and add border + padding
+      layout::Dimensions layoutSize = layoutManager->measureLayout(childPointers);
+      int borderWidth = static_cast<int>(style.borderWidth);
+      return layoutSize.width + (borderWidth + style.padding) * 2;
+    }
+    return 0;
+  }
+
+  /**
+   * @brief Get minimum height for panel
+   * @return Minimum height based on layout manager measurements plus borders, padding, and title bar
+   */
+  int getMinimumHeight() const override {
+    if (layoutManager) {
+      // Create vector of raw pointers to children (const-correct)
+      std::vector<bombfork::prong::Component*> childPointers;
+      childPointers.reserve(children.size());
+
+      for (const auto& child : children) {
+        if (child) {
+          childPointers.push_back(const_cast<bombfork::prong::Component*>(child.get()));
+        }
+      }
+
+      // Measure layout and add border + padding + title bar
+      layout::Dimensions layoutSize = layoutManager->measureLayout(childPointers);
+      int borderWidth = static_cast<int>(style.borderWidth);
+      int titleBarHeight = hasVisibleTitleBar() ? TITLE_BAR_HEIGHT : 0;
+      return layoutSize.height + (borderWidth + style.padding) * 2 + titleBarHeight;
+    }
+    return 0;
+  }
+
   // === Layout ===
 
   /**

@@ -231,6 +231,20 @@ public:
 
   bool canReceiveFocus() const override { return enabled && visible; }
 
+  // === Minimum Size ===
+
+  /**
+   * @brief Get minimum width for text input
+   * @return Minimum width of 100 pixels
+   */
+  int getMinimumWidth() const override { return 100; }
+
+  /**
+   * @brief Get minimum height for text input
+   * @return Minimum height of 30 pixels (line height + padding)
+   */
+  int getMinimumHeight() const override { return 30; }
+
   // === Event Handling ===
 
   bool handleClick(int localX, int /* localY */) override {

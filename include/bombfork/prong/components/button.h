@@ -132,6 +132,34 @@ public:
    */
   void setClickCallback(ClickCallback callback) { clickCallback = std::move(callback); }
 
+  // === Minimum Size ===
+
+  /**
+   * @brief Get minimum width for button
+   * @return Minimum width based on text size or fallback for icon-only buttons
+   */
+  int getMinimumWidth() const override {
+    if (!text.empty() && renderer) {
+      auto [textWidth, textHeight] = renderer->measureText(text);
+      int borderWidth = style.showBorder ? static_cast<int>(style.borderWidth) : 0;
+      return textWidth + (style.paddingX * 2) + (borderWidth * 2);
+    }
+    return 50; // Fallback for icon-only buttons
+  }
+
+  /**
+   * @brief Get minimum height for button
+   * @return Minimum height based on text size or fallback for icon-only buttons
+   */
+  int getMinimumHeight() const override {
+    if (!text.empty() && renderer) {
+      auto [textWidth, textHeight] = renderer->measureText(text);
+      int borderWidth = style.showBorder ? static_cast<int>(style.borderWidth) : 0;
+      return textHeight + (style.paddingY * 2) + (borderWidth * 2);
+    }
+    return 30; // Fallback for icon-only buttons
+  }
+
   // === Event Handling ===
 
   bool handleClick(int localX, int localY) override {
