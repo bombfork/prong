@@ -231,6 +231,35 @@ public:
 
   bool canReceiveFocus() const override { return enabled && visible; }
 
+  // === Minimum Size ===
+
+  /**
+   * @brief Get minimum width for text input
+   * @return Minimum width based on placeholder text length + padding + border
+   */
+  int getMinimumWidth() const override {
+    if (!placeholderText.empty() && renderer) {
+      auto [textWidth, textHeight] = renderer->measureText(placeholderText);
+      int borderWidth = static_cast<int>(style.borderWidth);
+      return textWidth + style.paddingLeft + style.paddingRight + (borderWidth * 2);
+    }
+    return 100; // Fallback minimum width when no placeholder
+  }
+
+  /**
+   * @brief Get minimum height for text input
+   * @return Minimum height based on font height + padding + border
+   */
+  int getMinimumHeight() const override {
+    if (renderer) {
+      // Measure a sample character to get font height
+      auto [textWidth, textHeight] = renderer->measureText("A");
+      int borderWidth = static_cast<int>(style.borderWidth);
+      return textHeight + style.paddingTop + style.paddingBottom + (borderWidth * 2);
+    }
+    return 30; // Fallback minimum height when no renderer
+  }
+
   // === Event Handling ===
 
   bool handleClick(int localX, int /* localY */) override {
