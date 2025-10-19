@@ -1,5 +1,4 @@
 #include "mocks/mock_renderer.h"
-#include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/panel.h>
 #include <bombfork/prong/core/component.h>
 #include <bombfork/prong/layout/flex_layout.h>
@@ -11,6 +10,8 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 using namespace bombfork::prong;
 using namespace bombfork::prong::tests;

@@ -10,6 +10,8 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 using namespace bombfork::prong;
 using namespace bombfork::prong::tests;

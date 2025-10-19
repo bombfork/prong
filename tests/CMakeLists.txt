@@ -64,8 +64,7 @@ foreach(test_source ${TEST_SOURCES})
     set_target_properties(${test_exec_name} PROPERTIES
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED ON
-        # Temporarily disable IWYU for tests
-        # CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
+        CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
     )
 
     # Ensure formatting runs before building
