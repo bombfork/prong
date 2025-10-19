@@ -200,6 +200,70 @@ public:
     }
   }
 
+  // === Layout ===
+
+  /**
+   * @brief Perform layout on children, accounting for content area
+   *
+   * Overrides Component::performLayout() to ensure children are positioned
+   * relative to the content area (after borders, padding, and title bar).
+   */
+  void performLayout() override {
+    if (!layoutManager) {
+      // No layout manager, just call base implementation
+      Component::performLayout();
+      return;
+    }
+
+    if (!layoutInvalid) {
+      return;
+    }
+
+    // Mark layout as valid first to avoid infinite recursion
+    layoutInvalid = false;
+
+    // Get content area bounds
+    int contentX, contentY, contentWidth, contentHeight;
+    getContentBounds(contentX, contentY, contentWidth, contentHeight);
+
+    // Create vector of raw pointers to children
+    std::vector<bombfork::prong::Component*> childPointers;
+    childPointers.reserve(children.size());
+
+    for (auto& child : children) {
+      if (child) {
+        childPointers.push_back(child.get());
+      }
+    }
+
+    // Create available space from content area dimensions
+    layout::Dimensions availableSpace{contentWidth, contentHeight};
+
+    // Call the layout manager through the type-erased function
+    if (layoutFunc) {
+      layoutFunc(childPointers, availableSpace);
+
+      // Adjust child positions to be in global coordinates
+      // Layout managers position children relative to (0,0), but we need
+      // them positioned in global coordinates within our content area
+      for (auto& child : children) {
+        if (child) {
+          int childX, childY, childW, childH;
+          child->getBounds(childX, childY, childW, childH);
+          // Add the global content area position to the layout-calculated position
+          child->setBounds(childX + contentX, childY + contentY, childW, childH);
+        }
+      }
+    }
+
+    // Recursively perform layout on children
+    for (auto& child : children) {
+      if (child) {
+        child->performLayout();
+      }
+    }
+  }
+
   // === Update ===
 
   void update(double deltaTime) override {
@@ -221,10 +285,8 @@ public:
       return;
     }
 
-    // Perform layout before rendering if we have a layout manager
-    if (layoutManager) {
-      performLayout();
-    }
+    // Note: performLayout() is called by Component::renderAll() before render()
+    // so we don't need to call it here
 
     // Render background
     renderer->drawRect(x, y, width, height, style.backgroundColor.r, style.backgroundColor.g, style.backgroundColor.b,
@@ -240,8 +302,8 @@ public:
       renderBorder();
     }
 
-    // Render children in content area
-    renderChildren();
+    // Note: Children are rendered by Component::renderAll() after render()
+    // so we don't need to call renderChildren() here
   }
 
   /**
@@ -339,17 +401,6 @@ protected:
     // Right border
     renderer->drawRect(x + width - bw, y, bw, height, style.borderColor.r, style.borderColor.g, style.borderColor.b,
                        style.borderColor.a);
-  }
-
-  /**
-   * @brief Render child components
-   */
-  virtual void renderChildren() {
-    for (auto& child : children) {
-      if (child && child->isVisible()) {
-        child->render();
-      }
-    }
   }
 };
 

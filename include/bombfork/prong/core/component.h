@@ -240,7 +240,7 @@ public:
   /**
    * @brief Perform layout on children if a layout manager is set
    */
-  void performLayout() {
+  virtual void performLayout() {
     if (!layoutInvalid || !layoutFunc) {
       return;
     }
