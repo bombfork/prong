@@ -73,12 +73,24 @@ public:
     for (const auto* component : components) {
       auto componentSize = component->getPreferredSize();
 
+      // Get minimum sizes
+      int minWidth = component->getMinimumWidth();
+      int minHeight = component->getMinimumHeight();
+
+      // For zero-sized components, use minimum size
+      int effectiveWidth = componentSize.width > 0 ? componentSize.width : minWidth;
+      int effectiveHeight = componentSize.height > 0 ? componentSize.height : minHeight;
+
+      // Ensure minimum sizes are respected
+      effectiveWidth = std::max(effectiveWidth, minWidth);
+      effectiveHeight = std::max(effectiveHeight, minHeight);
+
       if (config_.orientation == StackOrientation::VERTICAL) {
-        totalSize.height += componentSize.height + config_.spacing;
-        totalSize.width = std::max(totalSize.width, componentSize.width);
+        totalSize.height += effectiveHeight + config_.spacing;
+        totalSize.width = std::max(totalSize.width, effectiveWidth);
       } else {
-        totalSize.width += componentSize.width + config_.spacing;
-        totalSize.height = std::max(totalSize.height, componentSize.height);
+        totalSize.width += effectiveWidth + config_.spacing;
+        totalSize.height = std::max(totalSize.height, effectiveHeight);
       }
     }
 
@@ -105,7 +117,20 @@ public:
 
     for (auto* component : components) {
       auto componentSize = component->getPreferredSize();
-      Rect componentBounds{0, 0, static_cast<float>(componentSize.width), static_cast<float>(componentSize.height)};
+
+      // Get minimum sizes
+      float minWidth = static_cast<float>(component->getMinimumWidth());
+      float minHeight = static_cast<float>(component->getMinimumHeight());
+
+      // For zero-sized components, use minimum size
+      float effectiveWidth = componentSize.width > 0 ? static_cast<float>(componentSize.width) : minWidth;
+      float effectiveHeight = componentSize.height > 0 ? static_cast<float>(componentSize.height) : minHeight;
+
+      // Ensure minimum sizes are respected
+      effectiveWidth = std::max(effectiveWidth, minWidth);
+      effectiveHeight = std::max(effectiveHeight, minHeight);
+
+      Rect componentBounds{0, 0, effectiveWidth, effectiveHeight};
 
       // Determine main and cross axis sizes
       float& mainSize =
@@ -115,13 +140,20 @@ public:
       float& mainPos = (config_.orientation == StackOrientation::VERTICAL) ? componentBounds.y : componentBounds.x;
       float& crossPos = (config_.orientation == StackOrientation::VERTICAL) ? componentBounds.x : componentBounds.y;
 
+      // Get minimum for main and cross axes
+      float minMainSize = (config_.orientation == StackOrientation::VERTICAL) ? minHeight : minWidth;
+      float minCrossSize = (config_.orientation == StackOrientation::VERTICAL) ? minWidth : minHeight;
+
       // Position on main axis
       mainPos = currentOffset;
 
       // Handle main axis expansion
       if (config_.expandMain) {
-        mainSize = (config_.orientation == StackOrientation::VERTICAL) ? availableSpace.height / components.size()
-                                                                       : availableSpace.width / components.size();
+        float expandedSize = (config_.orientation == StackOrientation::VERTICAL)
+                               ? availableSpace.height / components.size()
+                               : availableSpace.width / components.size();
+        // Ensure expanded size respects minimum
+        mainSize = std::max(expandedSize, minMainSize);
       }
 
       // Handle cross axis alignment and expansion
@@ -140,7 +172,10 @@ public:
                                                                       : availableSpace.height - componentBounds.height);
         break;
       case StackAlignment::STRETCH:
-        crossSize = (config_.orientation == StackOrientation::VERTICAL) ? availableSpace.width : availableSpace.height;
+        float stretchSize =
+          (config_.orientation == StackOrientation::VERTICAL) ? availableSpace.width : availableSpace.height;
+        // Ensure stretched size respects minimum
+        crossSize = std::max(stretchSize, minCrossSize);
         crossPos = 0;
         break;
       }

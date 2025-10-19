@@ -67,14 +67,22 @@ public:
     std::vector<float> columnWidths(cols, 0.0f);
     std::vector<float> rowHeights(rows, 0.0f);
 
-    // Measure cell sizes
+    // Measure cell sizes, considering minimum sizes
     for (size_t i = 0; i < components.size(); ++i) {
       auto componentSize = components[i]->getPreferredSize();
       size_t row = i / cols;
       size_t col = i % cols;
 
-      columnWidths[col] = std::max(columnWidths[col], static_cast<float>(componentSize.width));
-      rowHeights[row] = std::max(rowHeights[row], static_cast<float>(componentSize.height));
+      // Get minimum sizes
+      float minWidth = static_cast<float>(components[i]->getMinimumWidth());
+      float minHeight = static_cast<float>(components[i]->getMinimumHeight());
+
+      // Use maximum of preferred size and minimum size
+      float effectiveWidth = std::max(static_cast<float>(componentSize.width), minWidth);
+      float effectiveHeight = std::max(static_cast<float>(componentSize.height), minHeight);
+
+      columnWidths[col] = std::max(columnWidths[col], effectiveWidth);
+      rowHeights[row] = std::max(rowHeights[row], effectiveHeight);
     }
 
     // Calculate total dimensions
@@ -100,14 +108,22 @@ public:
     std::vector<float> columnWidths(cols, 0.0f);
     std::vector<float> rowHeights(rows, 0.0f);
 
-    // First pass: determine cell sizes
+    // First pass: determine cell sizes, considering minimum sizes
     for (size_t i = 0; i < components.size(); ++i) {
       auto componentSize = components[i]->getPreferredSize();
       size_t row = i / cols;
       size_t col = i % cols;
 
-      columnWidths[col] = std::max(columnWidths[col], static_cast<float>(componentSize.width));
-      rowHeights[row] = std::max(rowHeights[row], static_cast<float>(componentSize.height));
+      // Get minimum sizes
+      float minWidth = static_cast<float>(components[i]->getMinimumWidth());
+      float minHeight = static_cast<float>(components[i]->getMinimumHeight());
+
+      // Use maximum of preferred size and minimum size
+      float effectiveWidth = std::max(static_cast<float>(componentSize.width), minWidth);
+      float effectiveHeight = std::max(static_cast<float>(componentSize.height), minHeight);
+
+      columnWidths[col] = std::max(columnWidths[col], effectiveWidth);
+      rowHeights[row] = std::max(rowHeights[row], effectiveHeight);
     }
 
     // Optional: Normalize cell sizes if requested
@@ -131,24 +147,43 @@ public:
         auto* component = components[index];
         auto componentSize = component->getPreferredSize();
 
+        // Get minimum sizes
+        float minWidth = static_cast<float>(component->getMinimumWidth());
+        float minHeight = static_cast<float>(component->getMinimumHeight());
+
+        // For zero-sized components, use minimum size as starting point
+        float componentWidth = componentSize.width > 0 ? static_cast<float>(componentSize.width) : minWidth;
+        float componentHeight = componentSize.height > 0 ? static_cast<float>(componentSize.height) : minHeight;
+
+        // Ensure component respects minimum size
+        componentWidth = std::max(componentWidth, minWidth);
+        componentHeight = std::max(componentHeight, minHeight);
+
         Rect cellBounds{currentX, currentY, columnWidths[col], rowHeights[row]};
 
         // Apply cell alignment
         switch (config_.cellAlignment) {
         case GridAlignment::START:
-          // Default positioning, do nothing
+          // Use component size, not cell size, for START alignment
+          cellBounds.width = componentWidth;
+          cellBounds.height = componentHeight;
           break;
         case GridAlignment::CENTER:
-          cellBounds.x += (columnWidths[col] - componentSize.width) / 2.0f;
-          cellBounds.y += (rowHeights[row] - componentSize.height) / 2.0f;
+          cellBounds.x += (columnWidths[col] - componentWidth) / 2.0f;
+          cellBounds.y += (rowHeights[row] - componentHeight) / 2.0f;
+          cellBounds.width = componentWidth;
+          cellBounds.height = componentHeight;
           break;
         case GridAlignment::END:
-          cellBounds.x += columnWidths[col] - componentSize.width;
-          cellBounds.y += rowHeights[row] - componentSize.height;
+          cellBounds.x += columnWidths[col] - componentWidth;
+          cellBounds.y += rowHeights[row] - componentHeight;
+          cellBounds.width = componentWidth;
+          cellBounds.height = componentHeight;
           break;
         case GridAlignment::STRETCH:
-          cellBounds.width = columnWidths[col];
-          cellBounds.height = rowHeights[row];
+          // STRETCH uses full cell size, ensuring minimum is respected
+          cellBounds.width = std::max(columnWidths[col], minWidth);
+          cellBounds.height = std::max(rowHeights[row], minHeight);
           break;
         }
 

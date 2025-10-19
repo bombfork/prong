@@ -88,8 +88,20 @@ public:
     for (const auto* component : components) {
       auto componentSize = component->getPreferredSize();
 
+      // Get minimum sizes
+      int minWidth = component->getMinimumWidth();
+      int minHeight = component->getMinimumHeight();
+
+      // For zero-sized components, use minimum size
+      int effectiveWidth = componentSize.width > 0 ? componentSize.width : minWidth;
+      int effectiveHeight = componentSize.height > 0 ? componentSize.height : minHeight;
+
+      // Ensure minimum sizes are respected
+      effectiveWidth = std::max(effectiveWidth, minWidth);
+      effectiveHeight = std::max(effectiveHeight, minHeight);
+
       if (currentLineCount >= maxItemsPerLine ||
-          (currentLineWidth + componentSize.width + config_.spacing >
+          (currentLineWidth + effectiveWidth + config_.spacing >
            (config_.horizontal ? std::numeric_limits<float>::max() : maxLineWidth_))) {
 
         // Finalize current line
@@ -104,8 +116,8 @@ public:
       }
 
       currentLineCount++;
-      currentLineWidth += componentSize.width + config_.spacing;
-      currentLineHeight = std::max(currentLineHeight, static_cast<float>(componentSize.height));
+      currentLineWidth += effectiveWidth + config_.spacing;
+      currentLineHeight = std::max(currentLineHeight, static_cast<float>(effectiveHeight));
     }
 
     // Handle last line
@@ -139,12 +151,24 @@ public:
     float currentLineHeight = 0.0f;
     size_t maxItemsPerLine = config_.maxItemsPerLine > 0 ? config_.maxItemsPerLine : std::numeric_limits<size_t>::max();
 
-    // Group components into lines
+    // Group components into lines, respecting minimum sizes
     for (auto* component : components) {
       auto componentSize = component->getPreferredSize();
 
+      // Get minimum sizes
+      int minWidth = component->getMinimumWidth();
+      int minHeight = component->getMinimumHeight();
+
+      // For zero-sized components, use minimum size
+      int effectiveWidth = componentSize.width > 0 ? componentSize.width : minWidth;
+      int effectiveHeight = componentSize.height > 0 ? componentSize.height : minHeight;
+
+      // Ensure minimum sizes are respected
+      effectiveWidth = std::max(effectiveWidth, minWidth);
+      effectiveHeight = std::max(effectiveHeight, minHeight);
+
       if (currentLine.size() >= maxItemsPerLine ||
-          (currentLineWidth + componentSize.width + config_.spacing >
+          (currentLineWidth + effectiveWidth + config_.spacing >
            (config_.horizontal ? std::numeric_limits<float>::max() : maxLineWidth_))) {
 
         lines.push_back(currentLine);
@@ -154,8 +178,8 @@ public:
       }
 
       currentLine.push_back(component);
-      currentLineWidth += componentSize.width + config_.spacing;
-      currentLineHeight = std::max(currentLineHeight, static_cast<float>(componentSize.height));
+      currentLineWidth += effectiveWidth + config_.spacing;
+      currentLineHeight = std::max(currentLineHeight, static_cast<float>(effectiveHeight));
     }
 
     if (!currentLine.empty()) {
@@ -165,19 +189,39 @@ public:
     // Position components based on alignment strategies
     float currentY = 0.0f;
     for (auto& line : lines) {
+      // Calculate line width using effective sizes
       float lineWidth = std::accumulate(line.begin(), line.end(), 0.0f,
                                         [this](float acc, const auto* component) {
-                                          return acc + component->getPreferredSize().width + config_.spacing;
+                                          auto size = component->getPreferredSize();
+                                          int minWidth = component->getMinimumWidth();
+                                          int effectiveWidth = size.width > 0 ? size.width : minWidth;
+                                          effectiveWidth = std::max(effectiveWidth, minWidth);
+                                          return acc + effectiveWidth + config_.spacing;
                                         }) -
                         config_.spacing;
 
       float currentX = 0.0f;
+      // Calculate line height using effective sizes
       float lineHeight = (*std::max_element(line.begin(), line.end(),
                                             [](const auto* a, const auto* b) {
-                                              return a->getPreferredSize().height < b->getPreferredSize().height;
+                                              auto sizeA = a->getPreferredSize();
+                                              auto sizeB = b->getPreferredSize();
+                                              int minHeightA = a->getMinimumHeight();
+                                              int minHeightB = b->getMinimumHeight();
+                                              int effectiveHeightA = sizeA.height > 0 ? sizeA.height : minHeightA;
+                                              int effectiveHeightB = sizeB.height > 0 ? sizeB.height : minHeightB;
+                                              effectiveHeightA = std::max(effectiveHeightA, minHeightA);
+                                              effectiveHeightB = std::max(effectiveHeightB, minHeightB);
+                                              return effectiveHeightA < effectiveHeightB;
                                             }))
                            ->getPreferredSize()
                            .height;
+      // Ensure line height respects minimum
+      int maxMinHeight =
+        (*std::max_element(line.begin(), line.end(),
+                           [](const auto* a, const auto* b) { return a->getMinimumHeight() < b->getMinimumHeight(); }))
+          ->getMinimumHeight();
+      lineHeight = std::max(lineHeight, static_cast<float>(maxMinHeight));
 
       // Horizontal alignment
       switch (config_.mainAlignment) {
@@ -194,16 +238,30 @@ public:
 
       for (auto* component : line) {
         auto componentSize = component->getPreferredSize();
-        Rect bounds{currentX, currentY, static_cast<float>(componentSize.width),
-                    static_cast<float>(componentSize.height)};
+
+        // Get minimum sizes
+        int minWidth = component->getMinimumWidth();
+        int minHeight = component->getMinimumHeight();
+
+        // For zero-sized components, use minimum size
+        float effectiveWidth =
+          componentSize.width > 0 ? static_cast<float>(componentSize.width) : static_cast<float>(minWidth);
+        float effectiveHeight =
+          componentSize.height > 0 ? static_cast<float>(componentSize.height) : static_cast<float>(minHeight);
+
+        // Ensure minimum sizes are respected
+        effectiveWidth = std::max(effectiveWidth, static_cast<float>(minWidth));
+        effectiveHeight = std::max(effectiveHeight, static_cast<float>(minHeight));
+
+        Rect bounds{currentX, currentY, effectiveWidth, effectiveHeight};
 
         // Vertical alignment within line
         switch (config_.crossAlignment) {
         case FlowAlignment::CENTER:
-          bounds.y += (lineHeight - componentSize.height) / 2.0f;
+          bounds.y += (lineHeight - effectiveHeight) / 2.0f;
           break;
         case FlowAlignment::END:
-          bounds.y += lineHeight - componentSize.height;
+          bounds.y += lineHeight - effectiveHeight;
           break;
         default:
           break;
@@ -211,7 +269,7 @@ public:
 
         component->setBounds(static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.width),
                              static_cast<int>(bounds.height));
-        currentX += componentSize.width + config_.spacing;
+        currentX += effectiveWidth + config_.spacing;
       }
 
       currentY += lineHeight + config_.crossSpacing;
