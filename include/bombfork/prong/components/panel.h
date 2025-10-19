@@ -243,17 +243,15 @@ public:
     if (layoutFunc) {
       layoutFunc(childPointers, availableSpace);
 
-      // Adjust child positions to be relative to content area
+      // Adjust child positions to be in global coordinates
       // Layout managers position children relative to (0,0), but we need
-      // them positioned relative to our content area
-      int offsetX = contentX - x;
-      int offsetY = contentY - y;
-
+      // them positioned in global coordinates within our content area
       for (auto& child : children) {
         if (child) {
           int childX, childY, childW, childH;
           child->getBounds(childX, childY, childW, childH);
-          child->setBounds(childX + offsetX, childY + offsetY, childW, childH);
+          // Add the global content area position to the layout-calculated position
+          child->setBounds(childX + contentX, childY + contentY, childW, childH);
         }
       }
     }
