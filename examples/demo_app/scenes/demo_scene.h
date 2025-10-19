@@ -83,6 +83,13 @@ private:
     mainLayout->configure(FlexLayout::Configuration{
       .direction = FlexDirection::ROW, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 15.0f});
 
+    // Set flex item properties: left and right panels fixed width, center panel grows to fill
+    mainLayout->setItemProperties({
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // Left panel: fixed width (280px)
+      {.grow = 1.0f, .shrink = 1.0f, .basis = 0.0f}, // Center panel: grow to fill remaining space
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}  // Right panel: fixed width (320px)
+    });
+
     // === LEFT PANEL - Controls & Inputs ===
     auto leftPanel = buildControlPanel();
 
