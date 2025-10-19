@@ -429,6 +429,7 @@ private:
 
     if (!children.empty() && children[0]) {
       children[0]->setBounds(0, 0, width, height);
+      children[0]->invalidateLayout();
     }
   }
 };

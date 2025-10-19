@@ -140,6 +140,9 @@ public:
     // Update scene bounds
     setBounds(0, 0, width, height);
 
+    // Invalidate layout to trigger re-layout on next render
+    invalidateLayout();
+
     // Update event dispatcher window size
     eventDispatcher->setWindowSize(width, height);
 
