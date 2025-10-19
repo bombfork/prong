@@ -140,7 +140,6 @@ private:
     // === TextInput Demo ===
     auto textInput =
       create<TextInput>()
-        .withSize(0, 30)
         .withPlaceholder("Enter text here...")
         .withTextChangedCallback([](const std::string& text) { std::cout << "Text: " << text << std::endl; })
         .build();
@@ -157,11 +156,10 @@ private:
                                                          .align = FlexAlign::STRETCH,
                                                          .gap = 10.0f});
 
-    auto buttonRow = create<FlexPanel>().withSize(0, 35).withLayout(buttonRowLayout).build();
+    auto buttonRow = create<FlexPanel>().withLayout(buttonRowLayout).build();
     buttonRow->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f));
 
     auto addButton = create<Button>("Add")
-                       .withSize(120, 35)
                        .withClickCallback([this]() {
                          clickCount++;
                          std::string item = textInputPtr && !textInputPtr->getText().empty()
@@ -177,7 +175,6 @@ private:
                        .build();
 
     auto clearButton = create<Button>("Clear")
-                         .withSize(120, 35)
                          .withClickCallback([this]() {
                            if (listBoxPtr) {
                              listBoxPtr->clearItems();
@@ -192,7 +189,6 @@ private:
 
     // === Info Button ===
     auto infoButton = create<Button>("Show Info")
-                        .withSize(0, 35)
                         .withClickCallback([]() {
                           std::cout << "\n=== Prong UI Framework ===" << std::endl;
                           std::cout << "Modern C++20 UI Framework" << std::endl;
@@ -203,13 +199,12 @@ private:
     leftPanel->addChild(std::move(infoButton));
 
     // === Spacer ===
-    auto spacer = create<Panel<>>().withSize(0, 1).build();
+    auto spacer = create<Panel<>>().build();
     spacer->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f));
     leftPanel->addChild(std::move(spacer));
 
     // === Exit Button ===
     auto exitButton = create<Button>("Exit Application")
-                        .withSize(0, 35)
                         .withClickCallback([this]() {
                           std::cout << "Exiting..." << std::endl;
                           if (glfwWindow) {
@@ -231,7 +226,7 @@ private:
     centerLayout->configure(FlexLayout::Configuration{
       .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 10.0f});
 
-    auto centerPanel = create<FlexPanel>().withSize(0, 0).withLayout(centerLayout).build();
+    auto centerPanel = create<FlexPanel>().withLayout(centerLayout).build();
 
     centerPanel->setBackgroundColor(theming::Color(0.12f, 0.12f, 0.14f, 1.0f));
     centerPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
@@ -277,7 +272,6 @@ private:
     // Add 9 buttons in 3x3 grid
     for (int i = 1; i <= 9; ++i) {
       auto btn = create<Button>("Btn " + std::to_string(i))
-                   .withSize(0, 0)
                    .withClickCallback([i]() { std::cout << "Grid button " << i << " clicked" << std::endl; })
                    .build();
       gridPanel->addChild(std::move(btn));
@@ -310,10 +304,8 @@ private:
     std::vector<std::string> tags = {"C++20", "UI",        "Framework",   "Modern",
                                      "CRTP",  "Zero-cost", "Header-only", "OpenGL"};
     for (const auto& tag : tags) {
-      auto btn = create<Button>(tag)
-                   .withSize(60 + tag.length() * 5, 28)
-                   .withClickCallback([tag]() { std::cout << "Tag clicked: " << tag << std::endl; })
-                   .build();
+      auto btn =
+        create<Button>(tag).withClickCallback([tag]() { std::cout << "Tag clicked: " << tag << std::endl; }).build();
       btn->setBackgroundColor(theming::Color(0.2f, 0.4f, 0.6f, 1.0f));
       flowPanel->addChild(std::move(btn));
     }
@@ -344,7 +336,6 @@ private:
     // Add horizontally stacked buttons
     for (int i = 1; i <= 4; ++i) {
       auto btn = create<Button>("Stack " + std::to_string(i))
-                   .withSize(80, 35)
                    .withClickCallback([i]() { std::cout << "Stack button " << i << " clicked" << std::endl; })
                    .build();
       stackPanel->addChild(std::move(btn));
