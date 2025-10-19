@@ -125,17 +125,44 @@ private:
 
     // Initial measurement of components
     std::vector<Dimensions> componentDimensions;
+    std::vector<float> minimumSizes;
     float totalMainAxisSize = 0.0f;
     std::vector<float> growFactors;
+    std::vector<bool> isAutoGrow; // Track which components are auto-grow
 
     for (size_t i = 0; i < components.size(); ++i) {
       auto dims = components[i]->getPreferredSize();
       componentDimensions.push_back(dims);
 
+      // Get minimum size for the main axis
+      float minSize = isHorizontal ? static_cast<float>(components[i]->getMinimumWidth())
+                                   : static_cast<float>(components[i]->getMinimumHeight());
+      minimumSizes.push_back(minSize);
+
+      // Get the main axis size from preferred dimensions
       float componentMainAxisSize = isHorizontal ? static_cast<float>(dims.width) : static_cast<float>(dims.height);
+
+      // Detect zero-sized components (auto-grow candidates)
+      bool isZeroSized = (componentMainAxisSize == 0.0f);
+      isAutoGrow.push_back(isZeroSized);
+
+      // For zero-sized components, use minimum size as the base
+      if (isZeroSized) {
+        componentMainAxisSize = minSize;
+      }
+
       totalMainAxisSize += componentMainAxisSize;
 
-      growFactors.push_back(i < itemProperties_.size() ? itemProperties_[i].grow : 0.0f);
+      // Get explicit grow factor or auto-assign for zero-sized components
+      float growFactor = 0.0f;
+      if (i < itemProperties_.size()) {
+        growFactor = itemProperties_[i].grow;
+      }
+      // Auto-assign grow=1.0 for zero-sized components if no explicit grow factor
+      if (isZeroSized && growFactor == 0.0f) {
+        growFactor = 1.0f;
+      }
+      growFactors.push_back(growFactor);
     }
 
     // Add gap space
@@ -153,9 +180,19 @@ private:
 
       // Determine main axis size
       float componentMainAxisSize = isHorizontal ? static_cast<float>(dims.width) : static_cast<float>(dims.height);
-      if (totalGrowFactor > 0) {
+
+      // For zero-sized components, start with minimum size
+      if (isAutoGrow[i]) {
+        componentMainAxisSize = minimumSizes[i];
+      }
+
+      // Add growth space if applicable
+      if (totalGrowFactor > 0 && growFactors[i] > 0) {
         componentMainAxisSize += (growFactors[i] / totalGrowFactor) * extraSpace;
       }
+
+      // Ensure component never shrinks below minimum size
+      componentMainAxisSize = std::max(componentMainAxisSize, minimumSizes[i]);
 
       // Determine cross axis size
       float componentCrossAxisSize = isHorizontal ? static_cast<float>(dims.height) : static_cast<float>(dims.width);
