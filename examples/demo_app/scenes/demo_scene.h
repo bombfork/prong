@@ -111,6 +111,12 @@ private:
     // Add main container to scene
     addChild(std::move(mainContainer));
 
+    // Initialize main container size to match scene/window
+    if (!children.empty() && children[0]) {
+      children[0]->setBounds(0, 0, width, height);
+      children[0]->invalidateLayout();
+    }
+
     // Print welcome message
     printWelcomeMessage();
   }
@@ -436,6 +442,7 @@ private:
 
     if (!children.empty() && children[0]) {
       children[0]->setBounds(0, 0, width, height);
+      children[0]->invalidateLayout();
     }
   }
 };
