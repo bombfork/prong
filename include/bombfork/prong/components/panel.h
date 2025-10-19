@@ -207,7 +207,7 @@ public:
    * @return Minimum width based on layout manager measurements plus borders and padding
    */
   int getMinimumWidth() const override {
-    if (layoutManager) {
+    if (layoutManager || Component::hasLayout()) {
       // Create vector of raw pointers to children (const-correct)
       std::vector<bombfork::prong::Component*> childPointers;
       childPointers.reserve(children.size());
@@ -219,7 +219,16 @@ public:
       }
 
       // Measure layout and add border + padding
-      layout::Dimensions layoutSize = layoutManager->measureLayout(childPointers);
+      layout::Dimensions layoutSize{0, 0};
+
+      if (layoutManager) {
+        // Use Panel's typed layout manager
+        layoutSize = layoutManager->measureLayout(childPointers);
+      } else if (Component::measureFunc) {
+        // Use Component's type-erased measurement function
+        layoutSize = Component::measureFunc(childPointers);
+      }
+
       int borderWidth = static_cast<int>(style.borderWidth);
       return layoutSize.width + (borderWidth + style.padding) * 2;
     }
@@ -231,7 +240,7 @@ public:
    * @return Minimum height based on layout manager measurements plus borders, padding, and title bar
    */
   int getMinimumHeight() const override {
-    if (layoutManager) {
+    if (layoutManager || Component::hasLayout()) {
       // Create vector of raw pointers to children (const-correct)
       std::vector<bombfork::prong::Component*> childPointers;
       childPointers.reserve(children.size());
@@ -243,7 +252,16 @@ public:
       }
 
       // Measure layout and add border + padding + title bar
-      layout::Dimensions layoutSize = layoutManager->measureLayout(childPointers);
+      layout::Dimensions layoutSize{0, 0};
+
+      if (layoutManager) {
+        // Use Panel's typed layout manager
+        layoutSize = layoutManager->measureLayout(childPointers);
+      } else if (Component::measureFunc) {
+        // Use Component's type-erased measurement function
+        layoutSize = Component::measureFunc(childPointers);
+      }
+
       int borderWidth = static_cast<int>(style.borderWidth);
       int titleBarHeight = hasVisibleTitleBar() ? TITLE_BAR_HEIGHT : 0;
       return layoutSize.height + (borderWidth + style.padding) * 2 + titleBarHeight;

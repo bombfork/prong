@@ -57,6 +57,7 @@ protected:
   // Layout management
   std::shared_ptr<void> layoutManager; // Type-erased layout manager
   std::function<void(std::vector<bombfork::prong::Component*>&, const layout::Dimensions&)> layoutFunc;
+  std::function<layout::Dimensions(const std::vector<bombfork::prong::Component*>&)> measureFunc;
   bool layoutInvalid = true;
 
   // Callbacks
@@ -215,6 +216,10 @@ public:
     // Store a type-erased function that calls the layout manager's layout method
     layoutFunc = [layout](std::vector<bombfork::prong::Component*>& components,
                           const layout::Dimensions& availableSpace) { layout->layout(components, availableSpace); };
+    // Store a type-erased function that calls the layout manager's measureLayout method
+    measureFunc = [layout](const std::vector<bombfork::prong::Component*>& components) {
+      return layout->measureLayout(components);
+    };
     invalidateLayout();
   }
 
@@ -224,6 +229,7 @@ public:
   void clearLayout() {
     layoutManager.reset();
     layoutFunc = nullptr;
+    measureFunc = nullptr;
     invalidateLayout();
   }
 
