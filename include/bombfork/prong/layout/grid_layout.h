@@ -93,6 +93,7 @@ public:
    * @param availableSpace Total available space
    */
   void layout(std::vector<bombfork::prong::Component*>& components, const Dimensions& availableSpace) override {
+    (void)availableSpace; // Unused parameter - grid uses measured component sizes
     size_t rows = calculateRows(components);
     size_t cols = config_.columns;
 
