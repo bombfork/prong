@@ -200,9 +200,9 @@ public:
    */
   void addChild(std::unique_ptr<Component> child) {
     if (child) {
-      // Register with event dispatcher if attached
+      // Register with event dispatcher if attached (recursively)
       if (attached) {
-        eventDispatcher->registerComponent(child.get());
+        registerComponentRecursive(child.get());
       }
 
       // Add to component hierarchy
@@ -254,6 +254,30 @@ public:
 
 private:
   /**
+   * @brief Register a component and all its descendants with event dispatcher
+   *
+   * Recursively traverses the component tree and registers each component
+   * for event handling.
+   *
+   * @param component Component to register (along with all descendants)
+   */
+  void registerComponentRecursive(Component* component) {
+    if (!component) {
+      return;
+    }
+
+    // Register this component
+    eventDispatcher->registerComponent(component);
+
+    // Recursively register all children
+    for (const auto& child : component->getChildren()) {
+      if (child) {
+        registerComponentRecursive(child.get());
+      }
+    }
+  }
+
+  /**
    * @brief Register all children with event dispatcher
    *
    * Recursively registers all child components for event handling.
@@ -261,10 +285,7 @@ private:
   void registerChildrenWithDispatcher() {
     for (auto& child : children) {
       if (child) {
-        eventDispatcher->registerComponent(child.get());
-        // Note: We only register direct children, not all descendants.
-        // The EventDispatcher will handle event routing to nested children
-        // through the Component::handleXXX methods.
+        registerComponentRecursive(child.get());
       }
     }
   }

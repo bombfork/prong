@@ -1,5 +1,6 @@
 #include <bombfork/prong/core/component.h>
 #include <bombfork/prong/core/scene.h>
+#include <bombfork/prong/events/event_dispatcher.h>
 #include <bombfork/prong/events/iwindow.h>
 #include <bombfork/prong/rendering/irenderer.h>
 
@@ -429,6 +430,173 @@ void test_scene_resize_callback() {
   std::cout << "✓ Scene resize callback tests passed\n";
 }
 
+void test_scene_recursive_registration() {
+  MockWindow window;
+  MockRenderer renderer;
+  Scene scene(&window, &renderer);
+
+  // Create a nested component hierarchy:
+  // parent (0, 0, 400, 400)
+  //   └─ child (50, 50, 300, 300)
+  //        └─ grandchild (75, 75, 150, 150)
+
+  auto parent = std::make_unique<MockComponent>(&renderer);
+  parent->setBounds(0, 0, 400, 400);
+  parent->setVisible(true);
+  parent->setEnabled(true);
+
+  auto child = std::make_unique<MockComponent>(&renderer);
+  child->setBounds(50, 50, 300, 300);
+  child->setVisible(true);
+  child->setEnabled(true);
+  auto* childPtr = child.get();
+
+  auto grandchild = std::make_unique<MockComponent>(&renderer);
+  grandchild->setBounds(75, 75, 150, 150);
+  grandchild->setVisible(true);
+  grandchild->setEnabled(true);
+  auto* grandchildPtr = grandchild.get();
+
+  // Build hierarchy: grandchild -> child -> parent
+  child->addChild(std::move(grandchild));
+  parent->addChild(std::move(child));
+
+  // Add parent to scene BEFORE attaching
+  scene.addChild(std::move(parent));
+
+  // Now attach the scene - should recursively register all descendants
+  scene.attach();
+
+  auto* eventDispatcher = scene.getEventDispatcher();
+  assert(eventDispatcher != nullptr);
+
+  // Test that nested components can be found via hit testing
+  // The child is at global position (50, 50) with size (300, 300)
+  // So a point at (100, 100) should be within the child
+  // Note: findComponentAt checks in reverse order (last rendered first)
+
+  // Verify by attempting to set focus on nested components
+  // If they're not registered, setFocus will fail
+  bool childFocusSuccess = eventDispatcher->setFocus(childPtr);
+  assert(childFocusSuccess && "Child component should be registered and focusable");
+  assert(eventDispatcher->getFocusedComponent() == childPtr);
+
+  bool grandchildFocusSuccess = eventDispatcher->setFocus(grandchildPtr);
+  assert(grandchildFocusSuccess && "Grandchild component should be registered and focusable");
+  assert(eventDispatcher->getFocusedComponent() == grandchildPtr);
+
+  eventDispatcher->clearFocus();
+
+  std::cout << "✓ Scene recursive registration (before attach) tests passed\n";
+}
+
+void test_scene_recursive_registration_after_attach() {
+  MockWindow window;
+  MockRenderer renderer;
+  Scene scene(&window, &renderer);
+
+  // Attach scene first
+  scene.attach();
+
+  // Create nested hierarchy
+  auto parent = std::make_unique<MockComponent>(&renderer);
+  parent->setBounds(0, 0, 400, 400);
+  parent->setVisible(true);
+  parent->setEnabled(true);
+
+  auto child = std::make_unique<MockComponent>(&renderer);
+  child->setBounds(50, 50, 300, 300);
+  child->setVisible(true);
+  child->setEnabled(true);
+  auto* childPtr = child.get();
+
+  auto grandchild = std::make_unique<MockComponent>(&renderer);
+  grandchild->setBounds(75, 75, 150, 150);
+  grandchild->setVisible(true);
+  grandchild->setEnabled(true);
+  auto* grandchildPtr = grandchild.get();
+
+  // Build hierarchy
+  child->addChild(std::move(grandchild));
+  parent->addChild(std::move(child));
+
+  // Add parent to ALREADY ATTACHED scene
+  // Should recursively register all descendants immediately
+  scene.addChild(std::move(parent));
+
+  auto* eventDispatcher = scene.getEventDispatcher();
+
+  // Verify nested components are registered by setting focus
+  bool childFocusSuccess = eventDispatcher->setFocus(childPtr);
+  assert(childFocusSuccess && "Child should be registered when added to attached scene");
+  assert(eventDispatcher->getFocusedComponent() == childPtr);
+
+  bool grandchildFocusSuccess = eventDispatcher->setFocus(grandchildPtr);
+  assert(grandchildFocusSuccess && "Grandchild should be registered when added to attached scene");
+  assert(eventDispatcher->getFocusedComponent() == grandchildPtr);
+
+  eventDispatcher->clearFocus();
+
+  std::cout << "✓ Scene recursive registration (after attach) tests passed\n";
+}
+
+void test_scene_deeply_nested_registration() {
+  MockWindow window;
+  MockRenderer renderer;
+  Scene scene(&window, &renderer);
+
+  // Create a deeply nested hierarchy (5 levels)
+  auto level1 = std::make_unique<MockComponent>(&renderer);
+  level1->setBounds(0, 0, 500, 500);
+  level1->setVisible(true);
+  level1->setEnabled(true);
+
+  auto level2 = std::make_unique<MockComponent>(&renderer);
+  level2->setBounds(10, 10, 480, 480);
+  level2->setVisible(true);
+  level2->setEnabled(true);
+  auto* level2Ptr = level2.get();
+
+  auto level3 = std::make_unique<MockComponent>(&renderer);
+  level3->setBounds(20, 20, 460, 460);
+  level3->setVisible(true);
+  level3->setEnabled(true);
+  auto* level3Ptr = level3.get();
+
+  auto level4 = std::make_unique<MockComponent>(&renderer);
+  level4->setBounds(30, 30, 440, 440);
+  level4->setVisible(true);
+  level4->setEnabled(true);
+  auto* level4Ptr = level4.get();
+
+  auto level5 = std::make_unique<MockComponent>(&renderer);
+  level5->setBounds(40, 40, 420, 420);
+  level5->setVisible(true);
+  level5->setEnabled(true);
+  auto* level5Ptr = level5.get();
+
+  // Build deep hierarchy
+  level4->addChild(std::move(level5));
+  level3->addChild(std::move(level4));
+  level2->addChild(std::move(level3));
+  level1->addChild(std::move(level2));
+
+  scene.addChild(std::move(level1));
+  scene.attach();
+
+  auto* eventDispatcher = scene.getEventDispatcher();
+
+  // Verify all levels are registered
+  assert(eventDispatcher->setFocus(level2Ptr) && "Level 2 should be registered");
+  assert(eventDispatcher->setFocus(level3Ptr) && "Level 3 should be registered");
+  assert(eventDispatcher->setFocus(level4Ptr) && "Level 4 should be registered");
+  assert(eventDispatcher->setFocus(level5Ptr) && "Level 5 should be registered");
+
+  eventDispatcher->clearFocus();
+
+  std::cout << "✓ Scene deeply nested registration tests passed\n";
+}
+
 int main() {
   std::cout << "Running Scene class tests...\n\n";
 
@@ -442,6 +610,9 @@ int main() {
     test_scene_update_render();
     test_scene_destructor_detaches();
     test_scene_resize_callback();
+    test_scene_recursive_registration();
+    test_scene_recursive_registration_after_attach();
+    test_scene_deeply_nested_registration();
 
     std::cout << "\n✓ All Scene tests passed!\n";
     return 0;
