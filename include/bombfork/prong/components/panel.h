@@ -278,9 +278,10 @@ public:
    * relative to the content area (after borders, padding, and title bar).
    */
   void performLayout() override {
-    if (!layoutManager) {
-      // No layout manager, just call base implementation
-      Component::performLayout();
+    // Check if we have a layout function (set via Component::setLayout or Panel::setLayoutManager)
+    // Use layoutFunc from Component base class, not Panel's layoutManager member
+    if (!layoutFunc) {
+      // No layout manager, skip layout
       return;
     }
 
@@ -309,19 +310,19 @@ public:
     layout::Dimensions availableSpace{contentWidth, contentHeight};
 
     // Call the layout manager through the type-erased function
-    if (layoutFunc) {
-      layoutFunc(childPointers, availableSpace);
+    // Layout managers position children relative to (0,0)
+    layoutFunc(childPointers, availableSpace);
 
-      // Adjust child positions to be in global coordinates
-      // Layout managers position children relative to (0,0), but we need
-      // them positioned in global coordinates within our content area
-      for (auto& child : children) {
-        if (child) {
-          int childX, childY, childW, childH;
-          child->getBounds(childX, childY, childW, childH);
-          // Add the global content area position to the layout-calculated position
-          child->setBounds(childX + contentX, childY + contentY, childW, childH);
-        }
+    // Adjust child positions to be in global coordinates
+    // The layout manager just set relative positions (0,0 based),
+    // so we need to add our content area's global position
+    for (auto& child : children) {
+      if (child) {
+        int childX, childY, childW, childH;
+        child->getBounds(childX, childY, childW, childH);
+        // childX and childY are relative coordinates from the layout manager
+        // Convert to global by adding our content area's global position
+        child->setBounds(childX + contentX, childY + contentY, childW, childH);
       }
     }
 
