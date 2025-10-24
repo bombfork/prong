@@ -114,17 +114,16 @@ public:
 
   // === Event Handling ===
 
-  bool handleClick(int localX, int localY) override {
-    if (!enabled || !contains(localX, localY)) {
+  bool handleClick(int /* localX */, int localY) override {
+    if (!enabled) {
       return false;
     }
 
-    // Note: localX, localY are in absolute/global coordinates (despite the parameter name)
-    // Convert to component-relative coordinates
-    int relativeY = localY - y;
+    // localX, localY are already in component-local coordinates (relative to this component's origin)
+    // No need to subtract component position - that's already done by EventDispatcher
 
     int contentY = style.padding;
-    int itemIndex = (relativeY - contentY + scrollOffset) / style.itemHeight;
+    int itemIndex = (localY - contentY + scrollOffset) / style.itemHeight;
 
     if (itemIndex >= 0 && itemIndex < static_cast<int>(items.size())) {
       setSelectedIndex(itemIndex);
@@ -144,12 +143,11 @@ public:
       return false;
     }
 
-    if (contains(localX, localY)) {
-      // Convert to component-relative coordinates
-      int relativeY = localY - y;
-
+    // localX, localY are already in component-local coordinates
+    // Check if within component bounds (0,0 to width,height in local space)
+    if (localX >= 0 && localX < width && localY >= 0 && localY < height) {
       int contentY = style.padding;
-      int itemIndex = (relativeY - contentY + scrollOffset) / style.itemHeight;
+      int itemIndex = (localY - contentY + scrollOffset) / style.itemHeight;
 
       if (itemIndex >= 0 && itemIndex < static_cast<int>(items.size())) {
         hoveredIndex = itemIndex;
@@ -167,13 +165,19 @@ public:
   void handleMouseLeave() override { hoveredIndex = -1; }
 
   bool handleScroll(int localX, int localY, double /* xoffset */, double yoffset) override {
-    if (!enabled || !contains(localX, localY)) {
+    if (!enabled) {
       return false;
     }
 
-    int delta = static_cast<int>(-yoffset * style.itemHeight);
-    setScrollOffset(scrollOffset + delta);
-    return true;
+    // localX, localY are already in component-local coordinates
+    // Check if within component bounds
+    if (localX >= 0 && localX < width && localY >= 0 && localY < height) {
+      int delta = static_cast<int>(-yoffset * style.itemHeight);
+      setScrollOffset(scrollOffset + delta);
+      return true;
+    }
+
+    return false;
   }
 
   bool handleKey(int key, int action, int /* mods */) override {
