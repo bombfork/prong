@@ -105,14 +105,14 @@ RUN clang-format --version && \
     mise --version
 
 # Set up working directory for builds
-WORKDIR /workspace
+WORKDIR /home/docker
 
 # Copy mise configuration for runtime use
-COPY .mise.toml /workspace/.mise.toml
+COPY .mise.toml /home/docker/.mise.toml
 
 # Install project-specific mise tools in workspace context
 RUN --mount=type=cache,target=/root/.cache/mise \
-    cd /workspace && \
+    cd /home/docker && \
     mise trust && \
     mise install
 
@@ -121,62 +121,35 @@ RUN --mount=type=cache,target=/root/.cache/mise \
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
-RUN groupadd -g ${GROUP_ID} prong && \
-    useradd -m -u ${USER_ID} -g prong -G wheel -s /bin/bash prong && \
-    echo 'prong ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+RUN groupadd -g ${GROUP_ID} docker && \
+    useradd -m -u ${USER_ID} -g docker -G wheel -s /bin/bash docker && \
+    echo 'docker ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
 # Copy mise configuration to user home
-RUN mkdir -p /home/prong/.local && \
-    cp -r /root/.local/bin /home/prong/.local/ && \
-    cp -r /root/.local/share /home/prong/.local/ && \
-    chown -R prong:prong /home/prong/.local
+RUN mkdir -p /home/docker/.local && \
+    cp -r /root/.local/bin /home/docker/.local/ && \
+    cp -r /root/.local/share /home/docker/.local/ && \
+    chown -R docker:docker /home/docker
 
-# Add mise to PATH for prong user
-USER prong
-ENV PATH="/home/prong/.local/bin:${PATH}"
-RUN echo 'eval "$(mise activate bash)"' >> /home/prong/.bashrc
+# Add mise to PATH for docker user
+USER docker
+ENV PATH="/home/docker/.local/bin:${PATH}"
 
-# Set up working directory with correct ownership
-WORKDIR /workspace
+# Set up working directory
+WORKDIR /home/docker
+
+# install jq
+RUN mise trust && eval "$(mise activate bash)" && mise use -g jq
 
 # Set up entrypoint to ensure mise is available
-USER root
-RUN cat > /entrypoint.sh << 'ENTRYPOINT_EOF'
-#!/bin/bash
-set -e
+RUN cat > /home/docker/.bashrc << 'BASHRC_EOF'
+# Activate mise
+eval "$(/home/docker/.local/bin/mise activate bash)"
 
 # Fix ownership of workspace if needed
 if [ -n "$HOST_USER_ID" ] && [ -n "$HOST_GROUP_ID" ]; then
-    usermod -u $HOST_USER_ID prong 2>/dev/null || true
-    groupmod -g $HOST_GROUP_ID prong 2>/dev/null || true
+    sudo usermod -u $HOST_USER_ID docker 2>/dev/null || true
+    sudo groupmod -g $HOST_GROUP_ID docker 2>/dev/null || true
 fi
-
-# Trust mise config as prong user
-if [ -f /workspace/.mise.toml ]; then
-    su prong -c "cd /workspace && /home/prong/.local/bin/mise trust" 2>/dev/null || true
-fi
-
-# Create a temporary script to execute the command
-cat > /tmp/run-command.sh << 'RUNSCRIPT_EOF'
-#!/bin/bash
-export PATH=/home/prong/.local/bin:$PATH
-cd /workspace
-eval "$(mise activate bash)"
-exec "$@"
-RUNSCRIPT_EOF
-chmod +x /tmp/run-command.sh
-
-# Switch to prong user and execute
-if [ "$(id -u)" = "0" ]; then
-    exec su prong /tmp/run-command.sh "$@"
-else
-    exec /tmp/run-command.sh "$@"
-fi
-ENTRYPOINT_EOF
-
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
-
-# Default command runs a shell for interactive use
-CMD ["bash"]
+BASHRC_EOF
+RUN chown -R docker:docker /home/docker
