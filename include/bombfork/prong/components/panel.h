@@ -294,9 +294,13 @@ public:
     // Mark layout as valid first to avoid infinite recursion
     layoutInvalid = false;
 
-    // Get content area bounds
-    int contentX, contentY, contentWidth, contentHeight;
-    getContentBounds(contentX, contentY, contentWidth, contentHeight);
+    // Calculate content area offset RELATIVE to this Panel's origin
+    int borderOffset = static_cast<int>(style.borderWidth);
+    int titleBarOffset = hasVisibleTitleBar() ? TITLE_BAR_HEIGHT : 0;
+    int contentOffsetX = borderOffset + style.padding;
+    int contentOffsetY = borderOffset + titleBarOffset + style.padding;
+    int contentWidth = width - (borderOffset + style.padding) * 2;
+    int contentHeight = height - (borderOffset + style.padding) * 2 - titleBarOffset;
 
     // Create vector of raw pointers to children
     std::vector<bombfork::prong::Component*> childPointers;
@@ -312,19 +316,21 @@ public:
     layout::Dimensions availableSpace{contentWidth, contentHeight};
 
     // Call the layout manager through the type-erased function
-    // Layout managers position children relative to (0,0)
+    // Layout managers position children relative to (0,0) and call setBounds()
+    // which now sets LOCAL coordinates (relative to parent's origin).
+    // Layout managers produce coordinates relative to content area (0,0),
+    // so we need to offset them by the content area's position within this Panel.
     layoutFunc(childPointers, availableSpace);
 
-    // Adjust child positions to be in global coordinates
-    // The layout manager just set relative positions (0,0 based),
-    // so we need to add our content area's global position
+    // Adjust child positions to account for content area offset within the Panel
+    // Layout managers position children relative to content area (0,0),
+    // but setBounds() expects coordinates relative to Panel's origin (0,0)
     for (auto& child : children) {
       if (child) {
         int childX, childY, childW, childH;
         child->getBounds(childX, childY, childW, childH);
-        // childX and childY are relative coordinates from the layout manager
-        // Convert to global by adding our content area's global position
-        child->setBounds(childX + contentX, childY + contentY, childW, childH);
+        // Offset by content area position within the Panel
+        child->setBounds(childX + contentOffsetX, childY + contentOffsetY, childW, childH);
       }
     }
 
