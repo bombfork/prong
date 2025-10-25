@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <memory>
+#include <string>
 #include <vector>
 
 namespace bombfork::prong::events {
@@ -258,14 +260,68 @@ void EventDispatcher::processFramebufferResize(int width, int height) {
 // === Internal Event Processing ===
 
 bombfork::prong::Component* EventDispatcher::findComponentAt(int x, int y) {
-  // Check components in reverse order (last rendered = topmost = first to handle events)
+  // Check registered components in reverse order (last rendered = topmost = first to handle events)
+  // IMPORTANT: Only check ROOT components (those without parents) to avoid duplicate checking.
+  // Child components will be checked recursively through their parents.
   for (auto it = components.rbegin(); it != components.rend(); ++it) {
     bombfork::prong::Component* component = *it;
-    if (component->isVisible() && component->isEnabled() && component->containsGlobal(x, y)) {
-      return component;
+
+    // DEBUG: Log what we're checking
+    if (component->getDebugName().find("Btn") != std::string::npos) {
+      int cx, cy, cw, ch;
+      component->getBounds(cx, cy, cw, ch);
+      std::cout << "[FIND] Checking component '" << component->getDebugName() << "' at (" << cx << "," << cy << ","
+                << cw << "," << ch << ")"
+                << " hasParent=" << (component->getParent() != nullptr) << " for click at (" << x << "," << y << ")"
+                << std::endl;
+    }
+
+    // Skip if this component has a parent - it will be checked through the parent hierarchy
+    if (component->getParent() != nullptr) {
+      continue;
+    }
+
+    // Recursively check component and its children
+    bombfork::prong::Component* found = findComponentAtRecursive(component, x, y);
+    if (found) {
+      return found;
     }
   }
   return nullptr;
+}
+
+bombfork::prong::Component* EventDispatcher::findComponentAtRecursive(bombfork::prong::Component* component, int x,
+                                                                      int y) {
+  if (!component || !component->isVisible() || !component->isEnabled()) {
+    return nullptr;
+  }
+
+  // First, check if the point is even within this component's bounds
+  if (!component->containsGlobal(x, y)) {
+    return nullptr;
+  }
+
+  // DEBUG: Log when button contains point
+  if (component->getDebugName().find("Btn") != std::string::npos) {
+    int cx, cy, cw, ch;
+    component->getBounds(cx, cy, cw, ch);
+    std::cout << "[RECURSIVE] Button '" << component->getDebugName() << "' at (" << cx << "," << cy << "," << cw << ","
+              << ch << ") CONTAINS point (" << x << "," << y << ")" << std::endl;
+  }
+
+  // Check children in reverse order (last rendered = topmost)
+  // Children are checked before the parent to ensure proper event capture
+  const auto& children = component->getChildren();
+  for (auto it = children.rbegin(); it != children.rend(); ++it) {
+    bombfork::prong::Component* child = it->get();
+    bombfork::prong::Component* found = findComponentAtRecursive(child, x, y);
+    if (found) {
+      return found;
+    }
+  }
+
+  // If no children matched, return this component (since we already checked it contains the point)
+  return component;
 }
 
 void EventDispatcher::updateMouseHover(int x, int y) {

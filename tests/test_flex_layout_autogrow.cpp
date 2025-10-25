@@ -49,6 +49,7 @@ void test_single_zero_sized_component_fills_space() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(400, 200);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
   panel.setLayout(layout);
@@ -75,7 +76,8 @@ void test_zero_sized_respects_minimum_size() {
   MockRenderer renderer;
   Panel panel;
   panel.setRenderer(&renderer);
-  panel.setSize(100, 100); // Small panel
+  panel.setSize(100, 100);
+  panel.setBorderWidth(0); // Small panel
 
   auto layout = std::make_shared<layout::FlexLayout>();
   panel.setLayout(layout);
@@ -103,6 +105,7 @@ void test_multiple_zero_sized_equal_distribution() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(600, 200);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
   panel.setLayout(layout);
@@ -140,6 +143,7 @@ void test_mixed_fixed_and_auto_sizing() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(500, 200);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
   panel.setLayout(layout);
@@ -183,6 +187,7 @@ void test_auto_grow_with_gap() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(500, 200);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
   layout->configure({.direction = layout::FlexDirection::ROW, .gap = 20.0f}); // 20px gap between components
@@ -219,6 +224,7 @@ void test_explicit_grow_overrides_auto_grow() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(600, 200);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
 
@@ -263,6 +269,7 @@ void test_vertical_auto_grow() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(200, 600);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
   layout::FlexLayoutManager<layout::FlexLayout>::Configuration config;
@@ -298,6 +305,7 @@ void test_no_auto_grow_when_explicit_grow_zero() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(600, 200);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
 
@@ -344,6 +352,7 @@ void test_multiple_fixed_sizes_with_one_auto() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(1000, 200);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
   layout->configure({.direction = layout::FlexDirection::ROW, .gap = 10.0f});
@@ -391,7 +400,8 @@ void test_minimum_size_constraint_with_small_space() {
   MockRenderer renderer;
   Panel panel;
   panel.setRenderer(&renderer);
-  panel.setSize(100, 200); // Small space
+  panel.setSize(100, 200);
+  panel.setBorderWidth(0); // Small space
 
   auto layout = std::make_shared<layout::FlexLayout>();
   panel.setLayout(layout);

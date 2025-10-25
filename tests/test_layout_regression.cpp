@@ -51,6 +51,7 @@ void test_manual_width_height_override() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(500, 300);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
   // Use FlexAlign::START to prevent stretching in the cross-axis
@@ -98,6 +99,8 @@ void test_mixed_manual_and_auto_in_flex() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(600, 200);
+  panel.setBorderWidth(0);
+  panel.setBorderWidth(0); // No border for predictable layout calculations
 
   auto layout = std::make_shared<layout::FlexLayout>();
   panel.setLayout(layout);
@@ -141,6 +144,7 @@ void test_explicit_zero_size_without_autogrow() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(500, 200);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::StackLayout>();
   panel.setLayout(layout);
@@ -191,6 +195,7 @@ void test_explicit_grow_factors_work() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(600, 200);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
 
@@ -236,6 +241,7 @@ void test_grow_factor_overrides_auto_grow() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(600, 200);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
 
@@ -280,7 +286,8 @@ void test_shrink_factors_still_work() {
   MockRenderer renderer;
   Panel panel;
   panel.setRenderer(&renderer);
-  panel.setSize(200, 200); // Small space
+  panel.setSize(200, 200);
+  panel.setBorderWidth(0); // Small space
 
   auto layout = std::make_shared<layout::FlexLayout>();
 
@@ -328,6 +335,7 @@ void test_nested_flex_layouts() {
   Panel outerPanel;
   outerPanel.setRenderer(&renderer);
   outerPanel.setSize(600, 400);
+  outerPanel.setBorderWidth(0);
 
   auto outerLayout = std::make_shared<layout::FlexLayout>();
   outerPanel.setLayout(outerLayout);
@@ -336,6 +344,8 @@ void test_nested_flex_layouts() {
   auto innerPanel = std::make_unique<Panel<>>();
   innerPanel->setRenderer(&renderer);
   innerPanel->setSize(0, 0); // Auto-grow
+  innerPanel->setBorderWidth(0);
+  innerPanel->setBorderWidth(0);
 
   auto innerLayout = std::make_shared<layout::FlexLayout>();
   layout::FlexLayoutManager<layout::FlexLayout>::Configuration innerConfig;
@@ -390,6 +400,7 @@ void test_nested_mixed_layouts() {
   Panel outerPanel;
   outerPanel.setRenderer(&renderer);
   outerPanel.setSize(600, 400);
+  outerPanel.setBorderWidth(0);
 
   auto outerLayout = std::make_shared<layout::FlexLayout>();
   layout::FlexLayoutManager<layout::FlexLayout>::Configuration outerConfig;
@@ -401,6 +412,7 @@ void test_nested_mixed_layouts() {
   auto innerPanel = std::make_unique<Panel<>>();
   innerPanel->setRenderer(&renderer);
   innerPanel->setSize(0, 0); // Auto-grow
+  innerPanel->setBorderWidth(0);
 
   auto innerLayout = std::make_shared<layout::GridLayout>(); // TODO: configure rows/cols // 2x2 grid
   innerPanel->setLayout(innerLayout);
@@ -437,6 +449,7 @@ void test_deeply_nested_layouts() {
   Panel outerPanel;
   outerPanel.setRenderer(&renderer);
   outerPanel.setSize(800, 600);
+  outerPanel.setBorderWidth(0);
   auto outerLayout = std::make_shared<layout::FlexLayout>();
   outerPanel.setLayout(outerLayout);
 
@@ -444,6 +457,7 @@ void test_deeply_nested_layouts() {
   auto middlePanel = std::make_unique<Panel<>>();
   middlePanel->setRenderer(&renderer);
   middlePanel->setSize(0, 0);
+  middlePanel->setBorderWidth(0);
   auto middleLayout = std::make_shared<layout::FlexLayout>();
   layout::FlexLayoutManager<layout::FlexLayout>::Configuration middleConfig;
   middleConfig.direction = layout::FlexDirection::COLUMN;
@@ -454,6 +468,7 @@ void test_deeply_nested_layouts() {
   auto innerPanel = std::make_unique<Panel<>>();
   innerPanel->setRenderer(&renderer);
   innerPanel->setSize(0, 0);
+  innerPanel->setBorderWidth(0);
   auto innerLayout = std::make_shared<layout::StackLayout>();
   innerPanel->setLayout(innerLayout);
 
@@ -496,6 +511,7 @@ void test_nested_with_manual_sizes() {
   Panel outerPanel;
   outerPanel.setRenderer(&renderer);
   outerPanel.setSize(600, 400);
+  outerPanel.setBorderWidth(0);
   auto outerLayout = std::make_shared<layout::FlexLayout>();
   outerPanel.setLayout(outerLayout);
 
@@ -503,6 +519,7 @@ void test_nested_with_manual_sizes() {
   auto innerPanel = std::make_unique<Panel<>>();
   innerPanel->setRenderer(&renderer);
   innerPanel->setSize(300, 400); // Manual size (not auto-grow)
+  innerPanel->setBorderWidth(0);
   auto innerLayout = std::make_shared<layout::FlexLayout>();
   layout::FlexLayoutManager<layout::FlexLayout>::Configuration innerConfig;
   innerConfig.direction = layout::FlexDirection::COLUMN;
@@ -538,6 +555,7 @@ void test_empty_panel_with_layout() {
   Panel panel;
   panel.setRenderer(&renderer);
   panel.setSize(400, 300);
+  panel.setBorderWidth(0);
 
   auto layout = std::make_shared<layout::FlexLayout>();
   panel.setLayout(layout);
@@ -558,6 +576,7 @@ void test_single_component_various_sizes() {
     Panel panel1;
     panel1.setRenderer(&renderer);
     panel1.setSize(400, 300);
+    panel1.setBorderWidth(0);
     auto layout1 = std::make_shared<layout::FlexLayout>();
     panel1.setLayout(layout1);
 
@@ -573,6 +592,7 @@ void test_single_component_various_sizes() {
     Panel panel2;
     panel2.setRenderer(&renderer);
     panel2.setSize(400, 300);
+    panel2.setBorderWidth(0);
     auto layout2 = std::make_shared<layout::FlexLayout>();
     panel2.setLayout(layout2);
 
@@ -592,7 +612,8 @@ void test_minimum_size_larger_than_available() {
   MockRenderer renderer;
   Panel panel;
   panel.setRenderer(&renderer);
-  panel.setSize(100, 100); // Small panel
+  panel.setSize(100, 100);
+  panel.setBorderWidth(0); // Small panel
 
   auto layout = std::make_shared<layout::FlexLayout>();
   // Use align=START to prevent stretching that would override minimum height
@@ -618,6 +639,139 @@ void test_minimum_size_larger_than_available() {
   // assert(layoutChild->height >= 400);
 
   std::cout << "✓ Minimum size larger than available test passed" << std::endl;
+}
+
+// ============================================================================
+// Panel Border Tests
+// ============================================================================
+
+void test_panel_border_affects_child_position() {
+  std::cout << "Testing Panel border affects child positioning..." << std::endl;
+
+  MockRenderer renderer;
+  Panel<layout::FlexLayout> panel("BorderTestPanel");
+  panel.setRenderer(&renderer);
+  panel.setPosition(0, 0);
+  panel.setSize(200, 200);
+
+  // Set a visible border
+  panel.setBorderWidth(5); // 5px border on each side
+
+  auto flexLayout = std::make_shared<layout::FlexLayout>();
+  layout::FlexLayoutManager<layout::FlexLayout>::Configuration config;
+  config.direction = layout::FlexDirection::COLUMN;
+  flexLayout->configure(config);
+  panel.setLayoutManager(flexLayout);
+
+  auto child = std::make_unique<TestComponent>("Child", 100, 30);
+  child->setSize(100, 30);
+
+  panel.addChild(std::move(child));
+
+  // Perform layout
+  panel.performLayout();
+
+  // Get the child
+  const auto& children = panel.getChildren();
+  assert(!children.empty());
+  const Component* childComp = children[0].get();
+
+  int childX, childY, childWidth, childHeight;
+  childComp->getBounds(childX, childY, childWidth, childHeight);
+
+  // With 5px border, the content area should start at (5, 5)
+  // Child should be positioned at panel's content area position
+  assert(childX == 5);
+  assert(childY == 5);
+
+  std::cout << "✓ Panel border affects child positioning test passed (childX=" << childX << ", childY=" << childY << ")"
+            << std::endl;
+}
+
+void test_panel_border_with_padding() {
+  std::cout << "Testing Panel border and padding together..." << std::endl;
+
+  MockRenderer renderer;
+  Panel<layout::FlexLayout> panel("BorderPaddingPanel");
+  panel.setRenderer(&renderer);
+  panel.setPosition(0, 0);
+  panel.setSize(200, 200);
+
+  // Set border and padding
+  panel.setBorderWidth(3);
+  panel.setPadding(10);
+
+  auto flexLayout = std::make_shared<layout::FlexLayout>();
+  layout::FlexLayoutManager<layout::FlexLayout>::Configuration config;
+  config.direction = layout::FlexDirection::COLUMN;
+  flexLayout->configure(config);
+  panel.setLayoutManager(flexLayout);
+
+  auto child = std::make_unique<TestComponent>("Child", 100, 30);
+  child->setSize(100, 30);
+
+  panel.addChild(std::move(child));
+
+  // Perform layout
+  panel.performLayout();
+
+  // Get the child
+  const auto& children = panel.getChildren();
+  assert(!children.empty());
+  const Component* childComp = children[0].get();
+
+  int childX, childY, childWidth, childHeight;
+  childComp->getBounds(childX, childY, childWidth, childHeight);
+
+  // Content area starts at border (3px) + padding (10px) = 13px
+  assert(childX == 13);
+  assert(childY == 13);
+
+  std::cout << "✓ Panel border and padding test passed (childX=" << childX << ", childY=" << childY << ")" << std::endl;
+}
+
+void test_panel_border_with_titlebar() {
+  std::cout << "Testing Panel border with title bar..." << std::endl;
+
+  MockRenderer renderer;
+  Panel<layout::FlexLayout> panel("TitleBarPanel");
+  panel.setRenderer(&renderer);
+  panel.setPosition(0, 0);
+  panel.setSize(200, 200);
+
+  // Set border and title
+  panel.setBorderWidth(2);
+  panel.setTitle("Test Title");
+
+  auto flexLayout = std::make_shared<layout::FlexLayout>();
+  layout::FlexLayoutManager<layout::FlexLayout>::Configuration config;
+  config.direction = layout::FlexDirection::COLUMN;
+  flexLayout->configure(config);
+  panel.setLayoutManager(flexLayout);
+
+  auto child = std::make_unique<TestComponent>("Child", 100, 30);
+  child->setSize(100, 30);
+
+  panel.addChild(std::move(child));
+
+  // Perform layout
+  panel.performLayout();
+
+  // Get the child
+  const auto& children = panel.getChildren();
+  assert(!children.empty());
+  const Component* childComp = children[0].get();
+
+  int childX, childY, childWidth, childHeight;
+  childComp->getBounds(childX, childY, childWidth, childHeight);
+
+  // Content area X: border (2px) = 2px
+  // Content area Y: border (2px) + title bar (25px) = 27px
+  assert(childX == 2);
+  assert(childY == 27);
+
+  std::cout << "✓ Panel border with title bar test passed (childX=" << childX << ", childY=" << childY << ")"
+            << std::endl;
 }
 
 // ============================================================================
@@ -654,6 +808,12 @@ int main() {
     test_empty_panel_with_layout();
     test_single_component_various_sizes();
     test_minimum_size_larger_than_available();
+
+    // Panel border tests
+    std::cout << "\n=== Panel Border Tests ===" << std::endl;
+    test_panel_border_affects_child_position();
+    test_panel_border_with_padding();
+    test_panel_border_with_titlebar();
 
     std::cout << "\n✓ All Layout Regression tests passed!" << std::endl;
     return 0;

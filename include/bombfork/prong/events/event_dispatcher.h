@@ -192,6 +192,15 @@ private:
   bombfork::prong::Component* findComponentAt(int x, int y);
 
   /**
+   * @brief Recursively search a component and its children for the topmost component at coordinates
+   * @param component The component to search
+   * @param x Global X coordinate
+   * @param y Global Y coordinate
+   * @return The topmost component at the given coordinates, or nullptr if none found
+   */
+  bombfork::prong::Component* findComponentAtRecursive(bombfork::prong::Component* component, int x, int y);
+
+  /**
    * @brief Update mouse hover state
    */
   void updateMouseHover(int x, int y);

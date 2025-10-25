@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${PROJECT_ROOT}"
 
-IMAGE_NAME="prong-builder"
+IMAGE_NAME="docker-runner-tmp"
 TAG="${PRONG_DOCKER_TAG:-latest}"
 
 # Get current user UID and GID for build args
