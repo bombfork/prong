@@ -70,8 +70,10 @@ void test_create_panel() {
 void test_with_position() {
   auto button = create<Button>("Test").withPosition(10, 20).build();
 
-  assert(button->x == 10);
-  assert(button->y == 20);
+  int x, y;
+  button->getPosition(x, y);
+  assert(x == 10);
+  assert(y == 20);
 
   std::cout << "✓ With position test passed\n";
 }
@@ -79,8 +81,10 @@ void test_with_position() {
 void test_with_size() {
   auto button = create<Button>("Test").withSize(100, 50).build();
 
-  assert(button->width == 100);
-  assert(button->height == 50);
+  int w, h;
+  button->getSize(w, h);
+  assert(w == 100);
+  assert(h == 50);
 
   std::cout << "✓ With size test passed\n";
 }
@@ -88,10 +92,12 @@ void test_with_size() {
 void test_with_bounds() {
   auto button = create<Button>("Test").withBounds(5, 10, 150, 75).build();
 
-  assert(button->x == 5);
-  assert(button->y == 10);
-  assert(button->width == 150);
-  assert(button->height == 75);
+  int x, y, w, h;
+  button->getBounds(x, y, w, h);
+  assert(x == 5);
+  assert(y == 10);
+  assert(w == 150);
+  assert(h == 75);
 
   std::cout << "✓ With bounds test passed\n";
 }
@@ -276,10 +282,12 @@ void test_method_chaining() {
                   .withClickCallback([]() { callbackInvoked = true; })
                   .build();
 
-  assert(button->x == 10);
-  assert(button->y == 20);
-  assert(button->width == 100);
-  assert(button->height == 50);
+  int x, y, w, h;
+  button->getBounds(x, y, w, h);
+  assert(x == 10);
+  assert(y == 20);
+  assert(w == 100);
+  assert(h == 50);
   assert(button->isVisible());
   assert(button->isEnabled());
   assert(button->getDebugName() == "ChainedButton");
@@ -325,9 +333,11 @@ void test_arrow_operator() {
 
   auto button = builder.build();
 
+  int w, h;
+  button->getSize(w, h);
   assert(button->getText() == "Modified");
-  assert(button->width == 120);
-  assert(button->height == 40);
+  assert(w == 120);
+  assert(h == 40);
 
   std::cout << "✓ Arrow operator test passed\n";
 }
@@ -341,9 +351,11 @@ void test_dereference_operator() {
 
   auto button = builder.build();
 
+  int w, h;
+  button->getSize(w, h);
   assert(button->getText() == "Modified");
-  assert(button->width == 150);
-  assert(button->height == 50);
+  assert(w == 150);
+  assert(h == 50);
 
   std::cout << "✓ Dereference operator test passed\n";
 }
@@ -399,8 +411,10 @@ void test_multiple_property_updates() {
                   .withSize(200, 100) // Override previous size
                   .build();
 
-  assert(button->width == 200);
-  assert(button->height == 100);
+  int w, h;
+  button->getSize(w, h);
+  assert(w == 200);
+  assert(h == 100);
 
   std::cout << "✓ Multiple property updates test passed\n";
 }

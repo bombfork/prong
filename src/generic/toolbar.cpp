@@ -307,8 +307,10 @@ bool ToolBar::handleClick(int localX, int localY) {
   // Check overflow button first
   if (overflowButton) {
     // Convert toolbar-local coords to button-local coords
-    int buttonLocalX = localX - overflowButton->x;
-    int buttonLocalY = localY - overflowButton->y;
+    int buttonX, buttonY;
+    overflowButton->getPosition(buttonX, buttonY);
+    int buttonLocalX = localX - buttonX;
+    int buttonLocalY = localY - buttonY;
     if (overflowButton->handleClick(buttonLocalX, buttonLocalY)) {
       // Show overflow menu
       return true;
@@ -321,8 +323,10 @@ bool ToolBar::handleClick(int localX, int localY) {
       continue;
 
     // Convert toolbar-local coords to button-local coords
-    int buttonLocalX = localX - tool->button->x;
-    int buttonLocalY = localY - tool->button->y;
+    int buttonX, buttonY;
+    tool->button->getPosition(buttonX, buttonY);
+    int buttonLocalX = localX - buttonX;
+    int buttonLocalY = localY - buttonY;
 
     if (tool->button->handleClick(buttonLocalX, buttonLocalY)) {
       handleToolClick(tool->id);
@@ -336,8 +340,10 @@ bool ToolBar::handleClick(int localX, int localY) {
 bool ToolBar::handleMousePress(int localX, int localY, int button) {
   // Check overflow button first
   if (overflowButton) {
-    int buttonLocalX = localX - overflowButton->x;
-    int buttonLocalY = localY - overflowButton->y;
+    int buttonX, buttonY;
+    overflowButton->getPosition(buttonX, buttonY);
+    int buttonLocalX = localX - buttonX;
+    int buttonLocalY = localY - buttonY;
     if (overflowButton->handleMousePress(buttonLocalX, buttonLocalY, button)) {
       return true;
     }
@@ -348,8 +354,10 @@ bool ToolBar::handleMousePress(int localX, int localY, int button) {
     if (!tool->visible || !tool->button)
       continue;
 
-    int buttonLocalX = localX - tool->button->x;
-    int buttonLocalY = localY - tool->button->y;
+    int buttonX, buttonY;
+    tool->button->getPosition(buttonX, buttonY);
+    int buttonLocalX = localX - buttonX;
+    int buttonLocalY = localY - buttonY;
 
     if (tool->button->handleMousePress(buttonLocalX, buttonLocalY, button)) {
       return true;
@@ -362,8 +370,10 @@ bool ToolBar::handleMousePress(int localX, int localY, int button) {
 bool ToolBar::handleMouseRelease(int localX, int localY, int button) {
   // Check overflow button first
   if (overflowButton) {
-    int buttonLocalX = localX - overflowButton->x;
-    int buttonLocalY = localY - overflowButton->y;
+    int buttonX, buttonY;
+    overflowButton->getPosition(buttonX, buttonY);
+    int buttonLocalX = localX - buttonX;
+    int buttonLocalY = localY - buttonY;
     if (overflowButton->handleMouseRelease(buttonLocalX, buttonLocalY, button)) {
       return true;
     }
@@ -374,8 +384,10 @@ bool ToolBar::handleMouseRelease(int localX, int localY, int button) {
     if (!tool->visible || !tool->button)
       continue;
 
-    int buttonLocalX = localX - tool->button->x;
-    int buttonLocalY = localY - tool->button->y;
+    int buttonX, buttonY;
+    tool->button->getPosition(buttonX, buttonY);
+    int buttonLocalX = localX - buttonX;
+    int buttonLocalY = localY - buttonY;
 
     if (tool->button->handleMouseRelease(buttonLocalX, buttonLocalY, button)) {
       return true;
@@ -390,8 +402,10 @@ bool ToolBar::handleMouseMove(int localX, int localY) {
 
   // Check overflow button first
   if (overflowButton) {
-    int buttonLocalX = localX - overflowButton->x;
-    int buttonLocalY = localY - overflowButton->y;
+    int buttonX, buttonY;
+    overflowButton->getPosition(buttonX, buttonY);
+    int buttonLocalX = localX - buttonX;
+    int buttonLocalY = localY - buttonY;
     if (overflowButton->handleMouseMove(buttonLocalX, buttonLocalY)) {
       handled = true;
     }
@@ -403,8 +417,10 @@ bool ToolBar::handleMouseMove(int localX, int localY) {
     if (!tool->visible || !tool->button)
       continue;
 
-    int buttonLocalX = localX - tool->button->x;
-    int buttonLocalY = localY - tool->button->y;
+    int buttonX, buttonY;
+    tool->button->getPosition(buttonX, buttonY);
+    int buttonLocalX = localX - buttonX;
+    int buttonLocalY = localY - buttonY;
 
     if (tool->button->handleMouseMove(buttonLocalX, buttonLocalY)) {
       handled = true;

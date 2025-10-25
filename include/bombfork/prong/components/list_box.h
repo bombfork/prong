@@ -214,8 +214,11 @@ public:
       return;
     }
 
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+
     // Render background
-    renderer->drawRect(x, y, width, height, style.backgroundColor.r, style.backgroundColor.g, style.backgroundColor.b,
+    renderer->drawRect(gx, gy, width, height, style.backgroundColor.r, style.backgroundColor.g, style.backgroundColor.b,
                        style.backgroundColor.a);
 
     // Render border
@@ -237,16 +240,18 @@ protected:
     if (!renderer)
       return;
 
+    int gx = getGlobalX();
+    int gy = getGlobalY();
     int bw = static_cast<int>(style.borderWidth);
 
     // Top, bottom, left, right borders
-    renderer->drawRect(x, y, width, bw, style.borderColor.r, style.borderColor.g, style.borderColor.b,
+    renderer->drawRect(gx, gy, width, bw, style.borderColor.r, style.borderColor.g, style.borderColor.b,
                        style.borderColor.a);
-    renderer->drawRect(x, y + height - bw, width, bw, style.borderColor.r, style.borderColor.g, style.borderColor.b,
+    renderer->drawRect(gx, gy + height - bw, width, bw, style.borderColor.r, style.borderColor.g, style.borderColor.b,
                        style.borderColor.a);
-    renderer->drawRect(x, y, bw, height, style.borderColor.r, style.borderColor.g, style.borderColor.b,
+    renderer->drawRect(gx, gy, bw, height, style.borderColor.r, style.borderColor.g, style.borderColor.b,
                        style.borderColor.a);
-    renderer->drawRect(x + width - bw, y, bw, height, style.borderColor.r, style.borderColor.g, style.borderColor.b,
+    renderer->drawRect(gx + width - bw, gy, bw, height, style.borderColor.r, style.borderColor.g, style.borderColor.b,
                        style.borderColor.a);
   }
 
@@ -254,8 +259,10 @@ protected:
     if (!renderer || items.empty())
       return;
 
-    int contentX = x + style.padding;
-    int contentY = y + style.padding;
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+    int contentX = gx + style.padding;
+    int contentY = gy + style.padding;
     int contentWidth = width - (style.padding * 2);
     int contentHeight = height - (style.padding * 2);
 
@@ -300,9 +307,12 @@ protected:
     if (maxScroll <= 0)
       return;
 
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+
     // Calculate scrollbar dimensions
-    int scrollbarX = x + width - style.scrollbarWidth;
-    int scrollbarY = y;
+    int scrollbarX = gx + width - style.scrollbarWidth;
+    int scrollbarY = gy;
     int scrollbarHeight = height;
 
     // Render scrollbar track

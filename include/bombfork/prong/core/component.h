@@ -40,11 +40,42 @@ public:
   };
 
 public:
-  // Make these public for new UI components to access directly
+  // Renderer access
   bombfork::prong::rendering::IRenderer* renderer = nullptr;
-  int x = 0, y = 0, width = 0, height = 0;
+
+private:
+  // Coordinate storage: position relative to parent
+  int localX = 0, localY = 0;
+
+  // Cache for global coordinates (screen space)
+  mutable int cachedGlobalX = 0;
+  mutable int cachedGlobalY = 0;
+  mutable bool globalCacheDirty = true;
 
 protected:
+  // Size is accessible to derived classes for rendering
+  int width = 0, height = 0;
+
+  /**
+   * @brief Get global X coordinate for rendering (protected accessor for derived classes)
+   * Use this in render() methods to get screen-space X coordinate
+   */
+  int getGlobalX() const {
+    int gx, gy;
+    getGlobalPosition(gx, gy);
+    return gx;
+  }
+
+  /**
+   * @brief Get global Y coordinate for rendering (protected accessor for derived classes)
+   * Use this in render() methods to get screen-space Y coordinate
+   */
+  int getGlobalY() const {
+    int gx, gy;
+    getGlobalPosition(gx, gy);
+    return gy;
+  }
+
   // Component state
   bool visible = true;
   bool enabled = true;
@@ -89,53 +120,174 @@ public:
 
   // === Geometry Management ===
 
+  /**
+   * @brief Set component bounds (position relative to parent + size)
+   * @param newX X position relative to parent's origin
+   * @param newY Y position relative to parent's origin
+   * @param newWidth Component width
+   * @param newHeight Component height
+   */
   virtual void setBounds(int newX, int newY, int newWidth, int newHeight) {
-    x = newX;
-    y = newY;
+    localX = newX;
+    localY = newY;
     width = newWidth;
     height = newHeight;
+    invalidateGlobalCache();
   }
 
+  /**
+   * @brief Get component bounds (local position + size)
+   * @param outX Output: X position relative to parent
+   * @param outY Output: Y position relative to parent
+   * @param outWidth Output: Component width
+   * @param outHeight Output: Component height
+   */
   void getBounds(int& outX, int& outY, int& outWidth, int& outHeight) const {
-    outX = x;
-    outY = y;
+    outX = localX;
+    outY = localY;
     outWidth = width;
     outHeight = height;
   }
 
+  /**
+   * @brief Get component position relative to parent
+   * @param outX Output: X position relative to parent
+   * @param outY Output: Y position relative to parent
+   */
   void getPosition(int& outX, int& outY) const {
-    outX = x;
-    outY = y;
+    outX = localX;
+    outY = localY;
   }
 
+  /**
+   * @brief Get component size
+   */
   void getSize(int& outWidth, int& outHeight) const {
     outWidth = width;
     outHeight = height;
   }
 
+  /**
+   * @brief Set component position relative to parent
+   * @param newX X position relative to parent's origin
+   * @param newY Y position relative to parent's origin
+   */
   void setPosition(int newX, int newY) {
-    x = newX;
-    y = newY;
+    localX = newX;
+    localY = newY;
+    invalidateGlobalCache();
   }
 
+  /**
+   * @brief Set component size
+   */
   void setSize(int newWidth, int newHeight) {
     width = newWidth;
     height = newHeight;
   }
 
-  virtual bool contains(int pointX, int pointY) const {
-    return pointX >= x && pointX < x + width && pointY >= y && pointY < y + height;
+  /**
+   * @brief Get global (screen-space) position
+   * @param outX Output: Absolute screen X coordinate
+   * @param outY Output: Absolute screen Y coordinate
+   */
+  void getGlobalPosition(int& outX, int& outY) const {
+    if (globalCacheDirty) {
+      updateGlobalCache();
+    }
+    outX = cachedGlobalX;
+    outY = cachedGlobalY;
   }
 
-  // Alias for EventDispatcher compatibility
-  bool containsGlobal(int globalX, int globalY) const { return contains(globalX, globalY); }
+  /**
+   * @brief Get global bounds (screen-space position + size)
+   * @param outX Output: Absolute screen X coordinate
+   * @param outY Output: Absolute screen Y coordinate
+   * @param outWidth Output: Component width
+   * @param outHeight Output: Component height
+   */
+  void getGlobalBounds(int& outX, int& outY, int& outWidth, int& outHeight) const {
+    getGlobalPosition(outX, outY);
+    outWidth = width;
+    outHeight = height;
+  }
 
-  // Convert global coordinates to component-local coordinates
+  /**
+   * @brief Check if a global screen point is within this component
+   * @param globalX Absolute screen X coordinate
+   * @param globalY Absolute screen Y coordinate
+   * @return true if point is within component bounds
+   */
+  bool containsGlobal(int globalX, int globalY) const {
+    int gx, gy;
+    getGlobalPosition(gx, gy);
+    return globalX >= gx && globalX < gx + width && globalY >= gy && globalY < gy + height;
+  }
+
+  /**
+   * @brief Convert global screen coordinates to component-local coordinates
+   * @param globalX Input: Absolute screen X coordinate
+   * @param globalY Input: Absolute screen Y coordinate
+   * @param localX Output: X coordinate relative to this component
+   * @param localY Output: Y coordinate relative to this component
+   */
   void globalToLocal(int globalX, int globalY, int& localX, int& localY) const {
-    localX = globalX - x;
-    localY = globalY - y;
+    int gx, gy;
+    getGlobalPosition(gx, gy);
+    localX = globalX - gx;
+    localY = globalY - gy;
   }
 
+  /**
+   * @brief Convert component-local coordinates to global screen coordinates
+   * @param localX Input: X coordinate relative to this component
+   * @param localY Input: Y coordinate relative to this component
+   * @param globalX Output: Absolute screen X coordinate
+   * @param globalY Output: Absolute screen Y coordinate
+   */
+  void localToGlobal(int localX, int localY, int& globalX, int& globalY) const {
+    int gx, gy;
+    getGlobalPosition(gx, gy);
+    globalX = gx + localX;
+    globalY = gy + localY;
+  }
+
+private:
+  /**
+   * @brief Update the global coordinate cache
+   * Called automatically when cache is dirty and global coords are needed
+   */
+  void updateGlobalCache() const {
+    if (parent) {
+      int parentGlobalX, parentGlobalY;
+      parent->getGlobalPosition(parentGlobalX, parentGlobalY);
+      cachedGlobalX = parentGlobalX + localX;
+      cachedGlobalY = parentGlobalY + localY;
+    } else {
+      // Root component: local coordinates are global
+      cachedGlobalX = localX;
+      cachedGlobalY = localY;
+    }
+    globalCacheDirty = false;
+  }
+
+  /**
+   * @brief Invalidate the global coordinate cache
+   * Automatically cascades to all children
+   */
+  void invalidateGlobalCache() {
+    if (!globalCacheDirty) {
+      globalCacheDirty = true;
+      // Cascade invalidation to all children
+      for (auto& child : children) {
+        if (child) {
+          child->invalidateGlobalCache();
+        }
+      }
+    }
+  }
+
+public:
   // === Visibility and State Management ===
 
   virtual void setVisible(bool isVisible) {
@@ -300,16 +452,18 @@ public:
 
   virtual bool handleClick(int localX, int localY) {
     // Default: delegate to children
-    // localX/localY are relative to this component, but children's positions are also relative
-    // to this component So we need to convert to child-local coordinates
+    // localX/localY are relative to this component
+    // Children's positions are also relative to this component
     for (auto& child : children) {
       if (child && child->isVisible()) {
-        // Check if point is within child's bounds (using parent-local coordinates)
-        if (localX >= child->x && localX < child->x + child->width && localY >= child->y &&
-            localY < child->y + child->height) {
+        int childX, childY, childW, childH;
+        child->getBounds(childX, childY, childW, childH);
+
+        // Check if point is within child's bounds
+        if (localX >= childX && localX < childX + childW && localY >= childY && localY < childY + childH) {
           // Convert to child-local coordinates
-          int childLocalX = localX - child->x;
-          int childLocalY = localY - child->y;
+          int childLocalX = localX - childX;
+          int childLocalY = localY - childY;
           if (child->handleClick(childLocalX, childLocalY)) {
             return true;
           }
@@ -322,12 +476,14 @@ public:
   virtual bool handleMousePress(int localX, int localY, int button) {
     for (auto& child : children) {
       if (child && child->isVisible()) {
-        // Check if point is within child's bounds (using parent-local coordinates)
-        if (localX >= child->x && localX < child->x + child->width && localY >= child->y &&
-            localY < child->y + child->height) {
+        int childX, childY, childW, childH;
+        child->getBounds(childX, childY, childW, childH);
+
+        // Check if point is within child's bounds
+        if (localX >= childX && localX < childX + childW && localY >= childY && localY < childY + childH) {
           // Convert to child-local coordinates
-          int childLocalX = localX - child->x;
-          int childLocalY = localY - child->y;
+          int childLocalX = localX - childX;
+          int childLocalY = localY - childY;
           if (child->handleMousePress(childLocalX, childLocalY, button)) {
             return true;
           }
@@ -340,12 +496,14 @@ public:
   virtual bool handleMouseRelease(int localX, int localY, int button) {
     for (auto& child : children) {
       if (child && child->isVisible()) {
-        // Check if point is within child's bounds (using parent-local coordinates)
-        if (localX >= child->x && localX < child->x + child->width && localY >= child->y &&
-            localY < child->y + child->height) {
+        int childX, childY, childW, childH;
+        child->getBounds(childX, childY, childW, childH);
+
+        // Check if point is within child's bounds
+        if (localX >= childX && localX < childX + childW && localY >= childY && localY < childY + childH) {
           // Convert to child-local coordinates
-          int childLocalX = localX - child->x;
-          int childLocalY = localY - child->y;
+          int childLocalX = localX - childX;
+          int childLocalY = localY - childY;
           if (child->handleMouseRelease(childLocalX, childLocalY, button)) {
             return true;
           }
@@ -358,9 +516,12 @@ public:
   virtual bool handleMouseMove(int localX, int localY) {
     for (auto& child : children) {
       if (child && child->isVisible()) {
+        int childX, childY;
+        child->getPosition(childX, childY);
+
         // Convert to child-local coordinates
-        int childLocalX = localX - child->x;
-        int childLocalY = localY - child->y;
+        int childLocalX = localX - childX;
+        int childLocalY = localY - childY;
         if (child->handleMouseMove(childLocalX, childLocalY)) {
           return true;
         }
@@ -375,12 +536,14 @@ public:
   virtual bool handleScroll(int localX, int localY, double xoffset, double yoffset) {
     for (auto& child : children) {
       if (child && child->isVisible()) {
-        // Check if point is within child's bounds (using parent-local coordinates)
-        if (localX >= child->x && localX < child->x + child->width && localY >= child->y &&
-            localY < child->y + child->height) {
+        int childX, childY, childW, childH;
+        child->getBounds(childX, childY, childW, childH);
+
+        // Check if point is within child's bounds
+        if (localX >= childX && localX < childX + childW && localY >= childY && localY < childY + childH) {
           // Convert to child-local coordinates
-          int childLocalX = localX - child->x;
-          int childLocalY = localY - child->y;
+          int childLocalX = localX - childX;
+          int childLocalY = localY - childY;
           if (child->handleScroll(childLocalX, childLocalY, xoffset, yoffset)) {
             return true;
           }

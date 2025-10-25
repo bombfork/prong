@@ -81,10 +81,16 @@ void test_grid_respects_minimum_width() {
   auto* layoutChild3 = panel.getChildren()[2].get();
   auto* layoutChild4 = panel.getChildren()[3].get();
 
-  assert(layoutChild1->width >= 80);
-  assert(layoutChild2->width >= 60);
-  assert(layoutChild3->width >= 70);
-  assert(layoutChild4->width >= 90);
+  int w1, h1, w2, h2, w3, h3, w4, h4;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+  layoutChild3->getSize(w3, h3);
+  layoutChild4->getSize(w4, h4);
+
+  assert(w1 >= 80);
+  assert(w2 >= 60);
+  assert(w3 >= 70);
+  assert(w4 >= 90);
 
   std::cout << "✓ GridLayout respects minimum width test passed" << std::endl;
 }
@@ -126,10 +132,16 @@ void test_grid_respects_minimum_height() {
   auto* layoutChild3 = panel.getChildren()[2].get();
   auto* layoutChild4 = panel.getChildren()[3].get();
 
-  assert(layoutChild1->height >= 60);
-  assert(layoutChild2->height >= 80);
-  assert(layoutChild3->height >= 70);
-  assert(layoutChild4->height >= 90);
+  int w1, h1, w2, h2, w3, h3, w4, h4;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+  layoutChild3->getSize(w3, h3);
+  layoutChild4->getSize(w4, h4);
+
+  assert(h1 >= 60);
+  assert(h2 >= 80);
+  assert(h3 >= 70);
+  assert(h4 >= 90);
 
   std::cout << "✓ GridLayout respects minimum height test passed" << std::endl;
 }
@@ -161,8 +173,11 @@ void test_grid_with_gap() {
   // Available height per row: (400 - 10) / 2 = 195
   auto* layoutChild1 = panel.getChildren()[0].get();
 
-  assert(layoutChild1->width >= 50);  // At least minimum
-  assert(layoutChild1->height >= 50); // At least minimum
+  int w, h;
+  layoutChild1->getSize(w, h);
+
+  assert(w >= 50); // At least minimum
+  assert(h >= 50); // At least minimum
 
   std::cout << "✓ GridLayout with gap test passed" << std::endl;
 }
@@ -200,9 +215,13 @@ void test_grid_fixed_size_components() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
+  int w1, h1, w2, h2;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+
   // Should maintain their sizes or get proportional space
-  assert(layoutChild1->width > 0);
-  assert(layoutChild2->width > 0);
+  assert(w1 > 0);
+  assert(w2 > 0);
 
   std::cout << "✓ GridLayout with fixed size components test passed" << std::endl;
 }
@@ -242,9 +261,14 @@ void test_stack_horizontal_respects_minimums() {
   auto* layoutChild2 = panel.getChildren()[1].get();
   auto* layoutChild3 = panel.getChildren()[2].get();
 
-  assert(layoutChild1->width >= 100);
-  assert(layoutChild2->width >= 80);
-  assert(layoutChild3->width >= 120);
+  int w1, h1, w2, h2, w3, h3;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+  layoutChild3->getSize(w3, h3);
+
+  assert(w1 >= 100);
+  assert(w2 >= 80);
+  assert(w3 >= 120);
 
   std::cout << "✓ StackLayout horizontal respects minimums test passed" << std::endl;
 }
@@ -280,9 +304,14 @@ void test_stack_vertical_respects_minimums() {
   auto* layoutChild2 = panel.getChildren()[1].get();
   auto* layoutChild3 = panel.getChildren()[2].get();
 
-  assert(layoutChild1->height >= 80);
-  assert(layoutChild2->height >= 100);
-  assert(layoutChild3->height >= 90);
+  int w1, h1, w2, h2, w3, h3;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+  layoutChild3->getSize(w3, h3);
+
+  assert(h1 >= 80);
+  assert(h2 >= 100);
+  assert(h3 >= 90);
 
   std::cout << "✓ StackLayout vertical respects minimums test passed" << std::endl;
 }
@@ -313,8 +342,14 @@ void test_stack_with_gap() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
+  int w1, h1;
+  layoutChild1->getSize(w1, h1);
+  int x1, y1, x2, y2;
+  layoutChild1->getPosition(x1, y1);
+  layoutChild2->getPosition(x2, y2);
+
   // Check that gaps are applied (second child should start after first + gap)
-  int expectedGap = layoutChild2->x - (layoutChild1->x + layoutChild1->width);
+  int expectedGap = x2 - (x1 + w1);
   assert(expectedGap == 15);
 
   std::cout << "✓ StackLayout with gap test passed" << std::endl;
@@ -347,8 +382,12 @@ void test_stack_insufficient_space() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
-  assert(layoutChild1->width >= 80);
-  assert(layoutChild2->width >= 80);
+  int w1, h1, w2, h2;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+
+  assert(w1 >= 80);
+  assert(w2 >= 80);
 
   std::cout << "✓ StackLayout with insufficient space test passed" << std::endl;
 }
@@ -387,12 +426,17 @@ void test_flow_respects_minimum_sizes() {
   auto* layoutChild2 = panel.getChildren()[1].get();
   auto* layoutChild3 = panel.getChildren()[2].get();
 
-  assert(layoutChild1->width >= 100);
-  assert(layoutChild1->height >= 60);
-  assert(layoutChild2->width >= 80);
-  assert(layoutChild2->height >= 50);
-  assert(layoutChild3->width >= 120);
-  assert(layoutChild3->height >= 70);
+  int w1, h1, w2, h2, w3, h3;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+  layoutChild3->getSize(w3, h3);
+
+  assert(w1 >= 100);
+  assert(h1 >= 60);
+  assert(w2 >= 80);
+  assert(h2 >= 50);
+  assert(w3 >= 120);
+  assert(h3 >= 70);
 
   std::cout << "✓ FlowLayout respects minimum sizes test passed" << std::endl;
 }
@@ -428,11 +472,16 @@ void test_flow_wrapping() {
   auto* layoutChild2 = panel.getChildren()[1].get();
   auto* layoutChild3 = panel.getChildren()[2].get();
 
+  int x1, y1, x2, y2, x3, y3;
+  layoutChild1->getPosition(x1, y1);
+  layoutChild2->getPosition(x2, y2);
+  layoutChild3->getPosition(x3, y3);
+
   // Child1 and Child2 should be on same row (same y)
-  assert(layoutChild1->y == layoutChild2->y);
+  assert(y1 == y2);
 
   // Child3 should be on next row (different y)
-  assert(layoutChild3->y > layoutChild1->y);
+  assert(y3 > y1);
 
   std::cout << "✓ FlowLayout wrapping behavior test passed" << std::endl;
 }
@@ -462,7 +511,13 @@ void test_flow_with_gap() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
-  int horizontalGap = layoutChild2->x - (layoutChild1->x + layoutChild1->width);
+  int w1, h1;
+  layoutChild1->getSize(w1, h1);
+  int x1, y1, x2, y2;
+  layoutChild1->getPosition(x1, y1);
+  layoutChild2->getPosition(x2, y2);
+
+  int horizontalGap = x2 - (x1 + w1);
   assert(horizontalGap == 10);
 
   std::cout << "✓ FlowLayout with gap test passed" << std::endl;
@@ -502,12 +557,17 @@ void test_flow_vertical_direction() {
   auto* layoutChild2 = panel.getChildren()[1].get();
   auto* layoutChild3 = panel.getChildren()[2].get();
 
+  int x1, y1, x2, y2, x3, y3;
+  layoutChild1->getPosition(x1, y1);
+  layoutChild2->getPosition(x2, y2);
+  layoutChild3->getPosition(x3, y3);
+
   // Child1 and Child2 should be on same row (same y, different x)
-  assert(layoutChild1->y == layoutChild2->y);
-  assert(layoutChild2->x > layoutChild1->x);
+  assert(y1 == y2);
+  assert(x2 > x1);
 
   // Child3 should be on next row (different y)
-  assert(layoutChild3->y > layoutChild1->y);
+  assert(y3 > y1);
 
   std::cout << "✓ FlowLayout with row wrapping test passed" << std::endl;
 }

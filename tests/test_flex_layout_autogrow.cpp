@@ -63,11 +63,13 @@ void test_single_zero_sized_component_fills_space() {
 
   // Child should fill the entire panel (minus borders and padding)
   auto* layoutChild = panel.getChildren()[0].get();
-  assert(layoutChild->width == 400);  // Full width
-  assert(layoutChild->height == 200); // Full height
+  int w, h;
+  layoutChild->getSize(w, h);
+  assert(w == 400); // Full width
+  assert(h == 200); // Full height
 
-  std::cout << "✓ Single zero-sized component fills space test passed (width=" << layoutChild->width
-            << ", height=" << layoutChild->height << ")" << std::endl;
+  std::cout << "✓ Single zero-sized component fills space test passed (width=" << w << ", height=" << h << ")"
+            << std::endl;
 }
 
 void test_zero_sized_respects_minimum_size() {
@@ -91,11 +93,12 @@ void test_zero_sized_respects_minimum_size() {
 
   // Child should be at least minimum size (will overflow panel)
   auto* layoutChild = panel.getChildren()[0].get();
-  assert(layoutChild->width >= 150);
-  assert(layoutChild->height >= 80);
+  int w, h;
+  layoutChild->getSize(w, h);
+  assert(w >= 150);
+  assert(h >= 80);
 
-  std::cout << "✓ Zero-sized respects minimum size test passed (width=" << layoutChild->width
-            << ", height=" << layoutChild->height << ")" << std::endl;
+  std::cout << "✓ Zero-sized respects minimum size test passed (width=" << w << ", height=" << h << ")" << std::endl;
 }
 
 void test_multiple_zero_sized_equal_distribution() {
@@ -129,9 +132,14 @@ void test_multiple_zero_sized_equal_distribution() {
   auto* layoutChild2 = panel.getChildren()[1].get();
   auto* layoutChild3 = panel.getChildren()[2].get();
 
-  assert(layoutChild1->width == 200);
-  assert(layoutChild2->width == 200);
-  assert(layoutChild3->width == 200);
+  int w1, h1, w2, h2, w3, h3;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+  layoutChild3->getSize(w3, h3);
+
+  assert(w1 == 200);
+  assert(w2 == 200);
+  assert(w3 == 200);
 
   std::cout << "✓ Multiple zero-sized equal distribution test passed (each width=200)" << std::endl;
 }
@@ -171,13 +179,18 @@ void test_mixed_fixed_and_auto_sizing() {
   auto* layoutAuto = panel.getChildren()[1].get();
   auto* layoutFixed2 = panel.getChildren()[2].get();
 
-  assert(layoutFixed1->width == 100);
-  assert(layoutFixed2->width == 150);
+  int w1, h1, w2, h2, w3, h3;
+  layoutFixed1->getSize(w1, h1);
+  layoutAuto->getSize(w2, h2);
+  layoutFixed2->getSize(w3, h3);
+
+  assert(w1 == 100);
+  assert(w3 == 150);
 
   // Auto-grow gets remaining space: 500 - 100 - 150 = 250
-  assert(layoutAuto->width == 250);
+  assert(w2 == 250);
 
-  std::cout << "✓ Mixed fixed and auto-sizing test passed (auto width=" << layoutAuto->width << ")" << std::endl;
+  std::cout << "✓ Mixed fixed and auto-sizing test passed (auto width=" << w2 << ")" << std::endl;
 }
 
 void test_auto_grow_with_gap() {
@@ -211,8 +224,12 @@ void test_auto_grow_with_gap() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
-  assert(layoutChild1->width == 240);
-  assert(layoutChild2->width == 240);
+  int w1, h1, w2, h2;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+
+  assert(w1 == 240);
+  assert(w2 == 240);
 
   std::cout << "✓ Auto-grow with gap test passed (each width=240)" << std::endl;
 }
@@ -255,11 +272,15 @@ void test_explicit_grow_overrides_auto_grow() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
-  assert(layoutChild1->width == 383);
-  assert(layoutChild2->width == 216);
+  int w1, h1, w2, h2;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
 
-  std::cout << "✓ Explicit grow overrides auto-grow test passed (child1=" << layoutChild1->width
-            << ", child2=" << layoutChild2->width << ")" << std::endl;
+  assert(w1 == 383);
+  assert(w2 == 216);
+
+  std::cout << "✓ Explicit grow overrides auto-grow test passed (child1=" << w1 << ", child2=" << w2 << ")"
+            << std::endl;
 }
 
 void test_vertical_auto_grow() {
@@ -292,8 +313,12 @@ void test_vertical_auto_grow() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
-  assert(layoutChild1->height == 300);
-  assert(layoutChild2->height == 300);
+  int w1, h1, w2, h2;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+
+  assert(h1 == 300);
+  assert(h2 == 300);
 
   std::cout << "✓ Vertical auto-grow test passed (each height=300)" << std::endl;
 }
@@ -337,12 +362,16 @@ void test_no_auto_grow_when_explicit_grow_zero() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
-  // With current implementation, both auto-grow equally
-  assert(layoutChild1->width == 325);
-  assert(layoutChild2->width == 275);
+  int w1, h1, w2, h2;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
 
-  std::cout << "✓ No auto-grow with explicit grow=0 test adjusted (child1=" << layoutChild1->width
-            << ", child2=" << layoutChild2->width << ") - both auto-grow equally" << std::endl;
+  // With current implementation, both auto-grow equally
+  assert(w1 == 325);
+  assert(w2 == 275);
+
+  std::cout << "✓ No auto-grow with explicit grow=0 test adjusted (child1=" << w1 << ", child2=" << w2
+            << ") - both auto-grow equally" << std::endl;
 }
 
 void test_multiple_fixed_sizes_with_one_auto() {
@@ -386,12 +415,18 @@ void test_multiple_fixed_sizes_with_one_auto() {
   auto* layoutAuto = panel.getChildren()[2].get();
   auto* layoutFixed3 = panel.getChildren()[3].get();
 
-  assert(layoutFixed1->width == 100);
-  assert(layoutFixed2->width == 150);
-  assert(layoutAuto->width == 520);
-  assert(layoutFixed3->width == 200);
+  int w1, h1, w2, h2, w3, h3, w4, h4;
+  layoutFixed1->getSize(w1, h1);
+  layoutFixed2->getSize(w2, h2);
+  layoutAuto->getSize(w3, h3);
+  layoutFixed3->getSize(w4, h4);
 
-  std::cout << "✓ Multiple fixed with one auto test passed (auto width=" << layoutAuto->width << ")" << std::endl;
+  assert(w1 == 100);
+  assert(w2 == 150);
+  assert(w3 == 520);
+  assert(w4 == 200);
+
+  std::cout << "✓ Multiple fixed with one auto test passed (auto width=" << w3 << ")" << std::endl;
 }
 
 void test_minimum_size_constraint_with_small_space() {
@@ -421,8 +456,12 @@ void test_minimum_size_constraint_with_small_space() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
-  assert(layoutChild1->width >= 80);
-  assert(layoutChild2->width >= 80);
+  int w1, h1, w2, h2;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+
+  assert(w1 >= 80);
+  assert(w2 >= 80);
 
   std::cout << "✓ Minimum size constraint with small space test passed" << std::endl;
 }

@@ -444,18 +444,20 @@ public:
     if (!visible || !renderer)
       return;
 
+    int gx = getGlobalX();
+    int gy = getGlobalY();
     bool focused = hasFocus();
 
     // Render background
-    renderer->drawRect(x, y, width, height, style.backgroundColor.r, style.backgroundColor.g, style.backgroundColor.b,
+    renderer->drawRect(gx, gy, width, height, style.backgroundColor.r, style.backgroundColor.g, style.backgroundColor.b,
                        style.backgroundColor.a);
 
     // Render border
     renderBorder(focused);
 
     // Calculate text area (inside padding)
-    int textX = x + style.paddingLeft;
-    int textY = y + style.paddingTop;
+    int textX = gx + style.paddingLeft;
+    int textY = gy + style.paddingTop;
     // int textWidth = width - style.paddingLeft - style.paddingRight; // Currently unused
     int textHeight = height - style.paddingTop - style.paddingBottom;
 
@@ -698,10 +700,9 @@ private:
    * @brief Get text position from screen point
    */
   int getTextPositionFromPoint(int localX) const {
-    // Note: localX is in absolute/global coordinates (despite the parameter name)
-    // Convert to component-relative coordinates first
-    int componentRelativeX = localX - x;
-    int relativeX = componentRelativeX - style.paddingLeft + scrollOffset;
+    // Note: localX is already in component-local coordinates
+    // Just adjust for padding and scroll
+    int relativeX = localX - style.paddingLeft + scrollOffset;
 
     // Estimate character width (rough approximation)
     float charWidth = style.fontSize * 0.6f;
@@ -758,21 +759,23 @@ private:
     if (!renderer)
       return;
 
+    int gx = getGlobalX();
+    int gy = getGlobalY();
     const auto& borderColor = focused ? style.focusBorderColor : style.borderColor;
     int borderWidth = focused ? static_cast<int>(style.focusBorderWidth) : static_cast<int>(style.borderWidth);
 
     // Top border
-    renderer->drawRect(x, y, width, borderWidth, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
+    renderer->drawRect(gx, gy, width, borderWidth, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
 
     // Bottom border
-    renderer->drawRect(x, y + height - borderWidth, width, borderWidth, borderColor.r, borderColor.g, borderColor.b,
+    renderer->drawRect(gx, gy + height - borderWidth, width, borderWidth, borderColor.r, borderColor.g, borderColor.b,
                        borderColor.a);
 
     // Left border
-    renderer->drawRect(x, y, borderWidth, height, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
+    renderer->drawRect(gx, gy, borderWidth, height, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
 
     // Right border
-    renderer->drawRect(x + width - borderWidth, y, borderWidth, height, borderColor.r, borderColor.g, borderColor.b,
+    renderer->drawRect(gx + width - borderWidth, gy, borderWidth, height, borderColor.r, borderColor.g, borderColor.b,
                        borderColor.a);
   }
 
