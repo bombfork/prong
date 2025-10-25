@@ -185,10 +185,10 @@ void test_nested_parent_with_single_child() {
   parent->setBounds(100, 100, 400, 300);
   TestComponent* parentPtr = parent.get();
 
-  // Create child at global position (150, 150) with size 100x80
-  // This is 50 pixels offset from parent's position (100, 100)
+  // Create child at local position (50, 50) relative to parent
+  // With parent at (100, 100), child will be at global position (150, 150)
   auto child = std::make_unique<TestComponent>(nullptr, "child");
-  child->setBounds(150, 150, 100, 80);
+  child->setBounds(50, 50, 100, 80);
   TestComponent* childPtr = child.get();
 
   parent->addChild(std::move(child));
@@ -196,7 +196,7 @@ void test_nested_parent_with_single_child() {
   // Register only the parent (children are discovered recursively)
   dispatcher.registerComponent(parentPtr);
 
-  // Click on child (200, 175 is inside child bounds 150-250, 150-230)
+  // Click on child (200, 175 is inside child's global bounds 150-250, 150-230)
   dispatcher.processMouseMove(200, 175);
   dispatcher.processMouseButton(MOUSE_BUTTON_LEFT, INPUT_PRESS, 0);
 
@@ -229,19 +229,22 @@ void test_nested_parent_with_multiple_children() {
   parent->setBounds(100, 100, 400, 300);
   TestComponent* parentPtr = parent.get();
 
-  // Create child1 at global position (110, 110) with size 100x80
+  // Create child1 at local position (10, 10) relative to parent
+  // With parent at (100, 100), child1 will be at global position (110, 110)
   auto child1 = std::make_unique<TestComponent>(nullptr, "child1");
-  child1->setBounds(110, 110, 100, 80);
+  child1->setBounds(10, 10, 100, 80);
   TestComponent* child1Ptr = child1.get();
 
-  // Create child2 at global position (220, 110) with size 100x80
+  // Create child2 at local position (120, 10) relative to parent
+  // With parent at (100, 100), child2 will be at global position (220, 110)
   auto child2 = std::make_unique<TestComponent>(nullptr, "child2");
-  child2->setBounds(220, 110, 100, 80);
+  child2->setBounds(120, 10, 100, 80);
   TestComponent* child2Ptr = child2.get();
 
-  // Create child3 at global position (110, 200) with size 100x80
+  // Create child3 at local position (10, 100) relative to parent
+  // With parent at (100, 100), child3 will be at global position (110, 200)
   auto child3 = std::make_unique<TestComponent>(nullptr, "child3");
-  child3->setBounds(110, 200, 100, 80);
+  child3->setBounds(10, 100, 100, 80);
   TestComponent* child3Ptr = child3.get();
 
   parent->addChild(std::move(child1));
@@ -287,19 +290,22 @@ void test_nested_deep_hierarchy() {
   grandparent->setBounds(100, 100, 400, 300);
   TestComponent* grandparentPtr = grandparent.get();
 
-  // Create parent at global position (150, 150)
+  // Create parent at local position (50, 50) relative to grandparent
+  // With grandparent at (100, 100), parent will be at global position (150, 150)
   auto parent = std::make_unique<TestComponent>(nullptr, "parent");
-  parent->setBounds(150, 150, 300, 200);
+  parent->setBounds(50, 50, 300, 200);
   TestComponent* parentPtr = parent.get();
 
-  // Create child at global position (200, 200)
+  // Create child at local position (50, 50) relative to parent
+  // With parent at (150, 150), child will be at global position (200, 200)
   auto child = std::make_unique<TestComponent>(nullptr, "child");
-  child->setBounds(200, 200, 100, 80);
+  child->setBounds(50, 50, 100, 80);
   TestComponent* childPtr = child.get();
 
-  // Create grandchild at global position (210, 210)
+  // Create grandchild at local position (10, 10) relative to child
+  // With child at global (200, 200), grandchild will be at global position (210, 210)
   auto grandchild = std::make_unique<TestComponent>(nullptr, "grandchild");
-  grandchild->setBounds(210, 210, 50, 40);
+  grandchild->setBounds(10, 10, 50, 40);
   TestComponent* grandchildPtr = grandchild.get();
 
   child->addChild(std::move(grandchild));
@@ -354,14 +360,16 @@ void test_nested_overlapping_siblings() {
   parent->setBounds(100, 100, 400, 300);
   TestComponent* parentPtr = parent.get();
 
-  // Create child1 at (50, 50) relative to parent
+  // Create child1 at local position (50, 50) relative to parent
+  // With parent at (100, 100), child1 will be at global position (150, 150)
   auto child1 = std::make_unique<TestComponent>(nullptr, "child1");
-  child1->setBounds(150, 150, 150, 100);
+  child1->setBounds(50, 50, 150, 100);
   TestComponent* child1Ptr = child1.get();
 
-  // Create child2 overlapping child1 at (100, 75) relative to parent
+  // Create child2 overlapping child1 at local position (100, 75) relative to parent
+  // With parent at (100, 100), child2 will be at global position (200, 175)
   auto child2 = std::make_unique<TestComponent>(nullptr, "child2");
-  child2->setBounds(200, 175, 150, 100);
+  child2->setBounds(100, 75, 150, 100);
   TestComponent* child2Ptr = child2.get();
 
   // Add children in order: child1 first, child2 second (child2 is topmost)
@@ -482,9 +490,10 @@ void test_performance_outside_parent_bounds() {
   parent->setBounds(100, 100, 400, 300);
   TestComponent* parentPtr = parent.get();
 
-  // Create child at global position (150, 150)
+  // Create child at local position (50, 50) relative to parent
+  // With parent at (100, 100), child will be at global position (150, 150)
   auto child = std::make_unique<TestComponent>(nullptr, "child");
-  child->setBounds(150, 150, 100, 80);
+  child->setBounds(50, 50, 100, 80);
 
   parent->addChild(std::move(child));
   dispatcher.registerComponent(parentPtr);
@@ -510,7 +519,7 @@ void test_multiple_nested_containers() {
   TestComponent* root1Ptr = root1.get();
 
   auto root1Child = std::make_unique<TestComponent>(nullptr, "root1Child");
-  root1Child->setBounds(50, 50, 100, 100);
+  root1Child->setBounds(50, 50, 100, 100); // Already local - root1 is at (0, 0)
   TestComponent* root1ChildPtr = root1Child.get();
 
   root1->addChild(std::move(root1Child));
@@ -520,8 +529,10 @@ void test_multiple_nested_containers() {
   root2->setBounds(500, 0, 400, 300);
   TestComponent* root2Ptr = root2.get();
 
+  // root2Child at local position (50, 50) relative to root2
+  // With root2 at (500, 0), child will be at global position (550, 50)
   auto root2Child = std::make_unique<TestComponent>(nullptr, "root2Child");
-  root2Child->setBounds(550, 50, 100, 100);
+  root2Child->setBounds(50, 50, 100, 100);
   TestComponent* root2ChildPtr = root2Child.get();
 
   root2->addChild(std::move(root2Child));
@@ -601,9 +612,10 @@ void test_nested_with_both_parent_and_children_registered() {
   parent->setBounds(100, 100, 400, 300);
   TestComponent* parentPtr = parent.get();
 
-  // Create child at global position (150, 150)
+  // Create child at local position (50, 50) relative to parent
+  // With parent at (100, 100), child will be at global position (150, 150)
   auto child = std::make_unique<TestComponent>(nullptr, "child");
-  child->setBounds(150, 150, 100, 80);
+  child->setBounds(50, 50, 100, 80);
   TestComponent* childPtr = child.get();
 
   parent->addChild(std::move(child));

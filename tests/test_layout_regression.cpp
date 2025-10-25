@@ -67,8 +67,10 @@ void test_manual_width_height_override() {
 
   // Should keep the explicit size (with align=START, no stretching occurs)
   auto* layoutChild = panel.getChildren()[0].get();
-  assert(layoutChild->width == 200);
-  assert(layoutChild->height == 100);
+  int w, h;
+  layoutChild->getSize(w, h);
+  assert(w == 200);
+  assert(h == 100);
 
   std::cout << "✓ Manual width/height override test passed" << std::endl;
 }
@@ -84,10 +86,12 @@ void test_setBounds_still_works() {
   component.setBounds(10, 20, 150, 80);
 
   // Check bounds are set correctly
-  assert(component.x == 10);
-  assert(component.y == 20);
-  assert(component.width == 150);
-  assert(component.height == 80);
+  int x, y, w, h;
+  component.getBounds(x, y, w, h);
+  assert(x == 10);
+  assert(y == 20);
+  assert(w == 150);
+  assert(h == 80);
 
   std::cout << "✓ setBounds() still works test passed" << std::endl;
 }
@@ -128,11 +132,16 @@ void test_mixed_manual_and_auto_in_flex() {
   auto* layoutAuto = panel.getChildren()[1].get();
   auto* layoutManual2 = panel.getChildren()[2].get();
 
-  assert(layoutManual1->width == 100);
-  assert(layoutManual2->width == 150);
+  int w1, h1, w2, h2, w3, h3;
+  layoutManual1->getSize(w1, h1);
+  layoutAuto->getSize(w2, h2);
+  layoutManual2->getSize(w3, h3);
+
+  assert(w1 == 100);
+  assert(w3 == 150);
 
   // Auto component fills remaining: 600 - 100 - 150 = 350
-  assert(layoutAuto->width == 350);
+  assert(w2 == 350);
 
   std::cout << "✓ Mixed manual and auto sizing test passed" << std::endl;
 }
@@ -158,8 +167,10 @@ void test_explicit_zero_size_without_autogrow() {
 
   // Should use minimum size
   auto* layoutChild = panel.getChildren()[0].get();
-  assert(layoutChild->width >= 100);
-  assert(layoutChild->height >= 80);
+  int w, h;
+  layoutChild->getSize(w, h);
+  assert(w >= 100);
+  assert(h >= 80);
 
   std::cout << "✓ Explicit zero size without auto-grow test passed" << std::endl;
 }
@@ -176,10 +187,12 @@ void test_manual_positioning_preserved() {
   component.setSize(200, 100);
 
   // Check position is preserved
-  assert(component.x == 100);
-  assert(component.y == 150);
-  assert(component.width == 200);
-  assert(component.height == 100);
+  int x, y, w, h;
+  component.getBounds(x, y, w, h);
+  assert(x == 100);
+  assert(y == 150);
+  assert(w == 200);
+  assert(h == 100);
 
   std::cout << "✓ Manual positioning preserved test passed" << std::endl;
 }
@@ -224,9 +237,13 @@ void test_explicit_grow_factors_work() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
+  int w1, h1, w2, h2;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+
   // Child1 should be roughly twice as much extra space as child2
-  float child1Extra = layoutChild1->width - 100;
-  float child2Extra = layoutChild2->width - 100;
+  float child1Extra = w1 - 100;
+  float child2Extra = w2 - 100;
   float ratio = child1Extra / child2Extra;
 
   assert(ratio >= 1.9f && ratio <= 2.1f); // Approximately 2.0
@@ -274,8 +291,12 @@ void test_grow_factor_overrides_auto_grow() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
-  assert(layoutChild1->width == 425);
-  assert(layoutChild2->width == 175);
+  int w1, h1, w2, h2;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+
+  assert(w1 == 425);
+  assert(w2 == 175);
 
   std::cout << "✓ Grow factor overrides auto-grow test passed" << std::endl;
 }
@@ -315,9 +336,13 @@ void test_shrink_factors_still_work() {
   auto* layoutChild1 = panel.getChildren()[0].get();
   auto* layoutChild2 = panel.getChildren()[1].get();
 
+  int w1, h1, w2, h2;
+  layoutChild1->getSize(w1, h1);
+  layoutChild2->getSize(w2, h2);
+
   // Both components keep their explicit sizes (shrink not yet implemented)
-  assert(layoutChild1->width == 150);
-  assert(layoutChild2->width == 150);
+  assert(w1 == 150);
+  assert(w2 == 150);
 
   std::cout << "✓ Shrink factors test adjusted (shrink not yet implemented)" << std::endl;
 }
@@ -375,18 +400,26 @@ void test_nested_flex_layouts() {
   auto* layoutInnerPanel = outerPanel.getChildren()[0].get();
   auto* layoutOuterChild = outerPanel.getChildren()[1].get();
 
+  int w1, h1, w2, h2;
+  layoutInnerPanel->getSize(w1, h1);
+  layoutOuterChild->getSize(w2, h2);
+
   // Inner panel should auto-grow: 600 - 200 = 400
-  assert(layoutInnerPanel->width == 400);
-  assert(layoutOuterChild->width == 200);
+  assert(w1 == 400);
+  assert(w2 == 200);
 
   // Inner panel should layout its children vertically
   layoutInnerPanel->performLayout();
   auto* innerLayoutChild1 = layoutInnerPanel->getChildren()[0].get();
   auto* innerLayoutChild2 = layoutInnerPanel->getChildren()[1].get();
 
+  int w3, h3, w4, h4;
+  innerLayoutChild1->getSize(w3, h3);
+  innerLayoutChild2->getSize(w4, h4);
+
   // Each inner child should get half the height
-  assert(innerLayoutChild1->height > 0);
-  assert(innerLayoutChild2->height > 0);
+  assert(h3 > 0);
+  assert(h4 > 0);
 
   std::cout << "✓ Nested FlexLayouts test passed" << std::endl;
 }
@@ -430,8 +463,10 @@ void test_nested_mixed_layouts() {
 
   // Outer panel should layout inner panel
   auto* layoutInnerPanel = outerPanel.getChildren()[0].get();
-  assert(layoutInnerPanel->width == 600);  // Full width
-  assert(layoutInnerPanel->height == 400); // Full height
+  int w, h;
+  layoutInnerPanel->getSize(w, h);
+  assert(w == 600); // Full width
+  assert(h == 400); // Full height
 
   // Inner panel should layout its grid children
   layoutInnerPanel->performLayout();
@@ -491,13 +526,17 @@ void test_deeply_nested_layouts() {
 
   // Check that layout propagated correctly
   auto* layoutMiddle = outerPanel.getChildren()[0].get();
-  assert(layoutMiddle->width == 800);  // Should fill outer
-  assert(layoutMiddle->height == 600); // Should fill outer
+  int w1, h1;
+  layoutMiddle->getSize(w1, h1);
+  assert(w1 == 800); // Should fill outer
+  assert(h1 == 600); // Should fill outer
 
   layoutMiddle->performLayout();
   auto* layoutInner = layoutMiddle->getChildren()[0].get();
-  assert(layoutInner->width > 0);
-  assert(layoutInner->height > 0);
+  int w2, h2;
+  layoutInner->getSize(w2, h2);
+  assert(w2 > 0);
+  assert(h2 > 0);
 
   std::cout << "✓ Deeply nested layouts test passed" << std::endl;
 }
@@ -538,8 +577,10 @@ void test_nested_with_manual_sizes() {
 
   // Inner panel should keep manual size
   auto* layoutInnerPanel = outerPanel.getChildren()[0].get();
-  assert(layoutInnerPanel->width == 300);
-  assert(layoutInnerPanel->height == 400);
+  int w, h;
+  layoutInnerPanel->getSize(w, h);
+  assert(w == 300);
+  assert(h == 400);
 
   std::cout << "✓ Nested with manual sizes test passed" << std::endl;
 }
@@ -584,7 +625,9 @@ void test_single_component_various_sizes() {
     child1->setSize(0, 0);
     panel1.addChild(std::move(child1));
     panel1.performLayout();
-    assert(panel1.getChildren()[0]->width == 400);
+    int w, h;
+    panel1.getChildren()[0]->getSize(w, h);
+    assert(w == 400);
   }
 
   // Test with fixed size
@@ -600,7 +643,9 @@ void test_single_component_various_sizes() {
     child2->setSize(200, 100);
     panel2.addChild(std::move(child2));
     panel2.performLayout();
-    assert(panel2.getChildren()[0]->width == 200);
+    int w2, h2;
+    panel2.getChildren()[0]->getSize(w2, h2);
+    assert(w2 == 200);
   }
 
   std::cout << "✓ Single component various sizes test passed" << std::endl;
@@ -629,14 +674,16 @@ void test_minimum_size_larger_than_available() {
 
   // Should respect minimum even if it overflows
   auto* layoutChild = panel.getChildren()[0].get();
+  int w, h;
+  layoutChild->getSize(w, h);
   // NOTE: Width respects minimum size in main axis (ROW direction)
   // Height (cross-axis) behavior:
   //   - With align=START, uses preferred size (0 for zero-sized component)
   //   - With align=STRETCH, stretches to panel height (100px)
   // Current limitation: minimum height not respected in cross-axis for zero-sized components
-  assert(layoutChild->width >= 500); // Main axis respects minimum
+  assert(w >= 500); // Main axis respects minimum
   // Height doesn't respect minimum in cross-axis for zero-sized components (known limitation)
-  // assert(layoutChild->height >= 400);
+  // assert(h >= 400);
 
   std::cout << "✓ Minimum size larger than available test passed" << std::endl;
 }
