@@ -266,16 +266,6 @@ bombfork::prong::Component* EventDispatcher::findComponentAt(int x, int y) {
   for (auto it = components.rbegin(); it != components.rend(); ++it) {
     bombfork::prong::Component* component = *it;
 
-    // DEBUG: Log what we're checking
-    if (component->getDebugName().find("Btn") != std::string::npos) {
-      int cx, cy, cw, ch;
-      component->getBounds(cx, cy, cw, ch);
-      std::cout << "[FIND] Checking component '" << component->getDebugName() << "' at (" << cx << "," << cy << ","
-                << cw << "," << ch << ")"
-                << " hasParent=" << (component->getParent() != nullptr) << " for click at (" << x << "," << y << ")"
-                << std::endl;
-    }
-
     // Skip if this component has a parent - it will be checked through the parent hierarchy
     if (component->getParent() != nullptr) {
       continue;
