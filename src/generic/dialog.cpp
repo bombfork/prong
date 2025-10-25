@@ -31,8 +31,7 @@ void Dialog::hide() {
 }
 
 void Dialog::setPosition(int newX, int newY) {
-  x = newX;
-  y = newY;
+  Component::setPosition(newX, newY);
 }
 
 void Dialog::setDialogType(DialogType type) {
@@ -62,22 +61,25 @@ void Dialog::render() {
   if (!isVisible() || !renderer)
     return;
 
+  int gx = getGlobalX();
+  int gy = getGlobalY();
+
   // Render dialog background (using drawRect - full implementation would use filled rect)
-  renderer->drawRect(x, y, width, height, theme.backgroundColor.r, theme.backgroundColor.g, theme.backgroundColor.b,
+  renderer->drawRect(gx, gy, width, height, theme.backgroundColor.r, theme.backgroundColor.g, theme.backgroundColor.b,
                      theme.backgroundColor.a);
 
   // Render border
-  renderer->drawRect(x, y, width, height, theme.borderColor.r, theme.borderColor.g, theme.borderColor.b,
+  renderer->drawRect(gx, gy, width, height, theme.borderColor.r, theme.borderColor.g, theme.borderColor.b,
                      theme.borderColor.a);
 
   // Render title bar if enabled
   if (state.showTitleBar && !state.title.empty()) {
-    renderer->drawRect(x, y, width, TITLE_BAR_HEIGHT, theme.titleBarColor.r, theme.titleBarColor.g,
+    renderer->drawRect(gx, gy, width, TITLE_BAR_HEIGHT, theme.titleBarColor.r, theme.titleBarColor.g,
                        theme.titleBarColor.b, theme.titleBarColor.a);
 
     // Measure text for proper vertical centering
     auto [textWidth, textHeight] = renderer->measureText(state.title);
-    renderer->drawText(state.title, x + CONTENT_PADDING, y + (TITLE_BAR_HEIGHT - textHeight) / 2,
+    renderer->drawText(state.title, gx + CONTENT_PADDING, gy + (TITLE_BAR_HEIGHT - textHeight) / 2,
                        theme.titleTextColor.r, theme.titleTextColor.g, theme.titleTextColor.b, theme.titleTextColor.a);
   }
 
@@ -90,17 +92,25 @@ void Dialog::render() {
 }
 
 void Dialog::setBounds(int newX, int newY, int newWidth, int newHeight) {
-  x = newX;
-  y = newY;
-  width = newWidth;
-  height = newHeight;
+  Component::setBounds(newX, newY, newWidth, newHeight);
 }
 
 bool Dialog::handleClick(int localX, int localY) {
   // Delegate to children
   for (auto& child : getChildren()) {
-    if (child && child->isVisible() && child->contains(localX, localY)) {
-      if (child->handleClick(localX, localY)) {
+    if (!child || !child->isVisible())
+      continue;
+
+    // Get child's local position and size
+    int childX, childY, childWidth, childHeight;
+    child->getBounds(childX, childY, childWidth, childHeight);
+
+    // Check if point is within child's local bounds
+    if (localX >= childX && localX < childX + childWidth && localY >= childY && localY < childY + childHeight) {
+      // Convert to child-local coordinates
+      int childLocalX = localX - childX;
+      int childLocalY = localY - childY;
+      if (child->handleClick(childLocalX, childLocalY)) {
         return true;
       }
     }
@@ -114,15 +124,26 @@ bool Dialog::handleMousePress(int localX, int localY, int button) {
     state.dragging = true;
     state.dragStartX = localX;
     state.dragStartY = localY;
-    state.dragOffsetX = x;
-    state.dragOffsetY = y;
+    state.dragOffsetX = getGlobalX();
+    state.dragOffsetY = getGlobalY();
     return true;
   }
 
   // Delegate to children
   for (auto& child : getChildren()) {
-    if (child && child->isVisible() && child->contains(localX, localY)) {
-      if (child->handleMousePress(localX, localY, button)) {
+    if (!child || !child->isVisible())
+      continue;
+
+    // Get child's local position and size
+    int childX, childY, childWidth, childHeight;
+    child->getBounds(childX, childY, childWidth, childHeight);
+
+    // Check if point is within child's local bounds
+    if (localX >= childX && localX < childX + childWidth && localY >= childY && localY < childY + childHeight) {
+      // Convert to child-local coordinates
+      int childLocalX = localX - childX;
+      int childLocalY = localY - childY;
+      if (child->handleMousePress(childLocalX, childLocalY, button)) {
         return true;
       }
     }
@@ -138,8 +159,19 @@ bool Dialog::handleMouseRelease(int localX, int localY, int button) {
 
   // Delegate to children
   for (auto& child : getChildren()) {
-    if (child && child->isVisible() && child->contains(localX, localY)) {
-      if (child->handleMouseRelease(localX, localY, button)) {
+    if (!child || !child->isVisible())
+      continue;
+
+    // Get child's local position and size
+    int childX, childY, childWidth, childHeight;
+    child->getBounds(childX, childY, childWidth, childHeight);
+
+    // Check if point is within child's local bounds
+    if (localX >= childX && localX < childX + childWidth && localY >= childY && localY < childY + childHeight) {
+      // Convert to child-local coordinates
+      int childLocalX = localX - childX;
+      int childLocalY = localY - childY;
+      if (child->handleMouseRelease(childLocalX, childLocalY, button)) {
         return true;
       }
     }
@@ -151,15 +183,25 @@ bool Dialog::handleMouseMove(int localX, int localY) {
   if (state.dragging) {
     int deltaX = localX - state.dragStartX;
     int deltaY = localY - state.dragStartY;
-    x = state.dragOffsetX + deltaX;
-    y = state.dragOffsetY + deltaY;
+    setPosition(state.dragOffsetX + deltaX, state.dragOffsetY + deltaY);
     return true;
   }
 
   // Delegate to children
   for (auto& child : getChildren()) {
-    if (child && child->isVisible() && child->contains(localX, localY)) {
-      if (child->handleMouseMove(localX, localY)) {
+    if (!child || !child->isVisible())
+      continue;
+
+    // Get child's local position and size
+    int childX, childY, childWidth, childHeight;
+    child->getBounds(childX, childY, childWidth, childHeight);
+
+    // Check if point is within child's local bounds
+    if (localX >= childX && localX < childX + childWidth && localY >= childY && localY < childY + childHeight) {
+      // Convert to child-local coordinates
+      int childLocalX = localX - childX;
+      int childLocalY = localY - childY;
+      if (child->handleMouseMove(childLocalX, childLocalY)) {
         return true;
       }
     }

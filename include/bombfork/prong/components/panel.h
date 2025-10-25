@@ -177,8 +177,10 @@ public:
     int borderOffset = static_cast<int>(style.borderWidth);
     int titleBarOffset = hasVisibleTitleBar() ? TITLE_BAR_HEIGHT : 0;
 
-    contentX = x + borderOffset + style.padding;
-    contentY = y + borderOffset + titleBarOffset + style.padding;
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+    contentX = gx + borderOffset + style.padding;
+    contentY = gy + borderOffset + titleBarOffset + style.padding;
     contentWidth = width - (borderOffset + style.padding) * 2;
     contentHeight = height - (borderOffset + style.padding) * 2 - titleBarOffset;
   }
@@ -358,8 +360,11 @@ public:
     // Note: performLayout() is called by Component::renderAll() before render()
     // so we don't need to call it here
 
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+
     // Render background
-    renderer->drawRect(x, y, width, height, style.backgroundColor.r, style.backgroundColor.g, style.backgroundColor.b,
+    renderer->drawRect(gx, gy, width, height, style.backgroundColor.r, style.backgroundColor.g, style.backgroundColor.b,
                        style.backgroundColor.a);
 
     // Render title bar if enabled
@@ -383,7 +388,9 @@ public:
     if (!renderer)
       return;
 
-    renderer->drawRect(x, y, width, height, style.backgroundColor.r, style.backgroundColor.g, style.backgroundColor.b,
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+    renderer->drawRect(gx, gy, width, height, style.backgroundColor.r, style.backgroundColor.g, style.backgroundColor.b,
                        style.backgroundColor.a);
   }
 
@@ -396,31 +403,46 @@ protected:
       return; // Only fill if width or height is 0
     }
 
+    int currentX, currentY;
+    getPosition(currentX, currentY);
+
     // Try to get content bounds from parent if it's a Panel
     Panel* parentPanel = dynamic_cast<Panel*>(parent);
     if (parentPanel) {
       int contentX, contentY, contentWidth, contentHeight;
       parentPanel->getContentBounds(contentX, contentY, contentWidth, contentHeight);
 
+      // Convert parent's global content bounds to local coordinates
+      int parentGx, parentGy;
+      parent->getGlobalPosition(parentGx, parentGy);
+      int localContentX = contentX - parentGx;
+      int localContentY = contentY - parentGy;
+
       if (width == 0) {
-        x = contentX;
+        currentX = localContentX;
         width = contentWidth;
       }
       if (height == 0) {
-        y = contentY;
+        currentY = localContentY;
         height = contentHeight;
       }
     } else {
-      // Parent is not a Panel, use parent's full bounds
+      // Parent is not a Panel, use parent's full bounds (position 0,0 relative to parent)
       if (width == 0) {
-        x = parent->x;
-        width = parent->width;
+        currentX = 0;
+        int pw, ph;
+        parent->getSize(pw, ph);
+        width = pw;
       }
       if (height == 0) {
-        y = parent->y;
-        height = parent->height;
+        currentY = 0;
+        int pw, ph;
+        parent->getSize(pw, ph);
+        height = ph;
       }
     }
+
+    setPosition(currentX, currentY);
   }
 
   /**
@@ -430,9 +452,11 @@ protected:
     if (!renderer)
       return;
 
+    int gx = getGlobalX();
+    int gy = getGlobalY();
     int borderOffset = static_cast<int>(style.borderWidth);
-    int titleBarX = x + borderOffset;
-    int titleBarY = y + borderOffset;
+    int titleBarX = gx + borderOffset;
+    int titleBarY = gy + borderOffset;
     int titleBarWidth = width - borderOffset * 2;
 
     // Title bar background
@@ -454,22 +478,24 @@ protected:
     if (!renderer)
       return;
 
+    int gx = getGlobalX();
+    int gy = getGlobalY();
     int bw = static_cast<int>(style.borderWidth);
 
     // Top border
-    renderer->drawRect(x, y, width, bw, style.borderColor.r, style.borderColor.g, style.borderColor.b,
+    renderer->drawRect(gx, gy, width, bw, style.borderColor.r, style.borderColor.g, style.borderColor.b,
                        style.borderColor.a);
 
     // Bottom border
-    renderer->drawRect(x, y + height - bw, width, bw, style.borderColor.r, style.borderColor.g, style.borderColor.b,
+    renderer->drawRect(gx, gy + height - bw, width, bw, style.borderColor.r, style.borderColor.g, style.borderColor.b,
                        style.borderColor.a);
 
     // Left border
-    renderer->drawRect(x, y, bw, height, style.borderColor.r, style.borderColor.g, style.borderColor.b,
+    renderer->drawRect(gx, gy, bw, height, style.borderColor.r, style.borderColor.g, style.borderColor.b,
                        style.borderColor.a);
 
     // Right border
-    renderer->drawRect(x + width - bw, y, bw, height, style.borderColor.r, style.borderColor.g, style.borderColor.b,
+    renderer->drawRect(gx + width - bw, gy, bw, height, style.borderColor.r, style.borderColor.g, style.borderColor.b,
                        style.borderColor.a);
   }
 };

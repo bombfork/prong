@@ -282,7 +282,9 @@ public:
     }
 
     // Render background
-    renderer->drawRect(x, y, width, height, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+    renderer->drawRect(gx, gy, width, height, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 
     // Render border
     if (style.showBorder && style.borderWidth > 0) {
@@ -293,8 +295,8 @@ public:
     if (!text.empty()) {
       // Measure text for proper centering
       auto [textWidth, textHeight] = renderer->measureText(text);
-      int textX = x + (width - textWidth) / 2;
-      int textY = y + (height - textHeight) / 2;
+      int textX = gx + (width - textWidth) / 2;
+      int textY = gy + (height - textHeight) / 2;
 
       renderer->drawText(text, textX, textY, txtColor.r, txtColor.g, txtColor.b, txtColor.a);
     }
@@ -308,19 +310,21 @@ protected:
     if (!renderer)
       return;
 
+    int gx = getGlobalX();
+    int gy = getGlobalY();
     int bw = static_cast<int>(style.borderWidth);
 
     // Top border
-    renderer->drawRect(x, y, width, bw, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
+    renderer->drawRect(gx, gy, width, bw, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
 
     // Bottom border
-    renderer->drawRect(x, y + height - bw, width, bw, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
+    renderer->drawRect(gx, gy + height - bw, width, bw, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
 
     // Left border
-    renderer->drawRect(x, y, bw, height, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
+    renderer->drawRect(gx, gy, bw, height, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
 
     // Right border
-    renderer->drawRect(x + width - bw, y, bw, height, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
+    renderer->drawRect(gx + width - bw, gy, bw, height, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
   }
 
   /**

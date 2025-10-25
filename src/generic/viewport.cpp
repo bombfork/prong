@@ -111,6 +111,9 @@ void Viewport::render() {
   if (!isVisible() || !renderer)
     return;
 
+  int gx = getGlobalX();
+  int gy = getGlobalY();
+
   // Update animation if active
   if (transform.animating) {
     auto now = std::chrono::steady_clock::now();
@@ -130,12 +133,12 @@ void Viewport::render() {
   }
 
   // Render background (using drawRect - full implementation would use filled rect)
-  renderer->drawRect(x, y, width, height, theme.backgroundColor.r, theme.backgroundColor.g, theme.backgroundColor.b,
+  renderer->drawRect(gx, gy, width, height, theme.backgroundColor.r, theme.backgroundColor.g, theme.backgroundColor.b,
                      theme.backgroundColor.a);
 
   // Render border
   if (theme.borderWidth > 0.0f) {
-    renderer->drawRect(x, y, width, height, theme.borderColor.r, theme.borderColor.g, theme.borderColor.b,
+    renderer->drawRect(gx, gy, width, height, theme.borderColor.r, theme.borderColor.g, theme.borderColor.b,
                        theme.borderColor.a);
   }
 
@@ -166,10 +169,7 @@ void Viewport::render() {
 }
 
 void Viewport::setBounds(int newX, int newY, int newWidth, int newHeight) {
-  x = newX;
-  y = newY;
-  width = newWidth;
-  height = newHeight;
+  Component::setBounds(newX, newY, newWidth, newHeight);
 }
 
 bool Viewport::handleClick(int localX, int localY) {
