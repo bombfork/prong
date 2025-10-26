@@ -22,13 +22,17 @@ using namespace bombfork::prong;
 
 /**
  * Example 1: Creating a simple button with callback
+ *
+ * Note: withPosition() sets the position relative to the parent component.
+ * If this button is added as a child to another component, (10, 10) means
+ * 10 pixels from the parent's origin, not the screen origin.
  */
 void example1_simple_button() {
   std::cout << "\n=== Example 1: Simple Button ===" << std::endl;
 
   auto button = create<Button>("Click Me")
                   .withSize(120, 40)
-                  .withPosition(10, 10)
+                  .withPosition(10, 10) // Position relative to parent
                   .withClickCallback([]() { std::cout << "Button clicked!" << std::endl; })
                   .build();
 
@@ -81,27 +85,32 @@ void example3_list_box() {
 
 /**
  * Example 4: Creating a panel with nested children
+ *
+ * Important: Child components use coordinates relative to their parent.
+ * In this example, the buttons at positions (10, 250) and (120, 250) are
+ * relative to the panel's origin, NOT the screen. So if the panel is at
+ * screen position (10, 10), the OK button will be at screen position (20, 260).
  */
 void example4_nested_panel() {
   std::cout << "\n=== Example 4: Nested Panel ===" << std::endl;
 
-  // Create child buttons
+  // Create child buttons with positions relative to the panel
   auto okButton = create<Button>("OK")
                     .withSize(100, 30)
-                    .withPosition(10, 250)
+                    .withPosition(10, 250) // Relative to panel origin
                     .withClickCallback([]() { std::cout << "OK clicked!" << std::endl; })
                     .build();
 
   auto cancelButton = create<Button>("Cancel")
                         .withSize(100, 30)
-                        .withPosition(120, 250)
+                        .withPosition(120, 250) // Relative to panel origin
                         .withClickCallback([]() { std::cout << "Cancel clicked!" << std::endl; })
                         .build();
 
   // Create panel with children
   auto panel = create<Panel<>>()
                  .withSize(400, 300)
-                 .withPosition(10, 10)
+                 .withPosition(10, 10) // Position relative to screen (if no parent)
                  .withChildren(std::move(okButton), std::move(cancelButton))
                  .build();
 

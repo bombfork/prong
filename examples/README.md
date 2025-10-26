@@ -135,10 +135,36 @@ To create a renderer for a different graphics API (Vulkan, DirectX, etc.):
 1. Inherit from `IRenderer`
 2. Create a custom `TextureHandle` subclass for your API
 3. Implement all pure virtual methods
-4. Handle coordinate system conversions (Prong uses top-left origin)
+4. Handle coordinate system conversions (Prong uses top-left origin with relative child coordinates)
 5. Implement batching for optimal performance
 
 See `simple_opengl_renderer.h` for a complete example.
+
+### Coordinate System
+
+Prong uses a relative coordinate system:
+- **Screen origin**: Top-left corner at (0, 0)
+- **Child positions**: Relative to their parent's origin, NOT the screen
+- **Rendering**: Components use global (screen-space) coordinates internally for rendering
+- **API**: `setPosition()` and `setBounds()` use parent-relative coordinates
+- **Conversion**: Use `getGlobalPosition()` to convert local to screen coordinates
+
+Example:
+```cpp
+// Panel at screen position (100, 100)
+auto panel = create<Panel<>>()
+               .withPosition(100, 100)  // Screen position (if no parent)
+               .withSize(400, 300)
+               .build();
+
+// Button at position (10, 10) relative to panel
+// Will be rendered at screen position (110, 110)
+auto button = create<Button>("OK")
+                .withPosition(10, 10)  // Relative to parent panel
+                .withSize(100, 30)
+                .build();
+panel->addChild(std::move(button));
+```
 
 ## Integration with Existing Projects
 
