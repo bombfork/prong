@@ -69,13 +69,30 @@ public:
 
 ## Architecture
 
+### Coordinate System
+
+Prong uses a **relative coordinate system** where child components are positioned relative to their parent's origin. This provides:
+
+- **Intuitive positioning** - Children don't need to know their parent's position
+- **Automatic updates** - Moving a parent automatically moves all children
+- **Performance** - Global screen coordinates are cached automatically
+
+```cpp
+// Position children relative to parent
+panel->setPosition(100, 200);    // Panel at screen position (100, 200)
+button->setPosition(50, 75);     // Button at (50, 75) relative to panel
+panel->addChild(std::move(button));  // Button now at screen position (150, 275)
+```
+
+For detailed information, see [docs/coordinate_system.md](docs/coordinate_system.md).
+
 ### Core Components
 
 ```
 bombfork::prong::
 ├── core/                   # Base component system
-│   ├── Component           # CRTP base class
-│   ├── CoordinateSystem    # World ↔ Screen transformations
+│   ├── Component           # CRTP base class with relative coordinates
+│   ├── CoordinateSystem    # World ↔ Screen transformations (for viewports)
 │   └── AsyncCallbackQueue  # Thread-safe callback management
 ├── components/             # Reusable UI widgets
 │   ├── Button             # Clickable button

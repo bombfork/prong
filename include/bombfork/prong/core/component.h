@@ -188,8 +188,19 @@ public:
 
   /**
    * @brief Get global (screen-space) position
+   *
+   * Returns the absolute screen coordinates of this component by walking up
+   * the parent chain and summing all local positions. The result is cached
+   * for performance and automatically invalidated when positions change.
+   *
+   * For root components (no parent), global position equals local position.
+   *
    * @param outX Output: Absolute screen X coordinate
    * @param outY Output: Absolute screen Y coordinate
+   *
+   * @note This method is const but updates internal cache (mutable members)
+   * @see getPosition() for local coordinates
+   * @see getGlobalBounds() for position and size together
    */
   void getGlobalPosition(int& outX, int& outY) const {
     if (globalCacheDirty) {
@@ -201,10 +212,17 @@ public:
 
   /**
    * @brief Get global bounds (screen-space position + size)
+   *
+   * Convenience method that returns both global position and size in one call.
+   * Equivalent to calling getGlobalPosition() and getSize() separately.
+   *
    * @param outX Output: Absolute screen X coordinate
    * @param outY Output: Absolute screen Y coordinate
    * @param outWidth Output: Component width
    * @param outHeight Output: Component height
+   *
+   * @see getGlobalPosition() for position only
+   * @see getBounds() for local coordinates
    */
   void getGlobalBounds(int& outX, int& outY, int& outWidth, int& outHeight) const {
     getGlobalPosition(outX, outY);
@@ -214,9 +232,17 @@ public:
 
   /**
    * @brief Check if a global screen point is within this component
-   * @param globalX Absolute screen X coordinate
-   * @param globalY Absolute screen Y coordinate
-   * @return true if point is within component bounds
+   *
+   * Used primarily for hit testing by EventDispatcher. Tests whether the
+   * given screen-space coordinates fall within this component's rectangular
+   * bounds.
+   *
+   * @param globalX Absolute screen X coordinate to test
+   * @param globalY Absolute screen Y coordinate to test
+   * @return true if point is within component bounds, false otherwise
+   *
+   * @note Override this method for custom hit testing (e.g., circular bounds)
+   * @see EventDispatcher for how this is used in event routing
    */
   bool containsGlobal(int globalX, int globalY) const {
     int gx, gy;
@@ -226,10 +252,18 @@ public:
 
   /**
    * @brief Convert global screen coordinates to component-local coordinates
+   *
+   * Transforms absolute screen coordinates into coordinates relative to this
+   * component's origin. The result represents where the point is within this
+   * component's coordinate space (0,0 = top-left corner of component).
+   *
    * @param globalX Input: Absolute screen X coordinate
    * @param globalY Input: Absolute screen Y coordinate
-   * @param localX Output: X coordinate relative to this component
-   * @param localY Output: Y coordinate relative to this component
+   * @param localX Output: X coordinate relative to this component's origin
+   * @param localY Output: Y coordinate relative to this component's origin
+   *
+   * @note Useful for custom event handling or sub-region calculations
+   * @see localToGlobal() for the reverse transformation
    */
   void globalToLocal(int globalX, int globalY, int& localX, int& localY) const {
     int gx, gy;
@@ -240,10 +274,18 @@ public:
 
   /**
    * @brief Convert component-local coordinates to global screen coordinates
-   * @param localX Input: X coordinate relative to this component
-   * @param localY Input: Y coordinate relative to this component
+   *
+   * Transforms coordinates relative to this component into absolute screen
+   * coordinates. Useful for positioning tooltips, context menus, or other
+   * UI elements that need screen-space positions.
+   *
+   * @param localX Input: X coordinate relative to this component's origin
+   * @param localY Input: Y coordinate relative to this component's origin
    * @param globalX Output: Absolute screen X coordinate
    * @param globalY Output: Absolute screen Y coordinate
+   *
+   * @note Useful for positioning external UI elements (tooltips, dialogs)
+   * @see globalToLocal() for the reverse transformation
    */
   void localToGlobal(int localX, int localY, int& globalX, int& globalY) const {
     int gx, gy;
@@ -450,6 +492,19 @@ public:
 
   // === Event Handling ===
 
+  /**
+   * @brief Handle mouse click event
+   *
+   * Called when the component is clicked. Coordinates are automatically
+   * converted to local space by EventDispatcher.
+   *
+   * @param localX X coordinate relative to this component's origin
+   * @param localY Y coordinate relative to this component's origin
+   * @return true if event was handled, false to propagate to parent
+   *
+   * @note Coordinates are in LOCAL space (relative to this component)
+   * @note (0,0) represents the top-left corner of this component
+   */
   virtual bool handleClick(int localX, int localY) {
     // Default: delegate to children
     // localX/localY are relative to this component
@@ -473,6 +528,16 @@ public:
     return false;
   }
 
+  /**
+   * @brief Handle mouse press event
+   *
+   * @param localX X coordinate relative to this component's origin
+   * @param localY Y coordinate relative to this component's origin
+   * @param button Mouse button index (0=left, 1=right, 2=middle)
+   * @return true if event was handled, false to propagate
+   *
+   * @note Coordinates are in LOCAL space
+   */
   virtual bool handleMousePress(int localX, int localY, int button) {
     for (auto& child : children) {
       if (child && child->isVisible()) {
@@ -493,6 +558,16 @@ public:
     return false;
   }
 
+  /**
+   * @brief Handle mouse release event
+   *
+   * @param localX X coordinate relative to this component's origin
+   * @param localY Y coordinate relative to this component's origin
+   * @param button Mouse button index (0=left, 1=right, 2=middle)
+   * @return true if event was handled, false to propagate
+   *
+   * @note Coordinates are in LOCAL space
+   */
   virtual bool handleMouseRelease(int localX, int localY, int button) {
     for (auto& child : children) {
       if (child && child->isVisible()) {
@@ -513,6 +588,16 @@ public:
     return false;
   }
 
+  /**
+   * @brief Handle mouse move event
+   *
+   * @param localX X coordinate relative to this component's origin
+   * @param localY Y coordinate relative to this component's origin
+   * @return true if event was handled, false to propagate
+   *
+   * @note Coordinates are in LOCAL space
+   * @note Called even when mouse moves outside component bounds
+   */
   virtual bool handleMouseMove(int localX, int localY) {
     for (auto& child : children) {
       if (child && child->isVisible()) {
@@ -530,9 +615,27 @@ public:
     return false;
   }
 
+  /**
+   * @brief Called when mouse enters component bounds
+   */
   virtual void handleMouseEnter() {}
+
+  /**
+   * @brief Called when mouse leaves component bounds
+   */
   virtual void handleMouseLeave() {}
 
+  /**
+   * @brief Handle mouse scroll event
+   *
+   * @param localX X coordinate relative to this component's origin
+   * @param localY Y coordinate relative to this component's origin
+   * @param xoffset Horizontal scroll amount (positive = right)
+   * @param yoffset Vertical scroll amount (positive = down)
+   * @return true if event was handled, false to propagate
+   *
+   * @note Coordinates are in LOCAL space
+   */
   virtual bool handleScroll(int localX, int localY, double xoffset, double yoffset) {
     for (auto& child : children) {
       if (child && child->isVisible()) {
