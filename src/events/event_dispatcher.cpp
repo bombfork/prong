@@ -8,7 +8,6 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace bombfork::prong::events {
@@ -289,14 +288,6 @@ bombfork::prong::Component* EventDispatcher::findComponentAtRecursive(bombfork::
   // First, check if the point is even within this component's bounds
   if (!component->containsGlobal(x, y)) {
     return nullptr;
-  }
-
-  // DEBUG: Log when button contains point
-  if (component->getDebugName().find("Btn") != std::string::npos) {
-    int cx, cy, cw, ch;
-    component->getBounds(cx, cy, cw, ch);
-    std::cout << "[RECURSIVE] Button '" << component->getDebugName() << "' at (" << cx << "," << cy << "," << cw << ","
-              << ch << ") CONTAINS point (" << x << "," << y << ")" << std::endl;
   }
 
   // Check children in reverse order (last rendered = topmost)
