@@ -114,88 +114,68 @@ public:
 
   // === Event Handling ===
 
-  bool handleClick(int /* localX */, int localY) override {
+  /**
+   * @brief Handle events using the new hierarchical event API
+   * @param event Event to handle (coordinates in local space)
+   * @return true if event was consumed, false to allow propagation
+   */
+  bool handleEventSelf(const core::Event& event) override {
     if (!enabled) {
       return false;
     }
 
-    // localX, localY are already in component-local coordinates (relative to this component's origin)
-    // No need to subtract component position - that's already done by EventDispatcher
+    switch (event.type) {
+    case core::Event::Type::MOUSE_PRESS:
+      if (event.button == 0) { // Left click
+        // Calculate which item was clicked
+        int contentY = style.padding;
+        int itemIndex = (event.localY - contentY + scrollOffset) / style.itemHeight;
 
-    int contentY = style.padding;
-    int itemIndex = (localY - contentY + scrollOffset) / style.itemHeight;
+        if (itemIndex >= 0 && itemIndex < static_cast<int>(items.size())) {
+          setSelectedIndex(itemIndex);
+          return true;
+        }
+      }
+      break;
 
-    if (itemIndex >= 0 && itemIndex < static_cast<int>(items.size())) {
-      setSelectedIndex(itemIndex);
+    case core::Event::Type::MOUSE_SCROLL: {
+      // Handle scrolling
+      int delta = static_cast<int>(-event.scrollY * style.itemHeight);
+      setScrollOffset(scrollOffset + delta);
       return true;
     }
 
-    return false;
-  }
-
-  bool handleMousePress(int localX, int localY, int /* button */) override {
-    // Delegate to handleClick for selection
-    return handleClick(localX, localY);
-  }
-
-  bool handleMouseMove(int localX, int localY) override {
-    if (!enabled) {
-      return false;
-    }
-
-    // localX, localY are already in component-local coordinates
-    // Check if within component bounds (0,0 to width,height in local space)
-    if (localX >= 0 && localX < width && localY >= 0 && localY < height) {
+    case core::Event::Type::MOUSE_MOVE: {
+      // Update hover state
       int contentY = style.padding;
-      int itemIndex = (localY - contentY + scrollOffset) / style.itemHeight;
+      int itemIndex = (event.localY - contentY + scrollOffset) / style.itemHeight;
 
       if (itemIndex >= 0 && itemIndex < static_cast<int>(items.size())) {
         hoveredIndex = itemIndex;
       } else {
         hoveredIndex = -1;
       }
-      return true;
-    } else {
-      hoveredIndex = -1;
+      return true; // Consume move events within the listbox
     }
 
-    return false;
-  }
-
-  void handleMouseLeave() override { hoveredIndex = -1; }
-
-  bool handleScroll(int localX, int localY, double /* xoffset */, double yoffset) override {
-    if (!enabled) {
-      return false;
-    }
-
-    // localX, localY are already in component-local coordinates
-    // Check if within component bounds
-    if (localX >= 0 && localX < width && localY >= 0 && localY < height) {
-      int delta = static_cast<int>(-yoffset * style.itemHeight);
-      setScrollOffset(scrollOffset + delta);
-      return true;
-    }
-
-    return false;
-  }
-
-  bool handleKey(int key, int action, int /* mods */) override {
-    if (!enabled || action != 1) { // 1 = GLFW_PRESS
-      return false;
-    }
-
-    // Arrow key navigation
-    if (key == 265) { // Up arrow
-      if (selectedIndex > 0) {
-        setSelectedIndex(selectedIndex - 1);
+    case core::Event::Type::KEY_PRESS: {
+      // Arrow key navigation
+      if (event.key == 265) { // Up arrow
+        if (selectedIndex > 0) {
+          setSelectedIndex(selectedIndex - 1);
+        }
+        return true;
+      } else if (event.key == 264) { // Down arrow
+        if (selectedIndex < static_cast<int>(items.size()) - 1) {
+          setSelectedIndex(selectedIndex + 1);
+        }
+        return true;
       }
-      return true;
-    } else if (key == 264) { // Down arrow
-      if (selectedIndex < static_cast<int>(items.size()) - 1) {
-        setSelectedIndex(selectedIndex + 1);
-      }
-      return true;
+      break;
+    }
+
+    default:
+      break;
     }
 
     return false;
