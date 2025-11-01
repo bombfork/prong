@@ -551,6 +551,108 @@ void test_panel_contains_event_complex() {
 }
 
 // ============================================================================
+// Panel::handleEventSelf Tests
+// ============================================================================
+
+void test_panel_handle_event_self_returns_false() {
+  std::cout << "Testing Panel handleEventSelf() returns false..." << std::endl;
+
+  Panel<> panel("testPanel");
+  panel.setBounds(0, 0, 200, 200);
+
+  // Test various event types - all should return false (propagate)
+  Event mousePress{.type = Event::Type::MOUSE_PRESS, .localX = 100, .localY = 100};
+  assert(panel.handleEventSelf(mousePress) == false);
+
+  Event mouseRelease{.type = Event::Type::MOUSE_RELEASE, .localX = 100, .localY = 100};
+  assert(panel.handleEventSelf(mouseRelease) == false);
+
+  Event mouseMove{.type = Event::Type::MOUSE_MOVE, .localX = 100, .localY = 100};
+  assert(panel.handleEventSelf(mouseMove) == false);
+
+  Event keyPress{.type = Event::Type::KEY_PRESS, .key = 65}; // 'A'
+  assert(panel.handleEventSelf(keyPress) == false);
+
+  std::cout << "✓ Panel handleEventSelf() returns false test passed" << std::endl;
+}
+
+void test_panel_propagates_to_children() {
+  std::cout << "Testing Panel propagates events to children..." << std::endl;
+
+  Panel<> panel("testPanel");
+  panel.setBounds(0, 0, 200, 200);
+  panel.setBorderWidth(5);
+  panel.setPadding(10);
+
+  // Add a child that handles events
+  auto childPtr = std::make_unique<EventTrackingComponent>("child");
+  childPtr->setBounds(50, 50, 100, 100); // Local coordinates relative to panel's origin
+  childPtr->shouldHandleEvent = true;
+  auto* child = childPtr.get();
+  panel.addChild(std::move(childPtr));
+
+  // Content area starts at (15, 15) - border(5) + padding(10)
+  // Child is at local (50, 50) relative to panel origin
+  // Event at (70, 70) should be:
+  // - Panel local: (70, 70)
+  // - Content area check: (70, 70) is within content area starting at (15, 15)
+  // - Child local: (70, 70) converted to child's space = (20, 20) relative to child at (50, 50)
+
+  Event event{.type = Event::Type::MOUSE_PRESS, .localX = 70, .localY = 70};
+
+  // Panel should not handle it (returns false)
+  assert(panel.handleEventSelf(event) == false);
+
+  // When full handleEvent is called, child should receive it
+  Event eventForPanel{.type = Event::Type::MOUSE_PRESS, .localX = 70, .localY = 70};
+  bool handled = panel.handleEvent(eventForPanel);
+
+  // Child should have handled it
+  assert(handled == true);
+  assert(child->receivedEvents.size() == 1);
+  assert(child->receivedEvents[0] == Event::Type::MOUSE_PRESS);
+
+  std::cout << "✓ Panel propagates to children test passed" << std::endl;
+}
+
+void test_panel_respects_content_area() {
+  std::cout << "Testing Panel respects content area for event propagation..." << std::endl;
+
+  Panel<> panel("testPanel");
+  panel.setBounds(0, 0, 200, 200);
+  panel.setBorderWidth(5);
+  panel.setPadding(10);
+  panel.setTitle("Test Panel");
+
+  // Add a child in content area
+  auto childPtr = std::make_unique<EventTrackingComponent>("child");
+  childPtr->setBounds(50, 50, 100, 100);
+  childPtr->shouldHandleEvent = true;
+  auto* child = childPtr.get();
+  panel.addChild(std::move(childPtr));
+
+  // Event in title bar area (before content area)
+  // Content area Y starts at: border(5) + titlebar(25) + padding(10) = 40
+  Event titleBarEvent{.type = Event::Type::MOUSE_PRESS, .localX = 100, .localY = 20};
+
+  // containsEvent should reject it
+  assert(panel.containsEvent(titleBarEvent) == false);
+
+  // handleEvent should not propagate to children
+  bool handled = panel.handleEvent(titleBarEvent);
+  assert(handled == false);
+  assert(child->receivedEvents.empty());
+
+  // Event in content area should work
+  Event contentEvent{.type = Event::Type::MOUSE_PRESS, .localX = 100, .localY = 100};
+  handled = panel.handleEvent(contentEvent);
+  assert(handled == true); // Child handles it
+  assert(child->receivedEvents.size() == 1);
+
+  std::cout << "✓ Panel respects content area test passed" << std::endl;
+}
+
+// ============================================================================
 // Main Test Runner
 // ============================================================================
 
@@ -589,6 +691,11 @@ int main() {
     test_panel_contains_event_with_padding();
     test_panel_contains_event_with_titlebar();
     test_panel_contains_event_complex();
+
+    // Panel handleEventSelf tests
+    test_panel_handle_event_self_returns_false();
+    test_panel_propagates_to_children();
+    test_panel_respects_content_area();
 
     std::cout << "\n✓ All Event API tests passed!" << std::endl;
     return 0;
