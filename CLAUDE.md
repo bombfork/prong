@@ -58,10 +58,121 @@ This eliminates virtual function call overhead while maintaining clean abstracti
 The `Component` class (`include/bombfork/prong/core/component.h`) is the foundation:
 - **Parent/child relationships**: Components form a tree structure with automatic ownership via `std::unique_ptr`
 - **Event propagation**: Events flow down from parent to children, with children handling first (topmost rendered components get priority)
-- **Coordinate systems**: Uses both global and local coordinates. Children positions are relative to their parent.
+- **Coordinate systems**: Uses a relative coordinate system with caching - see detailed section below
 - **Update/render cycle**: `updateAll()` and `renderAll()` recursively traverse the component tree
 
 **Important**: `update()` and `render()` are pure virtual and must be implemented by all concrete components.
+
+### Coordinate System
+
+Prong uses a **relative coordinate system** where child positions are always relative to their parent's origin. This design provides several benefits:
+- **Intuitive positioning**: Child components don't need to know their parent's position
+- **Automatic updates**: Moving a parent automatically moves all children
+- **Layout flexibility**: Layout managers work with local coordinates only
+- **Performance**: Global coordinates are cached and only recalculated when needed
+
+#### Coordinate Spaces
+
+1. **Local Coordinates** - Position relative to parent
+   - Stored in `localX`, `localY` member variables
+   - Set via `setPosition(x, y)` or `setBounds(x, y, w, h)`
+   - Retrieved via `getPosition(x, y)` or `getBounds(x, y, w, h)`
+   - For root components (no parent), local coordinates ARE the global coordinates
+
+2. **Global Coordinates** - Absolute screen-space position
+   - Calculated by summing all parent positions up the tree
+   - Cached for performance and automatically invalidated when positions change
+   - Retrieved via `getGlobalPosition(x, y)` or `getGlobalBounds(x, y, w, h)`
+   - Used for rendering and hit testing
+
+#### Key APIs
+
+```cpp
+// Setting local position (relative to parent)
+component->setPosition(50, 75);
+component->setBounds(50, 75, 200, 100);
+
+// Reading local position
+int x, y, w, h;
+component->getPosition(x, y);           // Gets local position
+component->getBounds(x, y, w, h);       // Gets local position + size
+
+// Reading global position (for rendering/hit testing)
+int gx, gy, gw, gh;
+component->getGlobalPosition(gx, gy);   // Gets screen-space position
+component->getGlobalBounds(gx, gy, gw, gh);
+
+// Coordinate conversion
+component->localToGlobal(localX, localY, globalX, globalY);
+component->globalToLocal(globalX, globalY, localX, localY);
+
+// Hit testing (uses global coordinates)
+bool hit = component->containsGlobal(screenX, screenY);
+```
+
+#### Rendering with Coordinates
+
+In your `render()` implementation, use the protected `getGlobalX()` and `getGlobalY()` helpers:
+
+```cpp
+void MyComponent::render() override {
+    int x = getGlobalX();  // Screen-space X for rendering
+    int y = getGlobalY();  // Screen-space Y for rendering
+
+    // Render at global position
+    renderer->drawRect(x, y, width, height, 1.0f, 1.0f, 1.0f, 1.0f);
+}
+```
+
+#### Layout Managers and Coordinates
+
+Layout managers work entirely with **local coordinates**. When positioning children:
+
+```cpp
+void MyLayout::layout(std::vector<Component*>& children, const Dimensions& available) {
+    int currentX = 0;  // Local coordinate relative to parent
+    for (auto* child : children) {
+        child->setBounds(currentX, 0, 100, 50);  // Local position
+        currentX += 100;
+    }
+}
+```
+
+#### Event Handling and Coordinates
+
+Event handlers receive coordinates in **local space** relative to the component:
+
+```cpp
+bool MyComponent::handleClick(int localX, int localY) override {
+    // localX, localY are relative to this component's origin
+    // (0, 0) is the top-left corner of this component
+
+    if (localX >= buttonX && localX < buttonX + buttonW) {
+        // Handle button click
+        return true;
+    }
+    return false;
+}
+```
+
+The `EventDispatcher` automatically converts global screen coordinates to local coordinates before calling event handlers.
+
+#### Cache Invalidation
+
+The global coordinate cache is automatically invalidated when:
+- A component's position changes via `setPosition()` or `setBounds()`
+- A component is added to a new parent
+- Cache invalidation automatically cascades to all descendants
+
+You should never need to manually invalidate the cache.
+
+#### Best Practices
+
+1. **Always use local coordinates** when positioning children or working with layouts
+2. **Use global coordinates** only for rendering and hit testing
+3. **Never store global coordinates** - they can become stale; always compute them when needed
+4. **Let the cache work** - calling `getGlobalPosition()` multiple times in a frame is cheap
+5. **Use protected helpers in render()** - `getGlobalX()` and `getGlobalY()` are concise
 
 ### Renderer Abstraction
 
@@ -216,7 +327,7 @@ The namespace for the installed target is `bombfork::prong`.
 
 - **Header-only by default**: Only add `.cpp` files when absolutely necessary (complex state, large implementations)
 - **CRTP everywhere**: Prefer CRTP over virtual functions for component hierarchies and layout managers
-- **Coordinate systems**: Always be explicit about global vs. local coordinates. Children are positioned relative to parents.
+- **Coordinate systems**: Always use local coordinates when positioning children. Use global coordinates only for rendering and hit testing. See the Coordinate System section for details.
 - **Event handling**: Components must be explicitly registered with EventDispatcher to receive events
 - **Renderer lifecycle**: All rendering must occur between `beginFrame()` and `endFrame()` calls
 - **Focus model**: Only one component can have keyboard focus; hover is tracked separately
