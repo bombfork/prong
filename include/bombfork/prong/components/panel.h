@@ -227,6 +227,20 @@ public:
            event.localY >= contentOffsetY && event.localY < contentOffsetY + contentHeight;
   }
 
+  /**
+   * @brief Handle events for Panel itself
+   *
+   * Panels are containers that propagate events to children.
+   * This method returns false to allow all events to propagate.
+   *
+   * @param event Event to handle (coordinates in local space)
+   * @return false - panels always propagate events
+   */
+  bool handleEventSelf(const core::Event& event) override {
+    (void)event;  // Suppress unused parameter warning
+    return false; // Always propagate to children
+  }
+
   // === Minimum Size ===
 
   /**
