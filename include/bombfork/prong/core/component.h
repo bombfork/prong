@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bombfork/prong/core/event.h>
 #include <bombfork/prong/layout/layout_manager.h>
 
 #include <algorithm>
@@ -675,6 +676,129 @@ public:
         }
       }
     }
+    return false;
+  }
+
+  // === New Hierarchical Event API ===
+
+  /**
+   * @brief Check if an event is positional (requires coordinate checking)
+   *
+   * Helper method to determine if an event type requires position-based
+   * hit testing via containsEvent().
+   *
+   * @param type Event type to check
+   * @return true if event is positional (mouse events), false otherwise
+   */
+  bool isPositionalEvent(core::Event::Type type) const {
+    return type == core::Event::Type::MOUSE_PRESS || type == core::Event::Type::MOUSE_RELEASE ||
+           type == core::Event::Type::MOUSE_MOVE || type == core::Event::Type::MOUSE_SCROLL;
+  }
+
+  /**
+   * @brief Check if this component contains the event's position
+   *
+   * Used for hit testing during event propagation. Only relevant for
+   * positional events (mouse events). The default implementation checks
+   * if the event's local coordinates fall within the component's bounds.
+   *
+   * Override this method for custom hit testing (e.g., Panel checks content
+   * area, circular buttons check radius, etc.).
+   *
+   * @param event Event to check (localX, localY are relative to this component)
+   * @return true if event position is within component bounds, false otherwise
+   *
+   * @note Only called for positional events (checked via isPositionalEvent())
+   * @see Panel::containsEvent() for content area checking example
+   */
+  virtual bool containsEvent(const core::Event& event) const {
+    // Default: check if point is within component's rectangular bounds
+    return event.localX >= 0 && event.localX < width && event.localY >= 0 && event.localY < height;
+  }
+
+  /**
+   * @brief Handle event at this component level (before propagating to children)
+   *
+   * This method is called by handleEvent() after position checking but before
+   * propagating to children. Override this method to implement component-specific
+   * event handling without interfering with the default propagation logic.
+   *
+   * The default implementation returns false, allowing events to propagate to
+   * children. Return true to consume the event and prevent propagation.
+   *
+   * @param event Event to handle (coordinates in local space)
+   * @return true if event was handled (stops propagation), false to propagate
+   *
+   * @note This is the primary method to override for custom event handling
+   * @note Coordinates are already converted to local space
+   * @see handleEvent() for the full propagation logic
+   */
+  virtual bool handleEventSelf(const core::Event& event) {
+    (void)event; // Unused by default
+    return false;
+  }
+
+  /**
+   * @brief Hierarchical event handling with automatic propagation
+   *
+   * This is the main entry point for the new event API. It implements the
+   * complete event propagation logic:
+   * 1. Check if component is enabled and visible
+   * 2. For positional events, check if event is within bounds via containsEvent()
+   * 3. Try handleEventSelf() first (component-specific handling)
+   * 4. If not handled, propagate to children in reverse order (z-order)
+   * 5. Automatically convert coordinates to child-local space during propagation
+   *
+   * Most components should override handleEventSelf() instead of this method.
+   * Only override handleEvent() if you need custom propagation logic.
+   *
+   * @param event Event to handle (coordinates in local space)
+   * @return true if event was handled by this component or any child, false otherwise
+   *
+   * @note This is a non-breaking addition - existing event handlers still work
+   * @note Children rendered last (topmost) receive events first (reverse order)
+   * @see handleEventSelf() for component-specific handling
+   * @see containsEvent() for custom hit testing
+   */
+  virtual bool handleEvent(const core::Event& event) {
+    // Step 1: Check if component can receive events
+    if (!enabled || !visible) {
+      return false;
+    }
+
+    // Step 2: For positional events, check if event is within bounds
+    if (isPositionalEvent(event.type) && !containsEvent(event)) {
+      return false;
+    }
+
+    // Step 3: Try handling event at this component level first
+    if (handleEventSelf(event)) {
+      return true;
+    }
+
+    // Step 4: Propagate to children in reverse order (z-order: last rendered = topmost)
+    for (auto it = children.rbegin(); it != children.rend(); ++it) {
+      auto& child = *it;
+      if (child && child->isVisible()) {
+        // Get child's local position within this component
+        int childX, childY;
+        child->getPosition(childX, childY);
+
+        // Create a copy of the event with coordinates converted to child-local space
+        core::Event childEvent = event;
+        if (isPositionalEvent(event.type)) {
+          childEvent.localX = event.localX - childX;
+          childEvent.localY = event.localY - childY;
+        }
+
+        // Propagate to child
+        if (child->handleEvent(childEvent)) {
+          return true;
+        }
+      }
+    }
+
+    // Event not handled by this component or any children
     return false;
   }
 

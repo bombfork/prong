@@ -202,6 +202,31 @@ public:
     }
   }
 
+  // === Event Handling ===
+
+  /**
+   * @brief Check if event is within content area (not border/padding/titlebar)
+   *
+   * Override of Component::containsEvent() to account for Panel's border,
+   * padding, and title bar. Events outside the content area are rejected.
+   *
+   * @param event Event to check (localX, localY are relative to Panel's origin)
+   * @return true if event is within content area, false otherwise
+   */
+  bool containsEvent(const core::Event& event) const override {
+    // Calculate content area offset and size
+    int borderOffset = static_cast<int>(style.borderWidth);
+    int titleBarOffset = hasVisibleTitleBar() ? TITLE_BAR_HEIGHT : 0;
+    int contentOffsetX = borderOffset + style.padding;
+    int contentOffsetY = borderOffset + titleBarOffset + style.padding;
+    int contentWidth = width - (borderOffset + style.padding) * 2;
+    int contentHeight = height - (borderOffset + style.padding) * 2 - titleBarOffset;
+
+    // Check if event is within content area (local coordinates)
+    return event.localX >= contentOffsetX && event.localX < contentOffsetX + contentWidth &&
+           event.localY >= contentOffsetY && event.localY < contentOffsetY + contentHeight;
+  }
+
   // === Minimum Size ===
 
   /**
