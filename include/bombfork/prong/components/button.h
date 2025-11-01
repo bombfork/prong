@@ -162,66 +162,66 @@ public:
 
   // === Event Handling ===
 
-  bool handleClick(int localX, int localY) override {
+  /**
+   * @brief Handle events using the new hierarchical event API
+   * @param event Event to handle (coordinates in local space)
+   * @return true if event was consumed, false to allow propagation
+   */
+  bool handleEventSelf(const core::Event& event) override {
     if (!enabled || state == State::DISABLED) {
       return false;
     }
 
-    if (isPointInside(localX, localY)) {
-      // Toggle mode: flip active state
-      if (buttonType == ButtonType::TOGGLE) {
-        isActive = !isActive;
+    switch (event.type) {
+    case core::Event::Type::MOUSE_PRESS:
+      if (event.button == 0) { // Left click
+        isPressed = true;
+        state = State::PRESSED;
+        return true; // Consume the press event
+      }
+      break;
+
+    case core::Event::Type::MOUSE_RELEASE:
+      if (isPressed && event.button == 0) {
+        isPressed = false;
+        bool stillInside = isPointInside(event.localX, event.localY);
+        state = stillInside ? State::HOVER : State::NORMAL;
+
+        // Trigger click callback if mouse was released while still over button
+        if (stillInside) {
+          // Toggle mode: flip active state
+          if (buttonType == ButtonType::TOGGLE) {
+            isActive = !isActive;
+          }
+
+          // Trigger callback
+          if (clickCallback) {
+            clickCallback();
+          }
+        }
+        return true; // Consume the release event
+      }
+      break;
+
+    case core::Event::Type::MOUSE_MOVE: {
+      bool inside = isPointInside(event.localX, event.localY);
+
+      if (isPressed) {
+        // If button is pressed, update visual state based on whether mouse is inside
+        state = inside ? State::PRESSED : State::NORMAL;
+      } else {
+        // Update hover state
+        state = inside ? State::HOVER : State::NORMAL;
       }
 
-      // Trigger callback
-      if (clickCallback) {
-        clickCallback();
-      }
-      return true;
+      return inside; // Consume move events while over button
     }
+
+    default:
+      break;
+    }
+
     return false;
-  }
-
-  bool handleMousePress(int localX, int localY, int button) override {
-    if (!enabled || state == State::DISABLED) {
-      return false;
-    }
-
-    if (isPointInside(localX, localY) && button == 0) { // Left click
-      isPressed = true;
-      state = State::PRESSED;
-      return true;
-    }
-    return false;
-  }
-
-  bool handleMouseRelease(int localX, int localY, int button) override {
-    if (!enabled || state == State::DISABLED) {
-      return false;
-    }
-
-    if (isPressed && button == 0) {
-      isPressed = false;
-      state = isPointInside(localX, localY) ? State::HOVER : State::NORMAL;
-      return true;
-    }
-    return false;
-  }
-
-  bool handleMouseMove(int localX, int localY) override {
-    if (!enabled || state == State::DISABLED) {
-      return false;
-    }
-
-    bool inside = isPointInside(localX, localY);
-
-    if (isPressed) {
-      state = inside ? State::PRESSED : State::NORMAL;
-    } else {
-      state = inside ? State::HOVER : State::NORMAL;
-    }
-
-    return inside;
   }
 
   // === Update ===

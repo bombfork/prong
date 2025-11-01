@@ -4,6 +4,7 @@
 // NOTE: TextInput not included due to GLFW dependencies
 #include <bombfork/prong/core/component.h>
 #include <bombfork/prong/core/component_builder.h>
+#include <bombfork/prong/core/event.h>
 #include <bombfork/prong/layout/stack_layout.h>
 
 #include <cassert>
@@ -136,8 +137,12 @@ void test_button_with_click_callback() {
                   .withClickCallback([]() { callbackInvoked = true; })
                   .build();
 
-  // Simulate click by calling handleClick
-  button->handleClick(10, 10); // Click inside the button bounds
+  // Simulate click using the new event API (press + release)
+  core::Event pressEvent{.type = core::Event::Type::MOUSE_PRESS, .localX = 10, .localY = 10, .button = 0};
+  button->handleEvent(pressEvent);
+
+  core::Event releaseEvent{.type = core::Event::Type::MOUSE_RELEASE, .localX = 10, .localY = 10, .button = 0};
+  button->handleEvent(releaseEvent);
 
   assert(callbackInvoked);
 
@@ -292,7 +297,12 @@ void test_method_chaining() {
   assert(button->isEnabled());
   assert(button->getDebugName() == "ChainedButton");
 
-  button->handleClick(10, 10); // Click inside button bounds
+  // Simulate click using the new event API (press + release)
+  core::Event pressEvent{.type = core::Event::Type::MOUSE_PRESS, .localX = 10, .localY = 10, .button = 0};
+  button->handleEvent(pressEvent);
+
+  core::Event releaseEvent{.type = core::Event::Type::MOUSE_RELEASE, .localX = 10, .localY = 10, .button = 0};
+  button->handleEvent(releaseEvent);
   assert(callbackInvoked);
 
   std::cout << "✓ Method chaining test passed\n";
@@ -373,9 +383,15 @@ void test_conditional_configuration() {
     buttonBuilder.withClickCallback([&confirmationUsed]() { confirmationUsed = false; });
   }
 
-  buttonBuilder.withSize(100, 40); // Set size so handleClick works
+  buttonBuilder.withSize(100, 40); // Set size for event handling
   auto button = buttonBuilder.build();
-  button->handleClick(10, 10); // Click inside button bounds
+
+  // Simulate click using the new event API (press + release)
+  core::Event pressEvent{.type = core::Event::Type::MOUSE_PRESS, .localX = 10, .localY = 10, .button = 0};
+  button->handleEvent(pressEvent);
+
+  core::Event releaseEvent{.type = core::Event::Type::MOUSE_RELEASE, .localX = 10, .localY = 10, .button = 0};
+  button->handleEvent(releaseEvent);
 
   assert(confirmationUsed);
 
