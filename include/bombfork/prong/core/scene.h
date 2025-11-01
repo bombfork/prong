@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bombfork/prong/core/component.h>
-#include <bombfork/prong/events/event_dispatcher.h>
+#include <bombfork/prong/core/event.h>
 #include <bombfork/prong/events/iwindow.h>
 #include <bombfork/prong/rendering/irenderer.h>
 
@@ -13,15 +13,14 @@ namespace bombfork::prong {
  * @brief Root scene component that manages the entire UI hierarchy
  *
  * Scene is the top-level container for all UI components. It owns the
- * window and renderer references, manages the event dispatcher, and
- * automatically handles window resizing.
+ * window and renderer references and automatically handles window resizing.
  *
  * Key responsibilities:
- * - Owns and manages EventDispatcher for input routing
+ * - Uses hierarchical event handling (Component::handleEvent)
  * - Automatically fills window dimensions
  * - Handles window resize events and propagates to children
  * - Provides simplified update/render/present interface
- * - Registers all children with the event dispatcher
+ * - Entry point for window events into the component hierarchy
  *
  * Usage:
  * ```cpp
@@ -34,10 +33,11 @@ namespace bombfork::prong {
  * auto panel = std::make_unique<Panel<>>();
  * scene.addChild(std::move(panel));
  *
- * // Main loop
+ * // Main loop - convert window events to Event structs
  * while (!window->shouldClose()) {
- *   scene.update(deltaTime);
- *   scene.render();
+ *   // In window callbacks, call scene.handleEvent() with Event struct
+ *   scene.updateAll(deltaTime);
+ *   scene.renderAll();
  *   scene.present();
  * }
  *
@@ -47,7 +47,6 @@ namespace bombfork::prong {
 class Scene : public Component {
 private:
   events::IWindow* window = nullptr;
-  std::unique_ptr<events::EventDispatcher> eventDispatcher;
   bool attached = false;
 
 public:
@@ -64,9 +63,6 @@ public:
     if (!renderer) {
       throw std::invalid_argument("Scene: renderer cannot be null");
     }
-
-    // Create event dispatcher
-    eventDispatcher = std::make_unique<events::EventDispatcher>(window);
 
     // Initialize scene bounds to window size
     int windowWidth, windowHeight;
@@ -85,8 +81,9 @@ public:
   /**
    * @brief Attach scene to window and start event handling
    *
-   * This registers the scene and all children with the event dispatcher
-   * and sets up window resize callbacks.
+   * This ensures the scene bounds match the window size.
+   * Note: In the new hierarchical event model, window callbacks should
+   * call scene->handleEvent() directly instead of using EventDispatcher.
    */
   void attach() {
     if (attached) {
@@ -98,30 +95,19 @@ public:
     window->getSize(windowWidth, windowHeight);
     setBounds(0, 0, windowWidth, windowHeight);
 
-    // Register resize callback
-    eventDispatcher->setWindowResizeCallback([this](int width, int height) { onWindowResize(width, height); });
-
-    // Register scene with event dispatcher
-    eventDispatcher->registerComponent(this);
-
-    // Register all children with event dispatcher
-    registerChildrenWithDispatcher();
-
     attached = true;
   }
 
   /**
    * @brief Detach scene from window and stop event handling
    *
-   * This unregisters the scene and all children from the event dispatcher.
+   * This marks the scene as detached. Window callbacks should no longer
+   * call scene->handleEvent() after detaching.
    */
   void detach() {
     if (!attached) {
       return;
     }
-
-    // Unregister scene and children from event dispatcher
-    eventDispatcher->clearComponents();
 
     attached = false;
   }
@@ -142,9 +128,6 @@ public:
 
     // Invalidate layout to trigger re-layout on next render
     invalidateLayout();
-
-    // Update event dispatcher window size
-    eventDispatcher->setWindowSize(width, height);
 
     // Notify renderer of resize
     if (renderer) {
@@ -189,48 +172,8 @@ public:
   }
 
   // === Child Management ===
-
-  /**
-   * @brief Add child component to scene
-   *
-   * Overrides Component::addChild to automatically register the child
-   * with the event dispatcher if the scene is attached.
-   *
-   * @param child Child component to add (ownership transferred)
-   */
-  void addChild(std::unique_ptr<Component> child) {
-    if (child) {
-      // Register with event dispatcher if attached (recursively)
-      if (attached) {
-        registerComponentRecursive(child.get());
-      }
-
-      // Add to component hierarchy
-      Component::addChild(std::move(child));
-    }
-  }
-
-  /**
-   * @brief Remove child component from scene
-   *
-   * Overrides Component::removeChild to automatically unregister the child
-   * from the event dispatcher.
-   *
-   * @param child Child component to remove
-   * @return true if child was found and removed
-   */
-  bool removeChild(Component* child) {
-    if (child) {
-      // Unregister from event dispatcher
-      if (attached) {
-        eventDispatcher->unregisterComponent(child);
-      }
-
-      // Remove from component hierarchy
-      return Component::removeChild(child);
-    }
-    return false;
-  }
+  // Note: Scene now uses the default Component::addChild and Component::removeChild
+  // No special event dispatcher registration needed with hierarchical event handling
 
   // === Accessors ===
 
@@ -241,55 +184,12 @@ public:
   events::IWindow* getWindow() const { return window; }
 
   /**
-   * @brief Get the event dispatcher
-   * @return Event dispatcher pointer
-   */
-  events::EventDispatcher* getEventDispatcher() const { return eventDispatcher.get(); }
-
-  /**
    * @brief Check if scene is attached to window
    * @return true if scene is attached
    */
   bool isAttached() const { return attached; }
 
 private:
-  /**
-   * @brief Register a component and all its descendants with event dispatcher
-   *
-   * Recursively traverses the component tree and registers each component
-   * for event handling.
-   *
-   * @param component Component to register (along with all descendants)
-   */
-  void registerComponentRecursive(Component* component) {
-    if (!component) {
-      return;
-    }
-
-    // Register this component
-    eventDispatcher->registerComponent(component);
-
-    // Recursively register all children
-    for (const auto& child : component->getChildren()) {
-      if (child) {
-        registerComponentRecursive(child.get());
-      }
-    }
-  }
-
-  /**
-   * @brief Register all children with event dispatcher
-   *
-   * Recursively registers all child components for event handling.
-   */
-  void registerChildrenWithDispatcher() {
-    for (auto& child : children) {
-      if (child) {
-        registerComponentRecursive(child.get());
-      }
-    }
-  }
-
   /**
    * @brief Notify children of window resize
    *

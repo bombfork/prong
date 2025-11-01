@@ -63,9 +63,89 @@ public:
   DemoScene(events::IWindow* window, rendering::IRenderer* renderer, GLFWwindow* glfw)
     : Scene(window, renderer), glfwWindow(glfw) {
     buildUI();
+    setupEventCallbacks();
   }
 
   virtual ~DemoScene() = default;
+
+  /**
+   * @brief Setup window callbacks to route events to the scene
+   */
+  void setupEventCallbacks() {
+    auto* window = getWindow();
+    if (!window) {
+      return;
+    }
+
+    events::WindowCallbacks callbacks;
+
+    // Mouse button callback
+    callbacks.mouseButton = [this](int button, int action, int mods) {
+      (void)mods; // Unused for now
+
+      // Convert window-space coordinates to scene-local coordinates
+      double xpos, ypos;
+      getWindow()->getCursorPos(xpos, ypos);
+
+      core::Event event{.type = (action == events::INPUT_PRESS) ? core::Event::Type::MOUSE_PRESS
+                                                                : core::Event::Type::MOUSE_RELEASE,
+                        .localX = static_cast<int>(xpos),
+                        .localY = static_cast<int>(ypos),
+                        .button = button};
+
+      handleEvent(event);
+    };
+
+    // Cursor position callback
+    callbacks.cursorPos = [this](double xpos, double ypos) {
+      core::Event event{
+        .type = core::Event::Type::MOUSE_MOVE, .localX = static_cast<int>(xpos), .localY = static_cast<int>(ypos)};
+
+      handleEvent(event);
+    };
+
+    // Scroll callback
+    callbacks.scroll = [this](double xoffset, double yoffset) {
+      double xpos, ypos;
+      getWindow()->getCursorPos(xpos, ypos);
+
+      core::Event event{.type = core::Event::Type::MOUSE_SCROLL,
+                        .localX = static_cast<int>(xpos),
+                        .localY = static_cast<int>(ypos),
+                        .scrollX = xoffset,
+                        .scrollY = yoffset};
+
+      handleEvent(event);
+    };
+
+    // Key callback
+    callbacks.key = [this](int key, int scancode, int action, int mods) {
+      (void)scancode; // Unused
+
+      if (action == events::INPUT_REPEAT) {
+        return; // Ignore repeat for now
+      }
+
+      core::Event event{.type = (action == events::INPUT_PRESS) ? core::Event::Type::KEY_PRESS
+                                                                : core::Event::Type::KEY_RELEASE,
+                        .key = key,
+                        .mods = mods};
+
+      handleEvent(event);
+    };
+
+    // Character callback
+    callbacks.character = [this](unsigned int codepoint) {
+      core::Event event{.type = core::Event::Type::CHAR_INPUT, .codepoint = codepoint};
+
+      handleEvent(event);
+    };
+
+    // Framebuffer size callback
+    callbacks.framebufferSize = [this](int width, int height) { onWindowResize(width, height); };
+
+    window->setCallbacks(callbacks);
+  }
 
 private:
   /**

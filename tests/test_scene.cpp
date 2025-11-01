@@ -1,6 +1,6 @@
 #include <bombfork/prong/core/component.h>
+#include <bombfork/prong/core/event.h>
 #include <bombfork/prong/core/scene.h>
-#include <bombfork/prong/events/event_dispatcher.h>
 #include <bombfork/prong/events/iwindow.h>
 #include <bombfork/prong/rendering/irenderer.h>
 
@@ -197,6 +197,8 @@ private:
   int updateCount = 0;
   int renderCount = 0;
   double lastDeltaTime = 0.0;
+  int eventCount = 0;
+  core::Event::Type lastEventType = core::Event::Type::MOUSE_MOVE;
 
 public:
   explicit MockComponent(IRenderer* renderer) : Component(renderer, "MockComponent") {}
@@ -208,9 +210,17 @@ public:
 
   void render() override { renderCount++; }
 
+  bool handleEventSelf(const core::Event& event) override {
+    eventCount++;
+    lastEventType = event.type;
+    return false; // Don't consume events by default
+  }
+
   int getUpdateCount() const { return updateCount; }
   int getRenderCount() const { return renderCount; }
   double getLastDeltaTime() const { return lastDeltaTime; }
+  int getEventCount() const { return eventCount; }
+  core::Event::Type getLastEventType() const { return lastEventType; }
 };
 
 // === Tests ===
@@ -222,7 +232,6 @@ void test_scene_construction() {
   // Valid construction
   Scene scene(&window, &renderer);
   assert(scene.getWindow() == &window);
-  assert(scene.getEventDispatcher() != nullptr);
   assert(!scene.isAttached());
 
   // Scene should fill window dimensions
@@ -334,22 +343,34 @@ void test_scene_child_registration() {
   Scene scene(&window, &renderer);
 
   auto child = std::make_unique<MockComponent>(&renderer);
+  child->setBounds(0, 0, 100, 100);
+  child->setVisible(true);
+  child->setEnabled(true);
   auto* childPtr = child.get();
 
-  // Add child before attach - should not be registered yet
+  // Add child before attach
   scene.addChild(std::move(child));
 
-  // Attach scene - should register all children
+  // Attach scene
   scene.attach();
 
-  // Child should be registered with event dispatcher
-  assert(scene.getEventDispatcher() != nullptr);
-
-  // Add another child after attach - should be registered immediately
+  // Add another child after attach
   auto child2 = std::make_unique<MockComponent>(&renderer);
+  child2->setBounds(0, 0, 100, 100);
+  child2->setVisible(true);
+  child2->setEnabled(true);
+  auto* child2Ptr = child2.get();
   scene.addChild(std::move(child2));
 
-  // Remove child - should be unregistered
+  // Test that events propagate to children using hierarchical model
+  core::Event mouseEvent{.type = core::Event::Type::MOUSE_PRESS, .localX = 10, .localY = 10, .button = 0};
+
+  scene.handleEvent(mouseEvent);
+
+  // Both children should have received the event (last added child receives event first in z-order)
+  assert(child2Ptr->getEventCount() > 0 && "Child added after attach should receive events");
+
+  // Remove child
   bool removed = scene.removeChild(childPtr);
   assert(removed);
 
@@ -449,7 +470,6 @@ void test_scene_recursive_registration() {
   child->setBounds(50, 50, 300, 300);
   child->setVisible(true);
   child->setEnabled(true);
-  auto* childPtr = child.get();
 
   auto grandchild = std::make_unique<MockComponent>(&renderer);
   grandchild->setBounds(75, 75, 150, 150);
@@ -464,28 +484,22 @@ void test_scene_recursive_registration() {
   // Add parent to scene BEFORE attaching
   scene.addChild(std::move(parent));
 
-  // Now attach the scene - should recursively register all descendants
+  // Now attach the scene
   scene.attach();
 
-  auto* eventDispatcher = scene.getEventDispatcher();
-  assert(eventDispatcher != nullptr);
+  // Test that events propagate through the hierarchy
+  // The child is at local position (50, 50) within the parent
+  // The grandchild is at local position (75, 75) within the child
+  // So global position of grandchild is (50+75, 50+75) = (125, 125)
 
-  // Test that nested components can be found via hit testing
-  // The child is at global position (50, 50) with size (300, 300)
-  // So a point at (100, 100) should be within the child
-  // Note: findComponentAt checks in reverse order (last rendered first)
+  // Send event to a point within the grandchild's bounds
+  core::Event event{.type = core::Event::Type::MOUSE_PRESS, .localX = 130, .localY = 130, .button = 0};
 
-  // Verify by attempting to set focus on nested components
-  // If they're not registered, setFocus will fail
-  bool childFocusSuccess = eventDispatcher->setFocus(childPtr);
-  assert(childFocusSuccess && "Child component should be registered and focusable");
-  assert(eventDispatcher->getFocusedComponent() == childPtr);
+  scene.handleEvent(event);
 
-  bool grandchildFocusSuccess = eventDispatcher->setFocus(grandchildPtr);
-  assert(grandchildFocusSuccess && "Grandchild component should be registered and focusable");
-  assert(eventDispatcher->getFocusedComponent() == grandchildPtr);
-
-  eventDispatcher->clearFocus();
+  // The grandchild should have received the event (converted to its local coordinates)
+  assert(grandchildPtr->getEventCount() > 0 && "Grandchild should receive events through hierarchy");
+  assert(grandchildPtr->getLastEventType() == core::Event::Type::MOUSE_PRESS);
 
   std::cout << "✓ Scene recursive registration (before attach) tests passed\n";
 }
@@ -508,7 +522,6 @@ void test_scene_recursive_registration_after_attach() {
   child->setBounds(50, 50, 300, 300);
   child->setVisible(true);
   child->setEnabled(true);
-  auto* childPtr = child.get();
 
   auto grandchild = std::make_unique<MockComponent>(&renderer);
   grandchild->setBounds(75, 75, 150, 150);
@@ -521,21 +534,16 @@ void test_scene_recursive_registration_after_attach() {
   parent->addChild(std::move(child));
 
   // Add parent to ALREADY ATTACHED scene
-  // Should recursively register all descendants immediately
   scene.addChild(std::move(parent));
 
-  auto* eventDispatcher = scene.getEventDispatcher();
+  // Test that events propagate through the hierarchy even when added after attach
+  core::Event event{.type = core::Event::Type::MOUSE_PRESS, .localX = 130, .localY = 130, .button = 0};
 
-  // Verify nested components are registered by setting focus
-  bool childFocusSuccess = eventDispatcher->setFocus(childPtr);
-  assert(childFocusSuccess && "Child should be registered when added to attached scene");
-  assert(eventDispatcher->getFocusedComponent() == childPtr);
+  scene.handleEvent(event);
 
-  bool grandchildFocusSuccess = eventDispatcher->setFocus(grandchildPtr);
-  assert(grandchildFocusSuccess && "Grandchild should be registered when added to attached scene");
-  assert(eventDispatcher->getFocusedComponent() == grandchildPtr);
-
-  eventDispatcher->clearFocus();
+  // The grandchild should have received the event
+  assert(grandchildPtr->getEventCount() > 0 && "Grandchild should receive events when added after attach");
+  assert(grandchildPtr->getLastEventType() == core::Event::Type::MOUSE_PRESS);
 
   std::cout << "✓ Scene recursive registration (after attach) tests passed\n";
 }
@@ -555,19 +563,16 @@ void test_scene_deeply_nested_registration() {
   level2->setBounds(10, 10, 480, 480);
   level2->setVisible(true);
   level2->setEnabled(true);
-  auto* level2Ptr = level2.get();
 
   auto level3 = std::make_unique<MockComponent>(&renderer);
   level3->setBounds(20, 20, 460, 460);
   level3->setVisible(true);
   level3->setEnabled(true);
-  auto* level3Ptr = level3.get();
 
   auto level4 = std::make_unique<MockComponent>(&renderer);
   level4->setBounds(30, 30, 440, 440);
   level4->setVisible(true);
   level4->setEnabled(true);
-  auto* level4Ptr = level4.get();
 
   auto level5 = std::make_unique<MockComponent>(&renderer);
   level5->setBounds(40, 40, 420, 420);
@@ -584,15 +589,16 @@ void test_scene_deeply_nested_registration() {
   scene.addChild(std::move(level1));
   scene.attach();
 
-  auto* eventDispatcher = scene.getEventDispatcher();
+  // Test that events propagate through deep hierarchies
+  // Global position of level5: 10+20+30+40 = 100
+  // Send event to a point within level5's bounds
+  core::Event event{.type = core::Event::Type::MOUSE_PRESS, .localX = 105, .localY = 105, .button = 0};
 
-  // Verify all levels are registered
-  assert(eventDispatcher->setFocus(level2Ptr) && "Level 2 should be registered");
-  assert(eventDispatcher->setFocus(level3Ptr) && "Level 3 should be registered");
-  assert(eventDispatcher->setFocus(level4Ptr) && "Level 4 should be registered");
-  assert(eventDispatcher->setFocus(level5Ptr) && "Level 5 should be registered");
+  scene.handleEvent(event);
 
-  eventDispatcher->clearFocus();
+  // All levels that contain the point should have received the event
+  assert(level5Ptr->getEventCount() > 0 && "Level 5 should receive events through deep hierarchy");
+  assert(level5Ptr->getLastEventType() == core::Event::Type::MOUSE_PRESS);
 
   std::cout << "✓ Scene deeply nested registration tests passed\n";
 }
