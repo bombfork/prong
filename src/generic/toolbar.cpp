@@ -1,5 +1,6 @@
 #include "bombfork/prong/components/button.h"
 #include "bombfork/prong/core/component.h"
+#include "bombfork/prong/core/event.h"
 #include "bombfork/prong/layout/flow_layout.h"
 #include "bombfork/prong/layout/layout_measurement.h"
 
@@ -304,47 +305,24 @@ void ToolBar::render() {
 }
 
 bool ToolBar::handleClick(int localX, int localY) {
-  // Check overflow button first
-  if (overflowButton) {
-    // Convert toolbar-local coords to button-local coords
-    int buttonX, buttonY;
-    overflowButton->getPosition(buttonX, buttonY);
-    int buttonLocalX = localX - buttonX;
-    int buttonLocalY = localY - buttonY;
-    if (overflowButton->handleClick(buttonLocalX, buttonLocalY)) {
-      // Show overflow menu
-      return true;
-    }
-  }
-
-  // Check each visible tool button
-  for (const auto& tool : tools) {
-    if (!tool->visible || !tool->button)
-      continue;
-
-    // Convert toolbar-local coords to button-local coords
-    int buttonX, buttonY;
-    tool->button->getPosition(buttonX, buttonY);
-    int buttonLocalX = localX - buttonX;
-    int buttonLocalY = localY - buttonY;
-
-    if (tool->button->handleClick(buttonLocalX, buttonLocalY)) {
-      handleToolClick(tool->id);
-      return true;
-    }
-  }
-
-  return false;
+  // Note: This old API method is deprecated but kept for compatibility
+  // The new event API (handleEvent) should be used instead
+  // For now, we delegate to child buttons using their default Component implementation
+  return Component::handleClick(localX, localY);
 }
 
 bool ToolBar::handleMousePress(int localX, int localY, int button) {
+  // Use new event API for button event handling
+  core::Event pressEvent{.type = core::Event::Type::MOUSE_PRESS, .localX = localX, .localY = localY, .button = button};
+
   // Check overflow button first
   if (overflowButton) {
     int buttonX, buttonY;
     overflowButton->getPosition(buttonX, buttonY);
-    int buttonLocalX = localX - buttonX;
-    int buttonLocalY = localY - buttonY;
-    if (overflowButton->handleMousePress(buttonLocalX, buttonLocalY, button)) {
+    core::Event buttonEvent = pressEvent;
+    buttonEvent.localX = localX - buttonX;
+    buttonEvent.localY = localY - buttonY;
+    if (overflowButton->handleEvent(buttonEvent)) {
       return true;
     }
   }
@@ -356,10 +334,11 @@ bool ToolBar::handleMousePress(int localX, int localY, int button) {
 
     int buttonX, buttonY;
     tool->button->getPosition(buttonX, buttonY);
-    int buttonLocalX = localX - buttonX;
-    int buttonLocalY = localY - buttonY;
+    core::Event buttonEvent = pressEvent;
+    buttonEvent.localX = localX - buttonX;
+    buttonEvent.localY = localY - buttonY;
 
-    if (tool->button->handleMousePress(buttonLocalX, buttonLocalY, button)) {
+    if (tool->button->handleEvent(buttonEvent)) {
       return true;
     }
   }
@@ -368,13 +347,18 @@ bool ToolBar::handleMousePress(int localX, int localY, int button) {
 }
 
 bool ToolBar::handleMouseRelease(int localX, int localY, int button) {
+  // Use new event API for button event handling
+  core::Event releaseEvent{
+    .type = core::Event::Type::MOUSE_RELEASE, .localX = localX, .localY = localY, .button = button};
+
   // Check overflow button first
   if (overflowButton) {
     int buttonX, buttonY;
     overflowButton->getPosition(buttonX, buttonY);
-    int buttonLocalX = localX - buttonX;
-    int buttonLocalY = localY - buttonY;
-    if (overflowButton->handleMouseRelease(buttonLocalX, buttonLocalY, button)) {
+    core::Event buttonEvent = releaseEvent;
+    buttonEvent.localX = localX - buttonX;
+    buttonEvent.localY = localY - buttonY;
+    if (overflowButton->handleEvent(buttonEvent)) {
       return true;
     }
   }
@@ -386,10 +370,13 @@ bool ToolBar::handleMouseRelease(int localX, int localY, int button) {
 
     int buttonX, buttonY;
     tool->button->getPosition(buttonX, buttonY);
-    int buttonLocalX = localX - buttonX;
-    int buttonLocalY = localY - buttonY;
+    core::Event buttonEvent = releaseEvent;
+    buttonEvent.localX = localX - buttonX;
+    buttonEvent.localY = localY - buttonY;
 
-    if (tool->button->handleMouseRelease(buttonLocalX, buttonLocalY, button)) {
+    if (tool->button->handleEvent(buttonEvent)) {
+      // Trigger the tool click callback on successful click
+      handleToolClick(tool->id);
       return true;
     }
   }
@@ -398,15 +385,18 @@ bool ToolBar::handleMouseRelease(int localX, int localY, int button) {
 }
 
 bool ToolBar::handleMouseMove(int localX, int localY) {
+  // Use new event API for button event handling
+  core::Event moveEvent{.type = core::Event::Type::MOUSE_MOVE, .localX = localX, .localY = localY};
   bool handled = false;
 
   // Check overflow button first
   if (overflowButton) {
     int buttonX, buttonY;
     overflowButton->getPosition(buttonX, buttonY);
-    int buttonLocalX = localX - buttonX;
-    int buttonLocalY = localY - buttonY;
-    if (overflowButton->handleMouseMove(buttonLocalX, buttonLocalY)) {
+    core::Event buttonEvent = moveEvent;
+    buttonEvent.localX = localX - buttonX;
+    buttonEvent.localY = localY - buttonY;
+    if (overflowButton->handleEvent(buttonEvent)) {
       handled = true;
     }
   }
@@ -419,10 +409,11 @@ bool ToolBar::handleMouseMove(int localX, int localY) {
 
     int buttonX, buttonY;
     tool->button->getPosition(buttonX, buttonY);
-    int buttonLocalX = localX - buttonX;
-    int buttonLocalY = localY - buttonY;
+    core::Event buttonEvent = moveEvent;
+    buttonEvent.localX = localX - buttonX;
+    buttonEvent.localY = localY - buttonY;
 
-    if (tool->button->handleMouseMove(buttonLocalX, buttonLocalY)) {
+    if (tool->button->handleEvent(buttonEvent)) {
       handled = true;
     }
   }
