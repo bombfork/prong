@@ -15,7 +15,10 @@ namespace bombfork::prong::examples {
  * @code
  * GLFWwindow* glfwWindow = glfwCreateWindow(1280, 720, "App", nullptr, nullptr);
  * auto windowAdapter = std::make_unique<GLFWWindowAdapter>(glfwWindow);
- * EventDispatcher dispatcher(windowAdapter.get());
+ * auto renderer = std::make_unique<SimpleOpenGLRenderer>();
+ * Scene scene(windowAdapter.get(), renderer.get());
+ * scene.attach();
+ * // Components use hierarchical event handling - just add them to the scene
  * @endcode
  */
 class GLFWWindowAdapter : public bombfork::prong::events::IWindow {
