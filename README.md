@@ -109,7 +109,9 @@ bombfork::prong::
 │   ├── ThemeManager       # Global theme management
 │   └── ThemeParser        # Load themes from files
 ├── events/                 # Event handling
-│   ├── EventDispatcher    # Central event router
+│   ├── Event              # Unified event structure
+│   ├── IClipboard         # Clipboard abstraction interface
+│   ├── IKeyboard          # Keyboard abstraction interface
 │   └── IWindow            # Window abstraction interface
 ├── generic/                # Generic UI components
 │   ├── Dialog             # Modal dialogs
@@ -266,19 +268,31 @@ dock.fillCenter(mainView);      // Fill remaining space
 
 ## Event Handling
 
+Events flow hierarchically through the component tree:
+
 ```cpp
-EventDispatcher dispatcher(windowAdapter);
+// Create a scene (root of the component hierarchy)
+Scene scene(renderer, window);
 
-// Register components for event handling
-dispatcher.registerComponent(&button);
-dispatcher.registerComponent(&panel);
+// Add components to the scene
+auto button = create<Button>("Click Me")
+    .withClickCallback([]() { std::cout << "Clicked!\n"; })
+    .build();
+scene.addChild(std::move(button));
 
-// Handle mouse click
-dispatcher.processMouseButton(BUTTON_LEFT, ACTION_PRESS, 0);
-
-// Handle keyboard input
-dispatcher.processKey(KEY_ENTER, 0, ACTION_PRESS, 0);
+// Window callbacks create events and pass them to the scene
+void mouseButtonCallback(int button, int action, int mods) {
+  Event event {
+    .type = (action == PRESS) ? Event::Type::MOUSE_PRESS : Event::Type::MOUSE_RELEASE,
+    .localX = mouseX,
+    .localY = mouseY,
+    .button = button
+  };
+  scene.handleEvent(event);
+}
 ```
+
+Components automatically propagate events to children, converting coordinates to local space.
 
 ## Examples
 

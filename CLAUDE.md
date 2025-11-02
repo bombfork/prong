@@ -155,7 +155,7 @@ bool MyComponent::handleClick(int localX, int localY) override {
 }
 ```
 
-The `EventDispatcher` automatically converts global screen coordinates to local coordinates before calling event handlers.
+The `Component::handleEvent()` method automatically converts global screen coordinates to local coordinates during event propagation.
 
 #### Cache Invalidation
 

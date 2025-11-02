@@ -10,8 +10,8 @@ namespace bombfork::prong::core {
  * which fields are relevant for each event.
  *
  * Events contain coordinates in LOCAL space relative to the component receiving
- * the event. The EventDispatcher and Component::handleEvent() automatically
- * convert global screen coordinates to local coordinates during propagation.
+ * the event. Component::handleEvent() automatically converts global screen
+ * coordinates to local coordinates during propagation.
  *
  * Usage with C++20 designated initializers:
  * @code
