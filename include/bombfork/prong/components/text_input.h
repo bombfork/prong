@@ -262,164 +262,153 @@ public:
 
   // === Event Handling ===
 
-  bool handleClick(int localX, int /* localY */) override {
-    if (!enabled)
+  /**
+   * @brief Handle events using the new hierarchical event API
+   * @param event Event to handle (coordinates in local space)
+   * @return true if event was consumed, false to allow propagation
+   */
+  bool handleEventSelf(const core::Event& event) override {
+    if (!enabled) {
       return false;
+    }
 
-    // Calculate click position in text
-    int clickPos = getTextPositionFromPoint(localX);
-    cursorPosition = clickPos;
-    selectionStart = selectionEnd = cursorPosition;
+    switch (event.type) {
+    case core::Event::Type::MOUSE_PRESS:
+      if (event.button == 0) { // Left click only
+        // Start selection
+        int clickPos = getTextPositionFromPoint(event.localX);
+        cursorPosition = selectionStart = selectionEnd = clickPos;
+        isDragging = true;
 
-    // Reset cursor blink
-    resetCursorBlink();
+        // Reset cursor blink
+        resetCursorBlink();
 
-    return true;
-  }
+        // Request focus
+        requestFocus();
 
-  bool handleMousePress(int localX, int /* localY */, int button) override {
-    if (!enabled || button != 0)
-      return false; // Left click only
+        return true;
+      }
+      break;
 
-    // Start selection
-    int clickPos = getTextPositionFromPoint(localX);
-    cursorPosition = selectionStart = selectionEnd = clickPos;
-    isDragging = true;
+    case core::Event::Type::MOUSE_RELEASE:
+      if (event.button == 0) {
+        isDragging = false;
+        return true;
+      }
+      break;
 
-    // Reset cursor blink
-    resetCursorBlink();
+    case core::Event::Type::MOUSE_MOVE:
+      if (isDragging) {
+        // Update selection end
+        int movePos = getTextPositionFromPoint(event.localX);
+        selectionEnd = movePos;
+        cursorPosition = movePos;
+        ensureCursorVisible();
+        return true;
+      }
+      break;
 
-    // Request focus
-    requestFocus();
+    case core::Event::Type::KEY_PRESS: {
+      bool shift = events::IKeyboard::hasModifier(static_cast<uint8_t>(event.mods), events::KeyModifier::SHIFT);
+      bool ctrl = events::IKeyboard::hasModifier(static_cast<uint8_t>(event.mods), events::KeyModifier::CONTROL);
 
-    return true;
-  }
+      // Convert platform key to Prong key if keyboard interface is available
+      events::Key prongKey = keyboard ? keyboard->toProngKey(event.key) : events::Key::UNKNOWN;
 
-  bool handleMouseRelease(int /* localX */, int /* localY */, int button) override {
-    if (button == 0) {
-      isDragging = false;
+      // Reset cursor blink
+      resetCursorBlink();
+
+      switch (prongKey) {
+      case events::Key::LEFT:
+        handleCursorMove(-1, shift, ctrl);
+        return true;
+
+      case events::Key::RIGHT:
+        handleCursorMove(1, shift, ctrl);
+        return true;
+
+      case events::Key::HOME:
+        handleHome(shift);
+        return true;
+
+      case events::Key::END:
+        handleEnd(shift);
+        return true;
+
+      case events::Key::BACKSPACE:
+        handleBackspace();
+        return true;
+
+      case events::Key::DELETE:
+        handleDelete();
+        return true;
+
+      case events::Key::A:
+        if (ctrl) {
+          selectAll();
+          return true;
+        }
+        break;
+
+      case events::Key::C:
+        if (ctrl && hasSelection()) {
+          copyToClipboard();
+          return true;
+        }
+        break;
+
+      case events::Key::V:
+        if (ctrl) {
+          pasteFromClipboard();
+          return true;
+        }
+        break;
+
+      case events::Key::X:
+        if (ctrl && hasSelection()) {
+          copyToClipboard();
+          deleteSelection();
+          return true;
+        }
+        break;
+
+      case events::Key::ENTER:
+      case events::Key::KP_ENTER:
+        // Single-line input - ignore enter
+        return true;
+
+      default:
+        // Unknown or unhandled key
+        break;
+      }
+      break;
+    }
+
+    case core::Event::Type::KEY_RELEASE:
+      // Ignore key release events
+      break;
+
+    case core::Event::Type::CHAR_INPUT: {
+      // Check if character is printable
+      if (event.codepoint < 32 || event.codepoint == 127) {
+        return false;
+      }
+
+      // Convert codepoint to UTF-8 string
+      std::string character = codepointToUTF8(event.codepoint);
+      insertText(character);
+
+      // Reset cursor blink
+      resetCursorBlink();
+
       return true;
     }
-    return false;
-  }
-
-  bool handleMouseMove(int localX, int /* localY */) override {
-    if (!isDragging)
-      return false;
-
-    // Update selection end
-    int movePos = getTextPositionFromPoint(localX);
-    selectionEnd = movePos;
-    cursorPosition = movePos;
-    ensureCursorVisible();
-
-    return true;
-  }
-
-  bool handleKey(int key, int action, int mods) override {
-    if (!enabled || action == static_cast<int>(events::KeyAction::RELEASE))
-      return false;
-
-    bool consumed = false;
-    bool shift = events::IKeyboard::hasModifier(static_cast<uint8_t>(mods), events::KeyModifier::SHIFT);
-    bool ctrl = events::IKeyboard::hasModifier(static_cast<uint8_t>(mods), events::KeyModifier::CONTROL);
-
-    // Convert platform key to Prong key if keyboard interface is available
-    events::Key prongKey = keyboard ? keyboard->toProngKey(key) : events::Key::UNKNOWN;
-
-    // Reset cursor blink
-    resetCursorBlink();
-
-    switch (prongKey) {
-    case events::Key::LEFT:
-      handleCursorMove(-1, shift, ctrl);
-      consumed = true;
-      break;
-
-    case events::Key::RIGHT:
-      handleCursorMove(1, shift, ctrl);
-      consumed = true;
-      break;
-
-    case events::Key::HOME:
-      handleHome(shift);
-      consumed = true;
-      break;
-
-    case events::Key::END:
-      handleEnd(shift);
-      consumed = true;
-      break;
-
-    case events::Key::BACKSPACE:
-      handleBackspace();
-      consumed = true;
-      break;
-
-    case events::Key::DELETE:
-      handleDelete();
-      consumed = true;
-      break;
-
-    case events::Key::A:
-      if (ctrl) {
-        selectAll();
-        consumed = true;
-      }
-      break;
-
-    case events::Key::C:
-      if (ctrl && hasSelection()) {
-        copyToClipboard();
-        consumed = true;
-      }
-      break;
-
-    case events::Key::V:
-      if (ctrl) {
-        pasteFromClipboard();
-        consumed = true;
-      }
-      break;
-
-    case events::Key::X:
-      if (ctrl && hasSelection()) {
-        copyToClipboard();
-        deleteSelection();
-        consumed = true;
-      }
-      break;
-
-    case events::Key::ENTER:
-    case events::Key::KP_ENTER:
-      // Single-line input - ignore enter
-      consumed = true;
-      break;
 
     default:
-      // Unknown or unhandled key
       break;
     }
 
-    return consumed;
-  }
-
-  bool handleChar(unsigned int codepoint) override {
-    if (!enabled)
-      return false;
-
-    // Check if character is printable
-    if (codepoint < 32 || codepoint == 127)
-      return false;
-
-    // Convert codepoint to UTF-8 string
-    std::string character = codepointToUTF8(codepoint);
-    insertText(character);
-
-    // Reset cursor blink
-    resetCursorBlink();
-
-    return true;
+    return false;
   }
 
   // === Update ===
