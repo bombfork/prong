@@ -73,17 +73,17 @@ public:
    * @brief Measure total space required by flow components
    * @param components List of components to measure
    * @return Calculated dimensions
+   *
+   * @note This method doesn't have access to available space, so it returns
+   * the natural size without wrapping. Actual wrapping happens in layout().
    */
   Dimensions measureLayout(const std::vector<bombfork::prong::Component*>& components) override {
     if (components.empty())
       return {0, 0};
 
-    std::vector<Dimensions> lineDimensions;
-    size_t currentLineCount = 0;
-    float currentLineWidth = 0.0f;
-    float currentLineHeight = 0.0f;
-    float totalHeight = 0.0f;
-    size_t maxItemsPerLine = config_.maxItemsPerLine > 0 ? config_.maxItemsPerLine : std::numeric_limits<size_t>::max();
+    // For measurement, calculate a single-line layout to get natural size
+    float totalWidth = 0.0f;
+    float maxHeight = 0.0f;
 
     for (const auto* component : components) {
       auto componentSize = component->getPreferredSize();
@@ -100,40 +100,14 @@ public:
       effectiveWidth = std::max(effectiveWidth, minWidth);
       effectiveHeight = std::max(effectiveHeight, minHeight);
 
-      if (currentLineCount >= maxItemsPerLine ||
-          (currentLineWidth + effectiveWidth + config_.spacing >
-           (config_.horizontal ? std::numeric_limits<float>::max() : maxLineWidth_))) {
-
-        // Finalize current line
-        lineDimensions.push_back(
-          {static_cast<int>(currentLineWidth - config_.spacing), static_cast<int>(currentLineHeight)});
-        totalHeight += currentLineHeight + config_.crossSpacing;
-
-        // Reset line trackers
-        currentLineCount = 0;
-        currentLineWidth = 0.0f;
-        currentLineHeight = 0.0f;
+      totalWidth += effectiveWidth;
+      if (!components.empty() && component != components.back()) {
+        totalWidth += config_.spacing;
       }
-
-      currentLineCount++;
-      currentLineWidth += effectiveWidth + config_.spacing;
-      currentLineHeight = std::max(currentLineHeight, static_cast<float>(effectiveHeight));
+      maxHeight = std::max(maxHeight, static_cast<float>(effectiveHeight));
     }
 
-    // Handle last line
-    if (currentLineCount > 0) {
-      lineDimensions.push_back(
-        {static_cast<int>(currentLineWidth - config_.spacing), static_cast<int>(currentLineHeight)});
-      totalHeight += currentLineHeight;
-    }
-
-    // Calculate total width (maximum line width)
-    float totalWidth =
-      std::max_element(lineDimensions.begin(), lineDimensions.end(), [](const Dimensions& a, const Dimensions& b) {
-        return a.width < b.width;
-      })->width;
-
-    return {static_cast<int>(totalWidth), static_cast<int>(totalHeight - config_.crossSpacing)};
+    return {static_cast<int>(totalWidth), static_cast<int>(maxHeight)};
   }
 
   /**
@@ -151,7 +125,11 @@ public:
     float currentLineHeight = 0.0f;
     size_t maxItemsPerLine = config_.maxItemsPerLine > 0 ? config_.maxItemsPerLine : std::numeric_limits<size_t>::max();
 
-    // Group components into lines, respecting minimum sizes
+    // Determine available width for wrapping
+    float availableWidth =
+      config_.horizontal ? static_cast<float>(availableSpace.width) : static_cast<float>(availableSpace.height);
+
+    // Group components into lines, respecting available width and minimum sizes
     for (auto* component : components) {
       auto componentSize = component->getPreferredSize();
 
@@ -167,10 +145,15 @@ public:
       effectiveWidth = std::max(effectiveWidth, minWidth);
       effectiveHeight = std::max(effectiveHeight, minHeight);
 
-      if (currentLine.size() >= maxItemsPerLine ||
-          (currentLineWidth + effectiveWidth + config_.spacing >
-           (config_.horizontal ? std::numeric_limits<float>::max() : maxLineWidth_))) {
+      // Check if we need to wrap to next line
+      bool needsWrap = currentLine.size() >= maxItemsPerLine;
+      if (!needsWrap && !currentLine.empty()) {
+        // Check if adding this component would exceed available width
+        float nextLineWidth = currentLineWidth + effectiveWidth;
+        needsWrap = nextLineWidth > availableWidth;
+      }
 
+      if (needsWrap) {
         lines.push_back(currentLine);
         currentLine.clear();
         currentLineWidth = 0.0f;
@@ -278,7 +261,6 @@ public:
 
 private:
   Configuration config_;
-  float maxLineWidth_ = 1920.0f; // Default max line width, configurable
 };
 
 /**
