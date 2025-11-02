@@ -93,10 +93,6 @@ set(PRONG_SOURCES
     src/core/coordinate_system.cpp
     src/core/async_callback_queue.cpp
     src/theming/theme_manager.cpp
-    src/events/event_dispatcher.cpp
-    src/generic/dialog.cpp
-    src/generic/toolbar.cpp
-    src/generic/viewport.cpp
 )
 
 # Create library target (STATIC only)

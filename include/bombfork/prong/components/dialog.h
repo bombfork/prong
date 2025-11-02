@@ -6,6 +6,8 @@
 #include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/panel.h>
 #include <bombfork/prong/core/component.h>
+#include <bombfork/prong/core/event.h>
+#include <bombfork/prong/events/ikeyboard.h>
 
 #include <functional>
 #include <memory>
@@ -136,7 +138,15 @@ private:
   int parentWindowWidth = 0, parentWindowHeight = 0;
 
 public:
-  explicit Dialog();
+  explicit Dialog() : Component(nullptr, "Dialog") {
+    // Initialize default theme
+    theme = DialogTheme();
+
+    // Set initial state
+    state.visible = false;
+    state.type = DialogType::MODAL;
+  }
+
   ~Dialog() override = default;
 
   // === Configuration ===
@@ -144,7 +154,7 @@ public:
   /**
    * @brief Set dialog type (modal/non-modal)
    */
-  void setDialogType(DialogType type);
+  void setDialogType(DialogType type) { state.type = type; }
 
   /**
    * @brief Get dialog type
@@ -154,7 +164,7 @@ public:
   /**
    * @brief Set dialog title
    */
-  void setTitle(const std::string& title);
+  void setTitle(const std::string& title) { state.title = title; }
 
   /**
    * @brief Get dialog title
@@ -164,7 +174,7 @@ public:
   /**
    * @brief Set resizable flag
    */
-  void setResizable(bool resizable);
+  void setResizable(bool resizable) { state.resizable = resizable; }
 
   /**
    * @brief Check if dialog is resizable
@@ -174,17 +184,23 @@ public:
   /**
    * @brief Set minimum size
    */
-  void setMinimumSize(int width, int height);
+  void setMinimumSize(int width, int height) {
+    state.minWidth = width;
+    state.minHeight = height;
+  }
 
   /**
    * @brief Get minimum size
    */
-  void getMinimumSize(int& width, int& height) const;
+  void getMinimumSize(int& width, int& height) const {
+    width = state.minWidth;
+    height = state.minHeight;
+  }
 
   /**
    * @brief Show/hide title bar
    */
-  void setShowTitleBar(bool show);
+  void setShowTitleBar(bool show) { state.showTitleBar = show; }
 
   /**
    * @brief Check if title bar is shown
@@ -196,7 +212,11 @@ public:
   /**
    * @brief Set content component
    */
-  void setContent(std::unique_ptr<Component> content);
+  void setContent(std::unique_ptr<Component> content) {
+    if (content) {
+      addChild(std::move(content));
+    }
+  }
 
   /**
    * @brief Get content panel for adding components
@@ -206,14 +226,21 @@ public:
   /**
    * @brief Add content component to the content panel
    */
-  void addContentComponent(std::unique_ptr<Component> component);
+  void addContentComponent(std::unique_ptr<Component> component) {
+    if (component) {
+      addChild(std::move(component));
+    }
+  }
 
   // === Button Management ===
 
   /**
    * @brief Set standard buttons
    */
-  void setStandardButtons(StandardButtons buttons);
+  void setStandardButtons(StandardButtons buttons) {
+    standardButtons = buttons;
+    // Button creation would happen here in full implementation
+  }
 
   /**
    * @brief Get standard buttons
@@ -223,34 +250,48 @@ public:
   /**
    * @brief Add custom button
    */
-  bombfork::prong::Button* addButton(const std::string& text, DialogResult result = DialogResult::NONE);
+  bombfork::prong::Button* addButton(const std::string& text, DialogResult result = DialogResult::NONE) {
+    (void)text;
+    (void)result;
+    // Full implementation would create and return button
+    return nullptr;
+  }
 
   /**
    * @brief Remove all buttons
    */
-  void clearButtons();
+  void clearButtons() { buttons.clear(); }
 
   /**
    * @brief Set default button (activated by Enter key)
    */
-  void setDefaultButton(bombfork::prong::Button* button);
+  void setDefaultButton(bombfork::prong::Button* button) { (void)button; }
 
   // === Dialog Management ===
 
   /**
    * @brief Show dialog
    */
-  void show();
+  void show() {
+    state.visible = true;
+    setVisible(true);
+  }
 
   /**
    * @brief Hide dialog
    */
-  void hide();
+  void hide() {
+    state.visible = false;
+    setVisible(false);
+  }
 
   /**
    * @brief Show modal dialog and return result
    */
-  DialogResult showModal();
+  DialogResult showModal() {
+    show();
+    return state.result;
+  }
 
   /**
    * @brief Check if dialog is visible
@@ -265,58 +306,74 @@ public:
   /**
    * @brief Accept dialog with result
    */
-  void accept(DialogResult result = DialogResult::OK);
+  void accept(DialogResult result = DialogResult::OK) {
+    state.result = result;
+    hide();
+    if (dialogCallback) {
+      dialogCallback(result);
+    }
+  }
 
   /**
    * @brief Reject dialog
    */
-  void reject();
+  void reject() { accept(DialogResult::CANCEL); }
 
   // === Positioning ===
 
   /**
    * @brief Center dialog on parent window
    */
-  void centerOnParent();
+  void centerOnParent() {
+    if (parentWindow && parentWindowWidth > 0 && parentWindowHeight > 0) {
+      int x = (parentWindowWidth - width) / 2;
+      int y = (parentWindowHeight - height) / 2;
+      Component::setPosition(x, y);
+    }
+  }
 
   /**
    * @brief Set parent window for centering
    */
-  void setParentWindow(Component* parent, int parentWidth, int parentHeight);
+  void setParentWindow(Component* parent, int parentWidth, int parentHeight) {
+    parentWindow = parent;
+    parentWindowWidth = parentWidth;
+    parentWindowHeight = parentHeight;
+  }
 
   /**
    * @brief Position dialog at specific location
    */
-  void setPosition(int x, int y);
+  void setPosition(int x, int y) { Component::setPosition(x, y); }
 
   // === Callbacks ===
 
   /**
    * @brief Set dialog callback (called when dialog closes)
    */
-  void setDialogCallback(DialogCallback callback);
+  void setDialogCallback(DialogCallback callback) { dialogCallback = std::move(callback); }
 
   /**
    * @brief Set button callback (called when button is pressed)
    */
-  void setButtonCallback(ButtonCallback callback);
+  void setButtonCallback(ButtonCallback callback) { buttonCallback = std::move(callback); }
 
   /**
    * @brief Set validation callback (called before closing)
    */
-  void setValidateCallback(ValidateCallback callback);
+  void setValidateCallback(ValidateCallback callback) { validateCallback = std::move(callback); }
 
   // === Theming ===
 
   /**
    * @brief Apply theme from AdvancedTheme system
    */
-  void applyTheme(const bombfork::prong::theming::AdvancedTheme& theme);
+  void applyTheme(const bombfork::prong::theming::AdvancedTheme& theme) { (void)theme; }
 
   /**
    * @brief Set custom theme
    */
-  void setDialogTheme(const DialogTheme& customTheme);
+  void setDialogTheme(const DialogTheme& customTheme) { theme = customTheme; }
 
   /**
    * @brief Get current theme
@@ -325,94 +382,203 @@ public:
 
   // === Component Overrides ===
 
-  void render() override;
-  bool handleClick(int localX, int localY) override;
-  bool handleMousePress(int localX, int localY, int button) override;
-  bool handleMouseRelease(int localX, int localY, int button) override;
-  bool handleMouseMove(int localX, int localY) override;
-  bool handleKey(int key, int action, int mods) override;
-  void setBounds(int x, int y, int width, int height) override;
+  void render() override {
+    if (!isVisible() || !renderer)
+      return;
+
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+
+    // Render dialog background (using drawRect - full implementation would use filled rect)
+    renderer->drawRect(gx, gy, width, height, theme.backgroundColor.r, theme.backgroundColor.g, theme.backgroundColor.b,
+                       theme.backgroundColor.a);
+
+    // Render border
+    renderer->drawRect(gx, gy, width, height, theme.borderColor.r, theme.borderColor.g, theme.borderColor.b,
+                       theme.borderColor.a);
+
+    // Render title bar if enabled
+    if (state.showTitleBar && !state.title.empty()) {
+      renderer->drawRect(gx, gy, width, TITLE_BAR_HEIGHT, theme.titleBarColor.r, theme.titleBarColor.g,
+                         theme.titleBarColor.b, theme.titleBarColor.a);
+
+      // Measure text for proper vertical centering
+      auto [textWidth, textHeight] = renderer->measureText(state.title);
+      renderer->drawText(state.title, gx + CONTENT_PADDING, gy + (TITLE_BAR_HEIGHT - textHeight) / 2,
+                         theme.titleTextColor.r, theme.titleTextColor.g, theme.titleTextColor.b,
+                         theme.titleTextColor.a);
+    }
+
+    // Render children (Component base will handle propagation)
+    Component::renderAll();
+  }
+
+  void update(double deltaTime) override {
+    // Default implementation - can be extended if needed
+    Component::updateAll(deltaTime);
+  }
+
+  bool handleEventSelf(const core::Event& event) override {
+    switch (event.type) {
+    case core::Event::Type::MOUSE_PRESS:
+      // Check if clicking in title bar for dragging
+      if (state.showTitleBar && event.localY < TITLE_BAR_HEIGHT) {
+        state.dragging = true;
+        state.dragStartX = event.localX;
+        state.dragStartY = event.localY;
+        state.dragOffsetX = getGlobalX();
+        state.dragOffsetY = getGlobalY();
+        return true;
+      }
+      // Dialog consumes all mouse press events to prevent pass-through
+      return true;
+
+    case core::Event::Type::MOUSE_RELEASE:
+      if (state.dragging) {
+        state.dragging = false;
+        return true;
+      }
+      // Dialog consumes all mouse release events to prevent pass-through
+      return true;
+
+    case core::Event::Type::MOUSE_MOVE:
+      if (state.dragging) {
+        int deltaX = event.localX - state.dragStartX;
+        int deltaY = event.localY - state.dragStartY;
+        Component::setPosition(state.dragOffsetX + deltaX, state.dragOffsetY + deltaY);
+        return true;
+      }
+      // Don't consume mouse move if not dragging (let children receive hover events)
+      return false;
+
+    case core::Event::Type::KEY_PRESS:
+      // Escape key closes dialog
+      if (event.key == static_cast<int>(events::Key::ESCAPE)) {
+        hide();
+        if (dialogCallback) {
+          dialogCallback(DialogResult::CANCEL);
+        }
+        return true;
+      }
+      // Let children handle other keys
+      return false;
+
+    default:
+      return false;
+    }
+  }
+
+  void setBounds(int x, int y, int width, int height) override { Component::setBounds(x, y, width, height); }
 
 private:
   /**
    * @brief Initialize dialog layout
    */
-  void initializeLayout();
+  void initializeLayout() {
+    // Stub for layout initialization
+  }
 
   /**
    * @brief Create standard buttons
    */
-  void createStandardButtons();
+  void createStandardButtons() {
+    // Stub for button creation
+  }
 
   /**
    * @brief Update layout after changes
    */
-  void updateLayout();
+  void updateLayout() {
+    // Stub for layout updates
+  }
 
   /**
    * @brief Render modal overlay
    */
-  void renderModalOverlay();
+  void renderModalOverlay() {
+    // Stub for overlay rendering
+  }
 
   /**
    * @brief Render dialog shadow
    */
-  void renderShadow();
+  void renderShadow() {
+    // Stub for shadow rendering
+  }
 
   /**
    * @brief Render dialog frame
    */
-  void renderFrame();
+  void renderFrame() {
+    // Stub for frame rendering
+  }
 
   /**
    * @brief Render title bar
    */
-  void renderTitleBar();
+  void renderTitleBar() {
+    // Stub for title bar rendering
+  }
 
   /**
    * @brief Handle button press
    */
-  void handleButtonPress(DialogResult result);
+  void handleButtonPress(DialogResult result) { (void)result; }
 
   /**
    * @brief Check if point is in title bar
    */
-  bool isPointInTitleBar(int localX, int localY) const;
+  bool isPointInTitleBar(int localX, int localY) const {
+    (void)localX;
+    return state.showTitleBar && localY < TITLE_BAR_HEIGHT;
+  }
 
   /**
    * @brief Validate dialog close
    */
-  bool validateClose();
+  bool validateClose() {
+    if (validateCallback) {
+      return validateCallback();
+    }
+    return true;
+  }
 
   /**
    * @brief Process keyboard shortcuts
    */
-  bool processKeyboardShortcut(int key, int mods);
+  bool processKeyboardShortcut(int key, int mods) {
+    (void)key;
+    (void)mods;
+    return false;
+  }
 
   /**
    * @brief Focus next/previous control
    */
-  void focusNextControl(bool forward = true);
+  void focusNextControl(bool forward = true) { (void)forward; }
 
   /**
    * @brief Get button for result
    */
-  bombfork::prong::Button* getButtonForResult(DialogResult result) const;
+  bombfork::prong::Button* getButtonForResult(DialogResult result) const {
+    (void)result;
+    return nullptr;
+  }
 
   /**
    * @brief Calculate content area bounds
    */
-  layout::Rect getContentBounds() const;
+  layout::Rect getContentBounds() const { return {0, 0, 0, 0}; }
 
   /**
    * @brief Calculate title bar bounds
    */
-  layout::Rect getTitleBarBounds() const;
+  layout::Rect getTitleBarBounds() const { return {0, 0, 0, 0}; }
 
   /**
    * @brief Calculate button area bounds
    */
-  layout::Rect getButtonAreaBounds() const;
+  layout::Rect getButtonAreaBounds() const { return {0, 0, 0, 0}; }
 };
 
 } // namespace bombfork::prong
