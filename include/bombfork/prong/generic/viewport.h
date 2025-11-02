@@ -1,14 +1,17 @@
 #pragma once
 
+#include "../core/event.h"
 #include "../layout/layout_manager.h"
 #include "../layout/layout_measurement.h"
 #include "../theming/advanced_theme.h"
 #include <bombfork/prong/core/component.h>
 #include <bombfork/prong/rendering/irenderer.h>
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <utility>
 
 namespace bombfork::prong {
 
@@ -172,7 +175,20 @@ private:
   bool verticalScrollbarDrag = false;
 
 public:
-  explicit Viewport();
+  explicit Viewport() : Component(nullptr, "Viewport") {
+    // Initialize default theme
+    theme = ViewportTheme();
+
+    // Initialize transform
+    transform.zoomLevel = 1.0f;
+    transform.panX = 0.0f;
+    transform.panY = 0.0f;
+    transform.targetZoom = 1.0f;
+    transform.targetPanX = 0.0f;
+    transform.targetPanY = 0.0f;
+    transform.animating = false;
+  }
+
   ~Viewport() override = default;
 
   // === Configuration ===
@@ -180,7 +196,7 @@ public:
   /**
    * @brief Set viewport mode
    */
-  void setMode(ViewportMode mode);
+  void setMode(ViewportMode mode) { state.mode = mode; }
 
   /**
    * @brief Get viewport mode
@@ -190,7 +206,7 @@ public:
   /**
    * @brief Set zoom mode
    */
-  void setZoomMode(ZoomMode mode);
+  void setZoomMode(ZoomMode mode) { state.zoomMode = mode; }
 
   /**
    * @brief Get zoom mode
@@ -200,7 +216,7 @@ public:
   /**
    * @brief Set pan mode
    */
-  void setPanMode(PanMode mode);
+  void setPanMode(PanMode mode) { state.panMode = mode; }
 
   /**
    * @brief Get pan mode
@@ -210,19 +226,38 @@ public:
   /**
    * @brief Set content size
    */
-  void setContentSize(int width, int height);
+  void setContentSize(int contentWidth, int contentHeight) {
+    state.contentWidth = contentWidth;
+    state.contentHeight = contentHeight;
+  }
 
   /**
    * @brief Get content size
    */
-  void getContentSize(int& width, int& height) const;
+  void getContentSize(int& contentWidth, int& contentHeight) const {
+    contentWidth = state.contentWidth;
+    contentHeight = state.contentHeight;
+  }
 
   // === Transform Management ===
 
   /**
    * @brief Set zoom level
    */
-  void setZoom(float zoomLevel, bool animate = true);
+  void setZoom(float zoomLevel, bool animate = true) {
+    if (animate) {
+      transform.targetZoom = std::max(MIN_ZOOM, std::min(MAX_ZOOM, zoomLevel));
+      transform.animating = true;
+      transform.animationStartTime = std::chrono::steady_clock::now();
+    } else {
+      transform.zoomLevel = std::max(MIN_ZOOM, std::min(MAX_ZOOM, zoomLevel));
+      transform.targetZoom = transform.zoomLevel;
+    }
+
+    if (zoomCallback) {
+      zoomCallback(transform.zoomLevel);
+    }
+  }
 
   /**
    * @brief Get current zoom level
@@ -232,76 +267,141 @@ public:
   /**
    * @brief Zoom in by step
    */
-  void zoomIn();
+  void zoomIn() { setZoom(transform.zoomLevel * ZOOM_STEP, true); }
 
   /**
    * @brief Zoom out by step
    */
-  void zoomOut();
+  void zoomOut() { setZoom(transform.zoomLevel / ZOOM_STEP, true); }
 
   /**
    * @brief Zoom to fit content in viewport
    */
-  void zoomToFit();
+  void zoomToFit() {
+    float fitZoom = calculateFitZoom();
+    setZoom(fitZoom, true);
+  }
 
   /**
    * @brief Zoom to actual size (1:1)
    */
-  void zoomToActualSize();
+  void zoomToActualSize() { setZoom(1.0f, true); }
 
   /**
    * @brief Set pan position
    */
-  void setPan(float panX, float panY, bool animate = true);
+  void setPan(float panX, float panY, bool animate = true) {
+    if (animate) {
+      transform.targetPanX = panX;
+      transform.targetPanY = panY;
+      transform.animating = true;
+      transform.animationStartTime = std::chrono::steady_clock::now();
+    } else {
+      transform.panX = panX;
+      transform.panY = panY;
+      transform.targetPanX = panX;
+      transform.targetPanY = panY;
+    }
+
+    if (panCallback) {
+      panCallback(transform.panX, transform.panY);
+    }
+  }
 
   /**
    * @brief Get pan position
    */
-  void getPan(float& panX, float& panY) const;
+  void getPan(float& panX, float& panY) const {
+    panX = transform.panX;
+    panY = transform.panY;
+  }
 
   /**
    * @brief Center content in viewport
    */
-  void centerContent();
+  void centerContent() {
+    float panX, panY;
+    calculateCenterPan(panX, panY);
+    setPan(panX, panY, true);
+  }
 
   /**
    * @brief Reset transform to defaults
    */
-  void resetTransform();
+  void resetTransform() {
+    setZoom(1.0f, true);
+    setPan(0.0f, 0.0f, true);
+  }
 
   // === Coordinate Transformation ===
 
   /**
    * @brief Convert viewport coordinates to content coordinates
    */
-  void viewportToContent(int viewportX, int viewportY, float& contentX, float& contentY) const;
+  void viewportToContent(int viewportX, int viewportY, float& contentX, float& contentY) const {
+    contentX = (static_cast<float>(viewportX) - transform.panX) / transform.zoomLevel;
+    contentY = (static_cast<float>(viewportY) - transform.panY) / transform.zoomLevel;
+  }
 
   /**
    * @brief Convert content coordinates to viewport coordinates
    */
-  void contentToViewport(float contentX, float contentY, int& viewportX, int& viewportY) const;
+  void contentToViewport(float contentX, float contentY, int& viewportX, int& viewportY) const {
+    viewportX = static_cast<int>(contentX * transform.zoomLevel + transform.panX);
+    viewportY = static_cast<int>(contentY * transform.zoomLevel + transform.panY);
+  }
 
   /**
    * @brief Get visible content rectangle
    */
-  void getVisibleContentRect(float& x, float& y, float& width, float& height) const;
+  void getVisibleContentRect(float& x, float& y, float& w, float& h) const {
+    viewportToContent(0, 0, x, y);
+    w = static_cast<float>(width) / transform.zoomLevel;
+    h = static_cast<float>(height) / transform.zoomLevel;
+  }
 
   // === Selection Management ===
 
   /**
    * @brief Set selection rectangle
    */
-  void setSelection(int x, int y, int width, int height);
+  void setSelection(int x, int y, int w, int h) {
+    state.selectionX = x;
+    state.selectionY = y;
+    state.selectionWidth = w;
+    state.selectionHeight = h;
+    state.hasSelection = true;
+
+    if (selectionCallback) {
+      selectionCallback(x, y, w, h);
+    }
+  }
 
   /**
    * @brief Get selection rectangle
    */
-  bool getSelection(int& x, int& y, int& width, int& height) const;
+  bool getSelection(int& x, int& y, int& w, int& h) const {
+    if (!state.hasSelection) {
+      return false;
+    }
+
+    x = state.selectionX;
+    y = state.selectionY;
+    w = state.selectionWidth;
+    h = state.selectionHeight;
+    return true;
+  }
 
   /**
    * @brief Clear selection
    */
-  void clearSelection();
+  void clearSelection() {
+    state.hasSelection = false;
+    state.selectionX = 0;
+    state.selectionY = 0;
+    state.selectionWidth = 0;
+    state.selectionHeight = 0;
+  }
 
   /**
    * @brief Check if there is a selection
@@ -313,7 +413,7 @@ public:
   /**
    * @brief Show/hide grid overlay
    */
-  void setShowGrid(bool show);
+  void setShowGrid(bool show) { state.showGrid = show; }
 
   /**
    * @brief Check if grid is shown
@@ -323,7 +423,7 @@ public:
   /**
    * @brief Show/hide rulers
    */
-  void setShowRulers(bool show);
+  void setShowRulers(bool show) { state.showRulers = show; }
 
   /**
    * @brief Check if rulers are shown
@@ -333,7 +433,7 @@ public:
   /**
    * @brief Show/hide scrollbars
    */
-  void setShowScrollbars(bool show);
+  void setShowScrollbars(bool show) { state.showScrollbars = show; }
 
   /**
    * @brief Check if scrollbars are shown
@@ -343,7 +443,7 @@ public:
   /**
    * @brief Show/hide FPS counter
    */
-  void setShowFPS(bool show);
+  void setShowFPS(bool show) { state.showFPS = show; }
 
   /**
    * @brief Check if FPS counter is shown
@@ -360,34 +460,46 @@ public:
   /**
    * @brief Set render callback for custom content
    */
-  void setRenderCallback(RenderCallback callback);
+  void setRenderCallback(RenderCallback callback) { renderCallback = std::move(callback); }
 
   /**
    * @brief Set zoom changed callback
    */
-  void setZoomCallback(ZoomChangedCallback callback);
+  void setZoomCallback(ZoomChangedCallback callback) { zoomCallback = std::move(callback); }
 
   /**
    * @brief Set pan changed callback
    */
-  void setPanCallback(PanChangedCallback callback);
+  void setPanCallback(PanChangedCallback callback) { panCallback = std::move(callback); }
 
   /**
    * @brief Set selection callback
    */
-  void setSelectionCallback(SelectionCallback callback);
+  void setSelectionCallback(SelectionCallback callback) { selectionCallback = std::move(callback); }
 
   // === Theming ===
 
   /**
    * @brief Apply theme from AdvancedTheme system
    */
-  void applyTheme(const bombfork::prong::theming::AdvancedTheme& theme);
+  void applyTheme(const bombfork::prong::theming::AdvancedTheme& advancedTheme) {
+    // Map advanced theme to viewport theme
+    theme.backgroundColor = advancedTheme.primary;
+    theme.borderColor = advancedTheme.border;
+    theme.gridColor = advancedTheme.text;
+    theme.rulerColor = advancedTheme.secondary;
+    theme.rulerTextColor = advancedTheme.text;
+    theme.selectionColor = advancedTheme.accent;
+    theme.selectionBorderColor = advancedTheme.accent;
+    theme.scrollbarTrackColor = advancedTheme.secondary;
+    theme.scrollbarThumbColor = advancedTheme.text;
+    theme.scrollbarThumbHoverColor = advancedTheme.accent;
+  }
 
   /**
    * @brief Set custom theme
    */
-  void setViewportTheme(const ViewportTheme& customTheme);
+  void setViewportTheme(const ViewportTheme& customTheme) { theme = customTheme; }
 
   /**
    * @brief Get current theme
@@ -396,149 +508,190 @@ public:
 
   // === Component Overrides ===
 
-  void render() override;
-  bool handleClick(int localX, int localY) override;
-  bool handleMousePress(int localX, int localY, int button) override;
-  bool handleMouseRelease(int localX, int localY, int button) override;
-  bool handleMouseMove(int localX, int localY) override;
-  bool handleKey(int key, int action, int mods) override;
-  bool handleScroll(int localX, int localY, double xoffset, double yoffset) override;
-  void setBounds(int x, int y, int width, int height) override;
+  void update(double deltaTime) override {
+    // Update animation if active
+    if (transform.animating) {
+      auto now = std::chrono::steady_clock::now();
+      float elapsed = std::chrono::duration<float>(now - transform.animationStartTime).count();
+      float t = std::min(1.0f, elapsed / transform.animationDuration);
+
+      // Smooth interpolation
+      t = t * t * (3.0f - 2.0f * t);
+
+      transform.zoomLevel = transform.zoomLevel + (transform.targetZoom - transform.zoomLevel) * t;
+      transform.panX = transform.panX + (transform.targetPanX - transform.panX) * t;
+      transform.panY = transform.panY + (transform.targetPanY - transform.panY) * t;
+
+      if (t >= 1.0f) {
+        transform.animating = false;
+      }
+    }
+
+    (void)deltaTime; // Suppress unused parameter warning
+  }
+
+  void render() override {
+    if (!visible || !renderer)
+      return;
+
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+
+    // Render background (using drawRect - full implementation would use filled rect)
+    renderer->drawRect(gx, gy, width, height, theme.backgroundColor.r, theme.backgroundColor.g, theme.backgroundColor.b,
+                       theme.backgroundColor.a);
+
+    // Render border
+    if (theme.borderWidth > 0.0f) {
+      renderer->drawRect(gx, gy, width, height, theme.borderColor.r, theme.borderColor.g, theme.borderColor.b,
+                         theme.borderColor.a);
+    }
+
+    // Call custom render callback if provided
+    if (renderCallback) {
+      renderCallback(renderer, transform, width, height);
+    }
+
+    // Render grid if enabled
+    if (state.showGrid) {
+      renderGrid();
+    }
+
+    // Render rulers if enabled
+    if (state.showRulers) {
+      renderRulers();
+    }
+
+    // Render scrollbars if enabled
+    if (state.showScrollbars) {
+      renderScrollbars();
+    }
+
+    // Render FPS if enabled
+    if (state.showFPS) {
+      renderFPS();
+    }
+  }
+
+  bool handleEventSelf(const core::Event& event) override {
+    switch (event.type) {
+    case core::Event::Type::MOUSE_PRESS:
+      if (event.button == 0) { // Left mouse button
+        state.dragging = true;
+        state.dragStartX = event.localX;
+        state.dragStartY = event.localY;
+        state.dragStartPanX = transform.panX;
+        state.dragStartPanY = transform.panY;
+        return true;
+      }
+      break;
+
+    case core::Event::Type::MOUSE_RELEASE:
+      if (event.button == 0 && state.dragging) {
+        state.dragging = false;
+        return true;
+      }
+      break;
+
+    case core::Event::Type::MOUSE_MOVE:
+      if (state.dragging) {
+        float deltaX = static_cast<float>(event.localX - state.dragStartX);
+        float deltaY = static_cast<float>(event.localY - state.dragStartY);
+
+        setPan(state.dragStartPanX + deltaX, state.dragStartPanY + deltaY, false);
+
+        return true;
+      }
+      break;
+
+    case core::Event::Type::MOUSE_SCROLL:
+      // Handle zoom with mouse wheel
+      {
+        float zoomFactor = 1.0f + static_cast<float>(event.scrollY) * 0.1f;
+        setZoom(transform.zoomLevel * zoomFactor, false);
+        return true;
+      }
+
+    default:
+      break;
+    }
+
+    return false;
+  }
+
+  void setBounds(int x, int y, int newWidth, int newHeight) override {
+    Component::setBounds(x, y, newWidth, newHeight);
+  }
 
   // === Layout Integration ===
 
-  bombfork::prong::layout::LayoutMeasurement measurePreferredSize() const;
+  bombfork::prong::layout::LayoutMeasurement measurePreferredSize() const {
+    // Return preferred size based on content dimensions
+    return bombfork::prong::layout::LayoutMeasurement{state.contentWidth > 0 ? state.contentWidth : 400,
+                                                      state.contentHeight > 0 ? state.contentHeight : 300};
+  }
 
 private:
   /**
-   * @brief Update transform animation
-   */
-  void updateTransform();
-
-  /**
-   * @brief Update viewport dimensions
-   */
-  void updateViewportDimensions();
-
-  /**
-   * @brief Constrain pan to content bounds
-   */
-  void constrainPan();
-
-  /**
-   * @brief Render background pattern
-   */
-  void renderBackground();
-
-  /**
    * @brief Render grid overlay
    */
-  void renderGrid();
+  void renderGrid() {
+    // Stub implementation - would render grid overlay
+    // Full implementation would draw grid lines based on zoom and pan
+  }
 
   /**
    * @brief Render rulers
    */
-  void renderRulers();
-
-  /**
-   * @brief Render viewport content
-   */
-  void renderContent();
-
-  /**
-   * @brief Render selection rectangle
-   */
-  void renderSelection();
+  void renderRulers() {
+    // Stub implementation - would render ruler overlays
+    // Full implementation would draw rulers with measurements
+  }
 
   /**
    * @brief Render scrollbars
    */
-  void renderScrollbars();
+  void renderScrollbars() {
+    // Stub implementation - would render scrollbars
+    // Full implementation would draw proportional scrollbars
+  }
 
   /**
    * @brief Render FPS counter
    */
-  void renderFPS();
-
-  /**
-   * @brief Render viewport border
-   */
-  void renderBorder();
-
-  /**
-   * @brief Get horizontal scrollbar rectangle
-   */
-  bombfork::prong::layout::Rect getHorizontalScrollbarRect() const;
-
-  /**
-   * @brief Get vertical scrollbar rectangle
-   */
-  bombfork::prong::layout::Rect getVerticalScrollbarRect() const;
-
-  /**
-   * @brief Get horizontal scrollbar thumb rectangle
-   */
-  bombfork::prong::layout::Rect getHorizontalScrollbarThumbRect() const;
-
-  /**
-   * @brief Get vertical scrollbar thumb rectangle
-   */
-  bombfork::prong::layout::Rect getVerticalScrollbarThumbRect() const;
-
-  /**
-   * @brief Check if point is in scrollbar
-   */
-  bool isPointInScrollbar(int localX, int localY, bool& horizontal, bool& thumb) const;
-
-  /**
-   * @brief Handle scrollbar drag
-   */
-  void handleScrollbarDrag(int localX, int localY, bool horizontal);
-
-  /**
-   * @brief Update FPS counter
-   */
-  void updateFPS();
-
-  /**
-   * @brief Get current time for animations
-   */
-  std::chrono::steady_clock::time_point getCurrentTime() const;
-
-  /**
-   * @brief Ease animation curve
-   */
-  float easeInOutCubic(float t) const;
+  void renderFPS() {
+    // Stub implementation - would render FPS counter
+    // Full implementation would track and display frame rate
+  }
 
   /**
    * @brief Calculate zoom level for fit-to-window
    */
-  float calculateFitZoom() const;
+  float calculateFitZoom() const {
+    if (state.contentWidth <= 0 || state.contentHeight <= 0 || width <= 0 || height <= 0) {
+      return 1.0f;
+    }
+
+    float zoomX = static_cast<float>(width) / static_cast<float>(state.contentWidth);
+    float zoomY = static_cast<float>(height) / static_cast<float>(state.contentHeight);
+
+    return std::min(zoomX, zoomY);
+  }
 
   /**
    * @brief Calculate center pan position
    */
-  void calculateCenterPan(float& panX, float& panY) const;
+  void calculateCenterPan(float& panX, float& panY) const {
+    if (state.contentWidth <= 0 || state.contentHeight <= 0) {
+      panX = 0.0f;
+      panY = 0.0f;
+      return;
+    }
 
-  /**
-   * @brief Notify transform changed
-   */
-  void notifyTransformChanged();
-
-  /**
-   * @brief Start selection
-   */
-  void startSelection(int x, int y);
-
-  /**
-   * @brief Update selection during drag
-   */
-  void updateSelection(int x, int y);
-
-  /**
-   * @brief End selection
-   */
-  void endSelection();
+    // Center the content in the viewport
+    panX = (static_cast<float>(width) - static_cast<float>(state.contentWidth) * transform.zoomLevel) / 2.0f;
+    panY = (static_cast<float>(height) - static_cast<float>(state.contentHeight) * transform.zoomLevel) / 2.0f;
+  }
 };
 
 } // namespace bombfork::prong
