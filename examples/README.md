@@ -9,8 +9,10 @@ examples/
 ├── adapters/              # Example adapter implementations
 │   ├── glfw_window_adapter.h       # GLFW → IWindow adapter
 │   └── simple_opengl_renderer.h    # OpenGL → IRenderer adapter
-└── simple_app/            # Simple example application
-    └── main.cpp           # Basic UI application with buttons
+└── demo_app/              # Comprehensive demo application
+    ├── main.cpp           # Main entry point with GLFW setup
+    └── scenes/
+        └── demo_scene.h   # Demo scene showcasing all components and layouts
 ```
 
 ## Adapters
@@ -30,7 +32,10 @@ Demonstrates how to implement the `IWindow` interface using GLFW. Key features:
 ```cpp
 GLFWwindow* glfwWindow = glfwCreateWindow(1280, 720, "App", nullptr, nullptr);
 auto windowAdapter = std::make_unique<GLFWWindowAdapter>(glfwWindow);
-EventDispatcher dispatcher(windowAdapter.get());
+auto renderer = std::make_unique<SimpleOpenGLRenderer>();
+Scene scene(windowAdapter.get(), renderer.get());
+scene.attach();
+// Components use hierarchical event handling - just add them to the scene
 ```
 
 ### Simple OpenGL Renderer (`simple_opengl_renderer.h`)
@@ -57,9 +62,9 @@ auto renderer = std::make_unique<SimpleOpenGLRenderer>();
 renderer->initialize(1280, 720);
 ```
 
-## Simple Application
+## Demo Application
 
-The `simple_app` example demonstrates a complete Prong application:
+The `demo_app` example demonstrates a comprehensive Prong application showcasing all components and layouts:
 
 ### Building and Running
 
@@ -73,40 +78,48 @@ mise demo
 mkdir build && cd build
 cmake .. -DPRONG_BUILD_EXAMPLES=ON
 cmake --build .
-./examples/simple_app/prong_simple_app
+./examples/prong_demo_app
 ```
 
 ### What It Demonstrates
 
 1. **Window and Renderer Setup**
    - Creating GLFW window
-   - Initializing OpenGL renderer
-   - Setting up adapters
+   - Initializing OpenGL renderer with font support
+   - Setting up adapters (window, clipboard, keyboard)
 
-2. **Event Handling**
-   - Creating event dispatcher
-   - Registering UI components
-   - Handling mouse and keyboard events
-   - Focus management for text input
+2. **Scene-Based Architecture**
+   - Scene as root component managing UI hierarchy
+   - Hierarchical event handling with automatic propagation
+   - Window callbacks converting to Event structs
+   - Event propagation through component tree (children first)
 
-3. **UI Components**
-   - **Panel** - Bordered containers with titles
+3. **All UI Components**
+   - **Panel** - Bordered containers with titles and padding
    - **Button** - Interactive buttons with callbacks and hover states
-   - **TextInput** - Text input field with placeholder and change callbacks
+   - **TextInput** - Text input with clipboard support and change callbacks
    - **ListBox** - Scrollable list with selection support
-   - Component styling and theming
+   - Component styling, theming, and visual feedback
 
-4. **Application Loop**
+4. **All Layout Managers**
+   - **FlexLayout** - Main layout structure with flexible sizing
+   - **GridLayout** - 3x3 button grid with equal cell sizes
+   - **StackLayout** - Horizontal button stack
+   - **FlowLayout** - Tag-like wrapping interface
+
+5. **Application Loop**
    - Frame timing and delta time
-   - Updating components
-   - Rendering components
-   - Presenting frames
+   - Hierarchical update (updateAll) and render (renderAll)
+   - Font rendering for text overlays
+   - Frame presentation
 
-5. **Interactive Demo**
-   - Add custom items to a list via text input
+6. **Interactive Features**
+   - Add custom items to list via text input
    - Select items from the list
    - Clear the list
+   - Click buttons in different layouts
    - Visual feedback and console logging
+   - ESC key or Exit button to close
 
 ### Dependencies
 
@@ -194,11 +207,13 @@ class MyRendererAdapter : public IRenderer {
 // 3. Use with Prong
 auto windowAdapter = std::make_unique<MyWindowAdapter>(myWindow);
 auto rendererAdapter = std::make_unique<MyRendererAdapter>(myRenderer);
-EventDispatcher dispatcher(windowAdapter.get());
+Scene scene(windowAdapter.get(), rendererAdapter.get());
+scene.attach();
 
-// 4. Create and register UI components
-auto button = std::make_unique<Button>(rendererAdapter.get(), "Click");
-dispatcher.registerComponent(button.get());
+// 4. Create and add UI components - renderer is inherited from scene
+auto button = create<Button>("Click").build();
+scene.addChild(std::move(button));
+// Events are automatically propagated through the component tree
 ```
 
 ## Notes

@@ -6,7 +6,14 @@
  * - Components: Button, Panel, ListBox, TextInput
  * - Layouts: FlexLayout, StackLayout, GridLayout, FlowLayout
  * - Scene-based architecture with ComponentBuilder pattern
+ * - Hierarchical event handling (Scene::handleEvent propagates to children)
  * - Interactive features and callbacks
+ *
+ * The demo uses the new hierarchical event model where:
+ * - Window callbacks convert events to Event structs
+ * - Scene::handleEvent() automatically propagates events through the component tree
+ * - Children handle events first (topmost rendered components get priority)
+ * - Components override handleEventSelf() for custom event handling
  *
  * Note: Dialog, Toolbar, Viewport, Slider, ContextMenu are available but
  * require additional setup and are not shown in this basic demo.
