@@ -246,17 +246,16 @@ protected:
     int contentWidth = width - (style.padding * 2);
     int contentHeight = height - (style.padding * 2);
 
+    // Enable scissor test to clip items to content area
+    // This prevents items from overflowing beyond the ListBox boundaries
+    renderer->enableScissorTest(contentX, contentY, contentWidth, contentHeight);
+
     // Calculate visible item range
     int firstVisible = scrollOffset / style.itemHeight;
     int lastVisible = (scrollOffset + contentHeight) / style.itemHeight;
 
     for (int i = firstVisible; i <= lastVisible && i < static_cast<int>(items.size()); ++i) {
       int itemY = contentY + (i * style.itemHeight) - scrollOffset;
-
-      // Skip if item is outside visible area
-      if (itemY + style.itemHeight < contentY || itemY > contentY + contentHeight) {
-        continue;
-      }
 
       // Determine item color
       theming::Color bgColor = style.itemColor;
@@ -277,6 +276,10 @@ protected:
       renderer->drawText(items[i], contentX + style.padding, itemY + (style.itemHeight - textHeight) / 2, txtColor.r,
                          txtColor.g, txtColor.b, txtColor.a);
     }
+
+    // Flush pending batches and disable scissor test
+    renderer->flushPendingBatches();
+    renderer->disableScissorTest();
   }
 
   void renderScrollbar() {
