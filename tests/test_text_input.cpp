@@ -1,6 +1,7 @@
 #include "mocks/mock_clipboard.h"
 #include "mocks/mock_keyboard.h"
 #include <bombfork/prong/components/text_input.h>
+#include <bombfork/prong/core/event.h>
 #include <bombfork/prong/events/ikeyboard.h>
 #include <bombfork/prong/theming/color.h>
 
@@ -23,13 +24,17 @@ void simulateKey(TextInput& input, events::Key key, bool shift = false, bool ctr
     mods |= static_cast<uint8_t>(events::KeyModifier::CONTROL);
 
   int platformKey = static_cast<int>(key);
-  int action = static_cast<int>(events::KeyAction::PRESS);
-  input.handleKey(platformKey, action, mods);
+
+  core::Event event{.type = core::Event::Type::KEY_PRESS, .key = platformKey, .mods = static_cast<int>(mods)};
+
+  input.handleEventSelf(event);
 }
 
 // Helper function to simulate character input
 void simulateChar(TextInput& input, char c) {
-  input.handleChar(static_cast<unsigned int>(c));
+  core::Event event{.type = core::Event::Type::CHAR_INPUT, .codepoint = static_cast<unsigned int>(c)};
+
+  input.handleEventSelf(event);
 }
 
 // Helper function to simulate text input
@@ -362,8 +367,8 @@ void test_focus_management() {
   assert(input.canReceiveFocus());
 
   // Simulate click to gain focus
-  input.handleMousePress(5, 5, 0); // Left mouse button
-  input.requestFocus();            // In real usage, EventDispatcher would call this
+  core::Event mousePress{.type = core::Event::Type::MOUSE_PRESS, .localX = 5, .localY = 5, .button = 0};
+  input.handleEventSelf(mousePress);
 
   // When disabled, should not receive focus
   input.setEnabled(false);
@@ -387,7 +392,8 @@ void test_mouse_selection() {
   input.setText("Hello World");
 
   // Simulate mouse press
-  input.handleMousePress(15, 15, 0);
+  core::Event mousePress{.type = core::Event::Type::MOUSE_PRESS, .localX = 15, .localY = 15, .button = 0};
+  input.handleEventSelf(mousePress);
   assert(!input.hasSelection());
 
   // Note: Full mouse selection testing would require accurate text measurement,
