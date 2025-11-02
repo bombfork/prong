@@ -263,7 +263,7 @@ public:
   // === Event Handling ===
 
   /**
-   * @brief Handle events using the new hierarchical event API
+   * @brief Handle events using the hierarchical event API
    * @param event Event to handle (coordinates in local space)
    * @return true if event was consumed, false to allow propagation
    */

@@ -199,7 +199,7 @@ void globalToLocal(int globalX, int globalY, int& localX, int& localY) const;
 bool containsGlobal(int globalX, int globalY) const;
 ```
 
-This is the primary method used by `EventDispatcher` for hit testing.
+This is the primary method used by `Component::handleEvent()` for hit testing.
 
 ### Protected Rendering Helpers
 
@@ -295,7 +295,7 @@ bool MyComponent::handleClick(int localX, int localY) override {
 }
 ```
 
-The `EventDispatcher` automatically converts global screen coordinates to local coordinates before dispatching to each component's handler.
+The `Component::handleEvent()` method automatically converts global screen coordinates to local coordinates during event propagation to children.
 
 ### Coordinate Conversion
 
@@ -323,12 +323,12 @@ void MyComponent::someMethod() {
 
 ## Integration with Other Systems
 
-### EventDispatcher
+### Event Handling
 
-The `EventDispatcher` is the primary consumer of global coordinates:
+The hierarchical event system uses global coordinates at entry:
 
-1. **Hit Testing**: Uses `containsGlobal(screenX, screenY)` to find components under the mouse
-2. **Coordinate Conversion**: Automatically converts global screen coordinates to local before calling event handlers
+1. **Hit Testing**: `Component::handleEvent()` uses `containsEvent()` to check if events are within bounds
+2. **Coordinate Conversion**: Automatically converts global screen coordinates to local during propagation to children
 3. **Z-Order**: Tests components in reverse rendering order (topmost first)
 
 ### Layout Managers
@@ -560,8 +560,8 @@ parent->addChild(std::move(child));  // Establish relationship
 **Symptoms**: Clicks/hover don't work at new position
 
 **Likely causes**:
-1. Component not registered with `EventDispatcher`
-2. Custom `containsGlobal()` implementation using local coordinates
+1. Component not added to the scene hierarchy
+2. Custom `containsEvent()` implementation using incorrect coordinate space
 
 **Solution**: Ensure hit testing uses global coordinates:
 

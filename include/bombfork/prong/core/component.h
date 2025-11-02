@@ -551,7 +551,7 @@ public:
   /**
    * @brief Hierarchical event handling with automatic propagation
    *
-   * This is the main entry point for the new event API. It implements the
+   * This is the main entry point for the event API. It implements the
    * complete event propagation logic:
    * 1. Check if component is enabled and visible
    * 2. For positional events, check if event is within bounds via containsEvent()
