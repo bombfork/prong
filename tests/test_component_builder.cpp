@@ -137,7 +137,7 @@ void test_button_with_click_callback() {
                   .withClickCallback([]() { callbackInvoked = true; })
                   .build();
 
-  // Simulate click using the new event API (press + release)
+  // Simulate click using the event API (press + release)
   core::Event pressEvent{.type = core::Event::Type::MOUSE_PRESS, .localX = 10, .localY = 10, .button = 0};
   button->handleEvent(pressEvent);
 
@@ -297,7 +297,7 @@ void test_method_chaining() {
   assert(button->isEnabled());
   assert(button->getDebugName() == "ChainedButton");
 
-  // Simulate click using the new event API (press + release)
+  // Simulate click using the event API (press + release)
   core::Event pressEvent{.type = core::Event::Type::MOUSE_PRESS, .localX = 10, .localY = 10, .button = 0};
   button->handleEvent(pressEvent);
 
@@ -386,7 +386,7 @@ void test_conditional_configuration() {
   buttonBuilder.withSize(100, 40); // Set size for event handling
   auto button = buttonBuilder.build();
 
-  // Simulate click using the new event API (press + release)
+  // Simulate click using the event API (press + release)
   core::Event pressEvent{.type = core::Event::Type::MOUSE_PRESS, .localX = 10, .localY = 10, .button = 0};
   button->handleEvent(pressEvent);
 

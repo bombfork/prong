@@ -82,8 +82,8 @@ public:
    * @brief Attach scene to window and start event handling
    *
    * This ensures the scene bounds match the window size.
-   * Note: In the new hierarchical event model, window callbacks should
-   * call scene->handleEvent() directly instead of using EventDispatcher.
+   * Note: In the hierarchical event model, window callbacks should
+   * call scene->handleEvent() directly.
    */
   void attach() {
     if (attached) {
