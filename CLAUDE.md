@@ -186,14 +186,15 @@ All rendering must go through the `IRenderer` interface. Components receive rend
 
 ### Event System
 
-The `EventDispatcher` (`include/bombfork/prong/events/event_dispatcher.h`) routes input:
-- **Registration**: Components must be registered with `registerComponent()` to receive events
-- **Focus management**: Tracks both keyboard focus and mouse hover state
-- **Hit testing**: Uses `Component::containsGlobal()` to find components at screen coordinates
-- **Event types**: Mouse (click, press, release, move, scroll), keyboard (key, char)
-- **Coordinate conversion**: Automatically converts global to local coordinates when dispatching to components
+Prong uses a **hierarchical event propagation model** where events flow through the component tree:
+- **Event handling**: Components override `handleEventSelf()` to respond to events
+- **Automatic propagation**: Events propagate from parent to children automatically via `Component::handleEvent()`
+- **Hit testing**: Uses `Component::containsEvent()` for positional event checking
+- **Event types**: Mouse (press, release, move, scroll), keyboard (key press, key release, char input)
+- **Coordinate conversion**: Automatically converts coordinates to child-local space during propagation
+- **Z-order**: Children rendered last (topmost) receive events first (reverse iteration)
 
-The event dispatcher maintains rendering order - components rendered last receive events first (z-order).
+Components must be enabled and visible to receive events. The Scene is the entry point for all events from the window system.
 
 ### Layout System
 
@@ -222,8 +223,8 @@ Only these modules require `.cpp` files (all in `src/`):
 - `core/coordinate_system.cpp` - World ↔ Screen transformations
 - `core/async_callback_queue.cpp` - Thread-safe callback management
 - `theming/theme_manager.cpp` - Global theme state
-- `events/event_dispatcher.cpp` - Event routing logic
-- `generic/dialog.cpp`, `toolbar.cpp`, `viewport.cpp` - Complex generic components
+
+**Note**: Generic components (Dialog, Toolbar, Viewport) are temporarily disabled pending migration to the new hierarchical event API.
 
 Everything else is header-only.
 
@@ -328,9 +329,9 @@ The namespace for the installed target is `bombfork::prong`.
 - **Header-only by default**: Only add `.cpp` files when absolutely necessary (complex state, large implementations)
 - **CRTP everywhere**: Prefer CRTP over virtual functions for component hierarchies and layout managers
 - **Coordinate systems**: Always use local coordinates when positioning children. Use global coordinates only for rendering and hit testing. See the Coordinate System section for details.
-- **Event handling**: Components must be explicitly registered with EventDispatcher to receive events
+- **Event handling**: Override `handleEventSelf()` for component-specific event handling. The hierarchical propagation happens automatically via `Component::handleEvent()`.
 - **Renderer lifecycle**: All rendering must occur between `beginFrame()` and `endFrame()` calls
-- **Focus model**: Only one component can have keyboard focus; hover is tracked separately
+- **Focus model**: Components track their own focus state via `FocusState` enum; Scene manages global focus
 - **Thread safety**: ThemeManager is thread-safe; other components assume single-threaded use
 - Always use the `mise build` command to build the library, tests and examples.
 - The demo app located in @examples/simple_app/ is used to test the library's UX, it is built and run with the `mise demo` command. It is meant to gather feedback from the user, and for overall feature validation.
