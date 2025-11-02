@@ -93,11 +93,6 @@ set(PRONG_SOURCES
     src/core/coordinate_system.cpp
     src/core/async_callback_queue.cpp
     src/theming/theme_manager.cpp
-    # Note: generic components (dialog, toolbar, viewport) temporarily disabled
-    # as they need to be migrated to new event API (follow-up work)
-    # src/generic/dialog.cpp
-    # src/generic/toolbar.cpp
-    # src/generic/viewport.cpp
 )
 
 # Create library target (STATIC only)

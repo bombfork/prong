@@ -224,19 +224,16 @@ Only these modules require `.cpp` files (all in `src/`):
 - `core/async_callback_queue.cpp` - Thread-safe callback management
 - `theming/theme_manager.cpp` - Global theme state
 
-**Note**: Generic components (Dialog, Toolbar, Viewport) are temporarily disabled pending migration to the new hierarchical event API.
-
-Everything else is header-only.
+All UI components (Button, Panel, ListBox, TextInput, Dialog, Toolbar, Viewport) are fully header-only.
 
 ## Namespace Structure
 
 All code lives under `bombfork::prong` with subnamespaces:
 - `bombfork::prong::core` - Component base classes
-- `bombfork::prong::components` - UI widgets (Button, Panel, ListBox, TextInput)
+- `bombfork::prong::components` - All UI widgets (Button, Panel, ListBox, TextInput, Dialog, Toolbar, Viewport)
 - `bombfork::prong::layout` - Layout managers
 - `bombfork::prong::theming` - Theme system
 - `bombfork::prong::events` - Event handling and platform abstractions (IClipboard, IKeyboard)
-- `bombfork::prong::generic` - Higher-level components (Dialog, Toolbar, Viewport)
 - `bombfork::prong::rendering` - Renderer interface
 - `bombfork::prong::adapters` - Platform adapters (in examples only)
 
