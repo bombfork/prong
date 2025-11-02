@@ -81,6 +81,7 @@ protected:
   bool visible = true;
   bool enabled = true;
   FocusState focusState = FocusState::NONE;
+  bool isCurrentlyHovered = false; // Track if mouse is currently over this component
 
   // Parent/child relationships
   Component* parent = nullptr;
@@ -577,12 +578,30 @@ public:
     }
 
     // Step 2: For positional events, check if event is within bounds
-    if (isPositionalEvent(event.type) && !containsEvent(event)) {
+    bool isWithinBounds = !isPositionalEvent(event.type) || containsEvent(event);
+
+    // Special case for MOUSE_MOVE: deliver hover-out events
+    // If mouse moved outside bounds but component was previously hovered,
+    // deliver the event so component can reset its hover state
+    if (event.type == core::Event::Type::MOUSE_MOVE) {
+      if (!isWithinBounds && isCurrentlyHovered) {
+        // Mouse moved out - deliver event and reset hover state
+        isCurrentlyHovered = false;
+        handleEventSelf(event); // Let component handle hover-out
+        // Don't return true - this event should continue propagating
+      } else if (isWithinBounds) {
+        // Mouse is within bounds - mark as hovered
+        isCurrentlyHovered = true;
+      }
+    }
+
+    // For other positional events, reject if outside bounds
+    if (!isWithinBounds && event.type != core::Event::Type::MOUSE_MOVE) {
       return false;
     }
 
     // Step 3: Try handling event at this component level first
-    if (handleEventSelf(event)) {
+    if (isWithinBounds && handleEventSelf(event)) {
       return true;
     }
 
@@ -603,6 +622,11 @@ public:
 
         // Propagate to child
         if (child->handleEvent(childEvent)) {
+          // Child handled event - for MOUSE_MOVE, mark this component as not hovered
+          // since the child is the one actually under the mouse
+          if (event.type == core::Event::Type::MOUSE_MOVE) {
+            isCurrentlyHovered = false;
+          }
           return true;
         }
       }

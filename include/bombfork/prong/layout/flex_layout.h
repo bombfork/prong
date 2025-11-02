@@ -168,31 +168,83 @@ private:
     // Add gap space
     totalMainAxisSize += config_.gap * (components.size() - 1);
 
-    // Distribute extra space based on grow factors
-    float extraSpace = std::max(0.0f, mainAxisTotal - totalMainAxisSize);
+    // Handle overflow (shrinking) or extra space (growing)
+    float spaceAvailable = mainAxisTotal - totalMainAxisSize;
     float totalGrowFactor = std::accumulate(growFactors.begin(), growFactors.end(), 0.0f);
 
+    // Calculate actual sizes considering grow/shrink
+    std::vector<float> finalSizes;
+    if (spaceAvailable >= 0) {
+      // Extra space available - grow components
+      for (size_t i = 0; i < components.size(); ++i) {
+        auto& dims = componentDimensions[i];
+        float componentMainAxisSize = isHorizontal ? static_cast<float>(dims.width) : static_cast<float>(dims.height);
+
+        // For zero-sized components, start with minimum size
+        if (isAutoGrow[i]) {
+          componentMainAxisSize = minimumSizes[i];
+        }
+
+        // Add growth space if applicable
+        if (totalGrowFactor > 0 && growFactors[i] > 0) {
+          componentMainAxisSize += (growFactors[i] / totalGrowFactor) * spaceAvailable;
+        }
+
+        finalSizes.push_back(std::max(componentMainAxisSize, minimumSizes[i]));
+      }
+    } else {
+      // Overflow - need to shrink components proportionally
+      // Calculate how much we can shrink each component (down to its minimum)
+      std::vector<float> shrinkableSpace;
+      float totalShrinkable = 0.0f;
+
+      for (size_t i = 0; i < components.size(); ++i) {
+        auto& dims = componentDimensions[i];
+        float componentMainAxisSize = isHorizontal ? static_cast<float>(dims.width) : static_cast<float>(dims.height);
+
+        // For zero-sized components, use minimum size
+        if (isAutoGrow[i]) {
+          componentMainAxisSize = minimumSizes[i];
+        }
+
+        float shrinkable = std::max(0.0f, componentMainAxisSize - minimumSizes[i]);
+        shrinkableSpace.push_back(shrinkable);
+        totalShrinkable += shrinkable;
+      }
+
+      // Distribute the deficit proportionally based on shrinkable space
+      float deficit = -spaceAvailable; // Make it positive
+      for (size_t i = 0; i < components.size(); ++i) {
+        auto& dims = componentDimensions[i];
+        float componentMainAxisSize = isHorizontal ? static_cast<float>(dims.width) : static_cast<float>(dims.height);
+
+        if (isAutoGrow[i]) {
+          componentMainAxisSize = minimumSizes[i];
+        }
+
+        // Shrink proportionally based on available shrinkable space
+        float shrinkAmount = 0.0f;
+        if (totalShrinkable > 0 && shrinkableSpace[i] > 0) {
+          shrinkAmount = (shrinkableSpace[i] / totalShrinkable) * deficit;
+        }
+
+        float finalSize = componentMainAxisSize - shrinkAmount;
+        finalSizes.push_back(std::max(finalSize, minimumSizes[i]));
+      }
+    }
+
+    // Recalculate total size after grow/shrink
+    float actualTotalSize =
+      std::accumulate(finalSizes.begin(), finalSizes.end(), 0.0f) + config_.gap * (components.size() - 1);
+
     // Calculate starting position based on justify content
-    float currentPosition = calculateJustifyStartPosition(totalMainAxisSize, mainAxisTotal, components.size());
+    float currentPosition = calculateJustifyStartPosition(actualTotalSize, mainAxisTotal, components.size());
     for (size_t i = 0; i < components.size(); ++i) {
       auto* component = components[i];
       auto& dims = componentDimensions[i];
 
-      // Determine main axis size
-      float componentMainAxisSize = isHorizontal ? static_cast<float>(dims.width) : static_cast<float>(dims.height);
-
-      // For zero-sized components, start with minimum size
-      if (isAutoGrow[i]) {
-        componentMainAxisSize = minimumSizes[i];
-      }
-
-      // Add growth space if applicable
-      if (totalGrowFactor > 0 && growFactors[i] > 0) {
-        componentMainAxisSize += (growFactors[i] / totalGrowFactor) * extraSpace;
-      }
-
-      // Ensure component never shrinks below minimum size
-      componentMainAxisSize = std::max(componentMainAxisSize, minimumSizes[i]);
+      // Use the pre-calculated final size
+      float componentMainAxisSize = finalSizes[i];
 
       // Determine cross axis size
       float componentCrossAxisSize = isHorizontal ? static_cast<float>(dims.height) : static_cast<float>(dims.width);
@@ -217,7 +269,7 @@ private:
 
       // Update position for next component based on justify content
       currentPosition +=
-        componentMainAxisSize + calculateJustifyGap(totalMainAxisSize, mainAxisTotal, components.size(), i);
+        componentMainAxisSize + calculateJustifyGap(actualTotalSize, mainAxisTotal, components.size(), i);
     }
   }
 

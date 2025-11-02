@@ -313,6 +313,14 @@ private:
     centerLayout->configure(FlexLayout::Configuration{
       .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 10.0f});
 
+    // Configure flex properties: all panels fixed at their natural sizes
+    // This allows each layout to size itself based on its content
+    centerLayout->setItemProperties({
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // GridLayout: fixed at natural size (120px)
+      {.grow = 0.0f, .shrink = 1.0f, .basis = 0.0f}, // FlowLayout: fixed at natural size, can shrink if needed
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}  // StackLayout: fixed at natural size (60px)
+    });
+
     auto centerPanel = create<FlexPanel>().withLayout(centerLayout).build();
 
     centerPanel->setBackgroundColor(theming::Color(0.12f, 0.12f, 0.14f, 1.0f));
@@ -379,7 +387,7 @@ private:
                                                     .spacing = 5.0f,
                                                     .crossSpacing = 5.0f});
 
-    auto flowPanel = create<FlexPanel>().withSize(0, 100).withLayout(flowLayout).build();
+    auto flowPanel = create<FlexPanel>().withSize(0, 135).withLayout(flowLayout).build();
 
     flowPanel->setBackgroundColor(theming::Color(0.18f, 0.18f, 0.2f, 1.0f));
     flowPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
