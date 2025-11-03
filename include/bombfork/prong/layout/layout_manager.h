@@ -41,9 +41,28 @@ public:
   virtual ~LayoutManager() = default;
 
   /**
-   * @brief Measure required space for components
+   * @brief Measure required space for components (Phase 1: Natural/unconstrained measurement)
+   * @param components List of components to measure
+   * @return Natural dimensions without constraints
    */
   virtual Dimensions measureLayout(const std::vector<bombfork::prong::Component*>& components) = 0;
+
+  /**
+   * @brief Measure required space with constraints (Phase 2: Constrained measurement)
+   * @param components List of components to measure
+   * @param constraints Available space constraints (width/height)
+   * @return Dimensions constrained by available space
+   *
+   * @note This method enables wrapping layouts (like FlowLayout) to accurately predict
+   * their height when given a width constraint. The default implementation falls back
+   * to unconstrained measurement for layouts that don't need constraint information.
+   */
+  virtual Dimensions measureLayoutConstrained(const std::vector<bombfork::prong::Component*>& components,
+                                              const Dimensions& constraints) {
+    // Default implementation: ignore constraints and use natural measurement
+    (void)constraints; // Suppress unused parameter warning
+    return measureLayout(components);
+  }
 
   /**
    * @brief Layout components within available space

@@ -279,6 +279,9 @@ public:
   /**
    * @brief Get minimum height for panel
    * @return Minimum height based on layout manager measurements plus borders, padding, and title bar
+   *
+   * @note For wrapping layouts (like FlowLayout), if the panel's width is already set,
+   * this uses constrained measurement to calculate accurate wrapped height.
    */
   int getMinimumHeight() const override {
     if (layoutManager || Component::hasLayout()) {
@@ -295,15 +298,28 @@ public:
       // Measure layout and add border + padding + title bar
       layout::Dimensions layoutSize{0, 0};
 
-      if (layoutManager) {
-        // Use Panel's typed layout manager
-        layoutSize = layoutManager->measureLayout(childPointers);
-      } else if (Component::measureFunc) {
-        // Use Component's type-erased measurement function
-        layoutSize = Component::measureFunc(childPointers);
+      // Calculate available content width (if panel width is set)
+      int borderWidth = static_cast<int>(style.borderWidth);
+      int contentWidth = width - (borderWidth + style.padding) * 2;
+
+      // Use constrained measurement if width is set and positive and layout manager exists
+      // This is critical for wrapping layouts (like FlowLayout) that need width to calculate height
+      if (width > 0 && contentWidth > 0 && layoutManager) {
+        layout::Dimensions constraints{contentWidth, 0}; // Height is unknown, that's what we're calculating
+
+        // Use constrained measurement (will fall back to unconstrained if not supported)
+        layoutSize = layoutManager->measureLayoutConstrained(childPointers, constraints);
+      } else {
+        // Fall back to unconstrained measurement
+        if (layoutManager) {
+          // Use Panel's typed layout manager
+          layoutSize = layoutManager->measureLayout(childPointers);
+        } else if (Component::measureFunc) {
+          // Use Component's type-erased measurement function
+          layoutSize = Component::measureFunc(childPointers);
+        }
       }
 
-      int borderWidth = static_cast<int>(style.borderWidth);
       int titleBarHeight = hasVisibleTitleBar() ? TITLE_BAR_HEIGHT : 0;
       return layoutSize.height + (borderWidth + style.padding) * 2 + titleBarHeight;
     }

@@ -111,6 +111,94 @@ public:
   }
 
   /**
+   * @brief Measure space required with wrapping constraints (Phase 2: Constrained measurement)
+   * @param components List of components to measure
+   * @param constraints Available space constraints (width/height)
+   * @return Calculated dimensions with wrapping applied
+   *
+   * @note This method simulates the wrapping behavior to accurately predict the height
+   * needed when constrained by available width. This is critical for FlowLayout to work
+   * correctly with flexible layouts like FlexLayout.
+   */
+  Dimensions measureLayoutConstrained(const std::vector<bombfork::prong::Component*>& components,
+                                      const Dimensions& constraints) override {
+    if (components.empty())
+      return {0, 0};
+
+    // Determine available width for wrapping
+    float availableWidth =
+      config_.horizontal ? static_cast<float>(constraints.width) : static_cast<float>(constraints.height);
+
+    // If no width constraint, fall back to single-line measurement
+    if (availableWidth <= 0) {
+      return measureLayout(components);
+    }
+
+    size_t maxItemsPerLine = config_.maxItemsPerLine > 0 ? config_.maxItemsPerLine : std::numeric_limits<size_t>::max();
+
+    // Simulate wrapping to calculate total height
+    float totalHeight = 0.0f;
+    float maxWidth = 0.0f;
+    float currentLineWidth = 0.0f;
+    float currentLineHeight = 0.0f;
+    size_t itemsInCurrentLine = 0;
+
+    for (const auto* component : components) {
+      auto componentSize = component->getPreferredSize();
+
+      // Get minimum sizes
+      int minWidth = component->getMinimumWidth();
+      int minHeight = component->getMinimumHeight();
+
+      // For zero-sized components, use minimum size
+      int effectiveWidth = componentSize.width > 0 ? componentSize.width : minWidth;
+      int effectiveHeight = componentSize.height > 0 ? componentSize.height : minHeight;
+
+      // Ensure minimum sizes are respected
+      effectiveWidth = std::max(effectiveWidth, minWidth);
+      effectiveHeight = std::max(effectiveHeight, minHeight);
+
+      // Check if we need to wrap to next line
+      bool needsWrap = itemsInCurrentLine >= maxItemsPerLine;
+      if (!needsWrap && itemsInCurrentLine > 0) {
+        // Check if adding this component would exceed available width
+        float nextLineWidth = currentLineWidth + config_.spacing + effectiveWidth;
+        needsWrap = nextLineWidth > availableWidth;
+      }
+
+      if (needsWrap) {
+        // Finalize current line
+        totalHeight += currentLineHeight;
+        if (totalHeight > 0) {
+          totalHeight += config_.crossSpacing;
+        }
+        maxWidth = std::max(maxWidth, currentLineWidth);
+
+        // Start new line
+        currentLineWidth = effectiveWidth;
+        currentLineHeight = static_cast<float>(effectiveHeight);
+        itemsInCurrentLine = 1;
+      } else {
+        // Add to current line
+        if (itemsInCurrentLine > 0) {
+          currentLineWidth += config_.spacing;
+        }
+        currentLineWidth += effectiveWidth;
+        currentLineHeight = std::max(currentLineHeight, static_cast<float>(effectiveHeight));
+        itemsInCurrentLine++;
+      }
+    }
+
+    // Add the last line
+    if (itemsInCurrentLine > 0) {
+      totalHeight += currentLineHeight;
+      maxWidth = std::max(maxWidth, currentLineWidth);
+    }
+
+    return {static_cast<int>(maxWidth), static_cast<int>(totalHeight)};
+  }
+
+  /**
    * @brief Layout components in flow configuration
    * @param components List of components to layout
    * @param availableSpace Total available space

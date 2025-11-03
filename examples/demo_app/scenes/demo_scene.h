@@ -356,7 +356,7 @@ private:
                                                     .cellAlignment = GridAlignment::STRETCH,
                                                     .equalCellSize = true});
 
-    auto gridPanel = create<FlexPanel>().withSize(0, 120).withLayout(gridLayout).build();
+    auto gridPanel = create<FlexPanel>().withSize(0, 0).withLayout(gridLayout).build();
 
     gridPanel->setBackgroundColor(theming::Color(0.18f, 0.18f, 0.2f, 1.0f));
     gridPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
@@ -387,7 +387,7 @@ private:
                                                     .spacing = 5.0f,
                                                     .crossSpacing = 5.0f});
 
-    auto flowPanel = create<FlexPanel>().withSize(0, 135).withLayout(flowLayout).build();
+    auto flowPanel = create<FlexPanel>().withSize(0, 0).withLayout(flowLayout).build();
 
     flowPanel->setBackgroundColor(theming::Color(0.18f, 0.18f, 0.2f, 1.0f));
     flowPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
@@ -420,7 +420,7 @@ private:
                                                       .expandCross = true});
 
     auto stackPanel = std::make_unique<Panel<StackLayout>>();
-    stackPanel->setSize(0, 60);
+    stackPanel->setSize(0, 0);
     stackPanel->setBackgroundColor(theming::Color(0.18f, 0.18f, 0.2f, 1.0f));
     stackPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     stackPanel->setBorderWidth(1);
