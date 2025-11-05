@@ -432,16 +432,16 @@ public:
         state.dragOffsetY = getGlobalY();
         return true;
       }
-      // Dialog consumes all mouse press events to prevent pass-through
-      return true;
+      // Let children handle the event first, consume only if not handled
+      return false;
 
     case core::Event::Type::MOUSE_RELEASE:
       if (state.dragging) {
         state.dragging = false;
         return true;
       }
-      // Dialog consumes all mouse release events to prevent pass-through
-      return true;
+      // Let children handle the event first, consume only if not handled
+      return false;
 
     case core::Event::Type::MOUSE_MOVE:
       if (state.dragging) {

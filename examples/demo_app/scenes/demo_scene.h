@@ -281,19 +281,8 @@ private:
     buttonRow->addChild(std::move(clearButton));
     leftPanel->addChild(std::move(buttonRow));
 
-    // === Info Button ===
-    auto infoButton = create<Button>("Show Info")
-                        .withClickCallback([]() {
-                          std::cout << "\n=== Prong UI Framework ===" << std::endl;
-                          std::cout << "Modern C++20 UI Framework" << std::endl;
-                          std::cout << "All layouts demonstrated!" << std::endl;
-                          std::cout << "========================\n" << std::endl;
-                        })
-                        .build();
-    leftPanel->addChild(std::move(infoButton));
-
     // === About Dialog Button ===
-    auto aboutButton = create<Button>("Show About Dialog")
+    auto aboutButton = create<Button>("About")
                          .withClickCallback([this]() {
                            if (dialogPtr) {
                              std::cout << "Showing About dialog..." << std::endl;
@@ -613,11 +602,10 @@ private:
     std::cout << "  • DockLayout      - Dockable panel layout manager" << std::endl;
     std::cout << "\nInteractive Features:" << std::endl;
     std::cout << "  • Type in text field and click 'Add' to add items" << std::endl;
-    std::cout << "  • Click 'Show Info' for framework information" << std::endl;
-    std::cout << "  • Click 'Show About Dialog' to see modal dialog" << std::endl;
+    std::cout << "  • Click 'About' button to see modal dialog with framework info" << std::endl;
     std::cout << "  • Click any button to see console output" << std::endl;
     std::cout << "  • Select items in ListBox" << std::endl;
-    std::cout << "  • ESC or 'Exit Application' to close" << std::endl;
+    std::cout << "  • ESC key or 'Exit Application' to close" << std::endl;
     std::cout << "\n══════════════════════════════════════════════════════════════\n" << std::endl;
   }
 
