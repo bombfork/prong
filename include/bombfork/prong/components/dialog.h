@@ -409,13 +409,15 @@ public:
                          theme.titleTextColor.a);
     }
 
-    // Render children (Component base will handle propagation)
-    Component::renderAll();
+    // Children will be rendered by parent's renderAll() call
+    // DO NOT call renderAll() here - that's for the parent to call
   }
 
   void update(double deltaTime) override {
-    // Default implementation - can be extended if needed
-    Component::updateAll(deltaTime);
+    // Default implementation - just passes through to children
+    // DO NOT call updateAll() here - that's for the parent to call
+    // The parent's updateAll() will already handle updating children
+    (void)deltaTime;
   }
 
   bool handleEventSelf(const core::Event& event) override {
