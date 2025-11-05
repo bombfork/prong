@@ -426,8 +426,10 @@ public:
       // Check if clicking in title bar for dragging
       if (state.showTitleBar && event.localY < TITLE_BAR_HEIGHT) {
         state.dragging = true;
-        state.dragStartX = event.localX;
-        state.dragStartY = event.localY;
+        // Store the GLOBAL mouse position at drag start
+        state.dragStartX = getGlobalX() + event.localX;
+        state.dragStartY = getGlobalY() + event.localY;
+        // Store the dialog's initial position
         state.dragOffsetX = getGlobalX();
         state.dragOffsetY = getGlobalY();
         return true;
@@ -445,8 +447,15 @@ public:
 
     case core::Event::Type::MOUSE_MOVE:
       if (state.dragging) {
-        int deltaX = event.localX - state.dragStartX;
-        int deltaY = event.localY - state.dragStartY;
+        // Convert local mouse position to global
+        int globalMouseX = getGlobalX() + event.localX;
+        int globalMouseY = getGlobalY() + event.localY;
+
+        // Calculate delta from drag start in global space
+        int deltaX = globalMouseX - state.dragStartX;
+        int deltaY = globalMouseY - state.dragStartY;
+
+        // Update position
         Component::setPosition(state.dragOffsetX + deltaX, state.dragOffsetY + deltaY);
         return true;
       }
