@@ -421,6 +421,11 @@ public:
   }
 
   bool handleEventSelf(const core::Event& event) override {
+    // Modal dialogs consume ALL mouse events to block background interaction
+    // Note: handleEventSelf is called AFTER children have had a chance to handle events
+    // So if we return true here, we're only blocking events from reaching components
+    // behind the dialog, not our own children
+
     switch (event.type) {
     case core::Event::Type::MOUSE_PRESS:
       // Check if clicking in title bar for dragging
@@ -434,7 +439,10 @@ public:
         state.dragOffsetY = getGlobalY();
         return true;
       }
-      // Let children handle the event first, consume only if not handled
+      // Modal dialogs always consume mouse events to prevent background interaction
+      if (state.type == DialogType::MODAL) {
+        return true;
+      }
       return false;
 
     case core::Event::Type::MOUSE_RELEASE:
@@ -442,7 +450,10 @@ public:
         state.dragging = false;
         return true;
       }
-      // Let children handle the event first, consume only if not handled
+      // Modal dialogs always consume mouse events to prevent background interaction
+      if (state.type == DialogType::MODAL) {
+        return true;
+      }
       return false;
 
     case core::Event::Type::MOUSE_MOVE:
@@ -459,7 +470,10 @@ public:
         Component::setPosition(state.dragOffsetX + deltaX, state.dragOffsetY + deltaY);
         return true;
       }
-      // Don't consume mouse move if not dragging (let children receive hover events)
+      // Modal dialogs always consume mouse events (including hover) to prevent background interaction
+      if (state.type == DialogType::MODAL) {
+        return true;
+      }
       return false;
 
     case core::Event::Type::KEY_PRESS:
