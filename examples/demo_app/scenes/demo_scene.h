@@ -516,7 +516,13 @@ private:
     dialog->setTitle("About Prong UI Framework");
     dialog->setDialogType(Dialog::DialogType::MODAL);
     dialog->setMinimumSize(500, 400);
-    dialog->setBounds(0, 0, 500, 400);
+
+    // Center dialog in window (will be positioned when shown)
+    int dialogWidth = 500;
+    int dialogHeight = 400;
+    int dialogX = (width - dialogWidth) / 2;
+    int dialogY = (height - dialogHeight) / 2;
+    dialog->setBounds(dialogX, dialogY, dialogWidth, dialogHeight);
 
     // Initially hidden
     dialog->hide();
@@ -559,9 +565,11 @@ private:
 
     // Add close button at the bottom
     auto closeButton = create<Button>("Close")
-                         .withClickCallback([dialog = dialog.get()]() {
+                         .withClickCallback([this]() {
                            std::cout << "Closing About dialog..." << std::endl;
-                           dialog->hide();
+                           if (dialogPtr) {
+                             dialogPtr->hide();
+                           }
                          })
                          .build();
     closeButton->setBackgroundColor(theming::Color(0.3f, 0.5f, 0.3f, 1.0f));
