@@ -280,6 +280,18 @@ private:
   Glyph renderGlyph(uint32_t codepoint) {
     Glyph glyph{};
 
+    // Check if font has this glyph, fallback to '?' if not
+    int glyphIndex = stbtt_FindGlyphIndex(&fontInfo_, static_cast<int>(codepoint));
+    if (glyphIndex == 0 && codepoint != 0) {
+      // Glyph not found, try fallback characters
+      // First try question mark, then space
+      if (codepoint != '?') {
+        return renderGlyph('?');
+      }
+      // If even '?' is missing, use space
+      return renderGlyph(' ');
+    }
+
     // Get glyph metrics
     int advance, leftSideBearing;
     stbtt_GetCodepointHMetrics(&fontInfo_, static_cast<int>(codepoint), &advance, &leftSideBearing);
