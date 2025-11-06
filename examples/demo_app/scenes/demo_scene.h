@@ -185,7 +185,12 @@ private:
     auto toolbar = buildToolbar();
     toolBarPtr = toolbar.get();
 
-    auto toolbarPanel = create<FlexPanel>().withSize(0, 40).build();
+    // Create toolbar panel with FlexLayout to properly size the toolbar
+    auto toolbarPanelLayout = std::make_shared<FlexLayout>();
+    toolbarPanelLayout->configure(FlexLayout::Configuration{
+      .direction = FlexDirection::ROW, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 0.0f});
+
+    auto toolbarPanel = create<FlexPanel>().withSize(0, 40).withLayout(toolbarPanelLayout).build();
     toolbarPanel->setBackgroundColor(theming::Color(0.12f, 0.12f, 0.14f, 1.0f));
     toolbarPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     toolbarPanel->setBorderWidth(1);
