@@ -72,9 +72,12 @@ public:
     int gx = getGlobalX();
     int gy = getGlobalY();
 
-    // Simple text rendering at position (adding some padding)
-    renderer->drawText(text_.c_str(), gx + 10, gy + height / 2 + 6, textColor_.r, textColor_.g, textColor_.b,
-                       textColor_.a);
+    // Calculate baseline Y position
+    // Text baseline needs to be positioned so the text appears centered in the component
+    // For a 24px font in a 30px component, baseline at +18 from top works well
+    int baselineY = gy;
+
+    renderer->drawText(text_.c_str(), gx + 10, baselineY, textColor_.r, textColor_.g, textColor_.b, textColor_.a);
   }
 };
 
