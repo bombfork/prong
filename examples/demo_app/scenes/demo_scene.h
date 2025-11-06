@@ -49,6 +49,36 @@ using namespace bombfork::prong;
 using namespace bombfork::prong::layout;
 
 /**
+ * @brief Simple label component for rendering text
+ */
+class StatusLabel : public Component {
+private:
+  std::string text_;
+  theming::Color textColor_;
+
+public:
+  StatusLabel(const std::string& text, theming::Color color = theming::Color(1.0f, 1.0f, 1.0f, 1.0f))
+    : Component(nullptr), text_(text), textColor_(color) {}
+
+  void setText(const std::string& text) { text_ = text; }
+
+  void update(double deltaTime) override { (void)deltaTime; }
+
+  void render() override {
+    if (!renderer)
+      return;
+
+    // Render text at the component's global position
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+
+    // Simple text rendering at position (adding some padding)
+    renderer->drawText(text_.c_str(), gx + 10, gy + height / 2 + 6, textColor_.r, textColor_.g, textColor_.b,
+                       textColor_.a);
+  }
+};
+
+/**
  * @brief Comprehensive demo scene showing UI components and layouts
  */
 class DemoScene : public Scene {
@@ -58,8 +88,11 @@ private:
   ListBox* listBoxPtr = nullptr;
   Dialog* dialogPtr = nullptr;
   ToolBar* toolBarPtr = nullptr;
+  StatusLabel* fpsLabelPtr = nullptr;
   GLFWwindow* glfwWindow = nullptr;
   int clickCount = 0;
+  double lastFpsUpdateTime = 0.0;
+  double lastDeltaTime = 0.016;
 
   // GLFW adapters for TextInput
   examples::glfw::GLFWAdapters adapters;
@@ -78,6 +111,21 @@ public:
   }
 
   virtual ~DemoScene() = default;
+
+  /**
+   * @brief Update scene and FPS counter
+   */
+  void update(double deltaTime) override {
+    lastDeltaTime = deltaTime;
+    lastFpsUpdateTime += deltaTime;
+
+    // Update FPS counter every 0.1 seconds
+    if (lastFpsUpdateTime >= 0.1 && fpsLabelPtr) {
+      int fps = static_cast<int>(std::round(1.0 / deltaTime));
+      fpsLabelPtr->setText("FPS: " + std::to_string(fps));
+      lastFpsUpdateTime = 0.0;
+    }
+  }
 
   /**
    * @brief Setup window callbacks to route events to the scene
@@ -215,13 +263,40 @@ private:
     threePanelContainer->addChild(std::move(centerPanel));
     threePanelContainer->addChild(std::move(rightPanel));
 
-    // === Create outer vertical layout: Toolbar on top, 3-panel below ===
+    // === STATUS BAR PANEL - Bottom Status Information ===
+    auto statusBarLayout = std::make_shared<FlexLayout>();
+    statusBarLayout->configure(FlexLayout::Configuration{.direction = FlexDirection::ROW,
+                                                         .justify = FlexJustify::SPACE_BETWEEN,
+                                                         .align = FlexAlign::CENTER,
+                                                         .gap = 10.0f});
+
+    auto statusBarPanel = create<FlexPanel>().withSize(0, 30).withLayout(statusBarLayout).build();
+    statusBarPanel->setBackgroundColor(theming::Color(0.1f, 0.1f, 0.12f, 1.0f));
+    statusBarPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
+    statusBarPanel->setBorderWidth(1);
+    statusBarPanel->setPadding(5);
+
+    // Left status label
+    auto appNameLabel = std::make_unique<StatusLabel>("Prong UI Framework - Scene Demo");
+    appNameLabel->setRenderer(renderer);
+    appNameLabel->setBounds(0, 0, 300, 20);
+    statusBarPanel->addChild(std::move(appNameLabel));
+
+    // Right FPS label
+    auto fpsLabel = std::make_unique<StatusLabel>("FPS: 60", theming::Color(0.5f, 1.0f, 0.5f, 1.0f));
+    fpsLabel->setRenderer(renderer);
+    fpsLabel->setBounds(0, 0, 100, 20);
+    fpsLabelPtr = fpsLabel.get();
+    statusBarPanel->addChild(std::move(fpsLabel));
+
+    // === Create outer vertical layout: Toolbar on top, 3-panel in middle, status bar at bottom ===
     auto outerLayout = std::make_shared<FlexLayout>();
     outerLayout->configure(FlexLayout::Configuration{
       .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 0.0f});
     outerLayout->setItemProperties({
       {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // Toolbar panel: fixed height
-      {.grow = 1.0f, .shrink = 1.0f, .basis = 0.0f}  // 3-panel container: fill remaining space
+      {.grow = 1.0f, .shrink = 1.0f, .basis = 0.0f}, // 3-panel container: fill remaining space
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}  // Status bar: fixed height
     });
 
     auto rootContainer = create<FlexPanel>().withLayout(outerLayout).build();
@@ -229,6 +304,7 @@ private:
 
     rootContainer->addChild(std::move(toolbarPanel));
     rootContainer->addChild(std::move(threePanelContainer));
+    rootContainer->addChild(std::move(statusBarPanel));
 
     // Add root container to scene
     addChild(std::move(rootContainer));
