@@ -181,6 +181,17 @@ private:
       {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}  // Right panel: fixed width (320px)
     });
 
+    // === TOOLBAR PANEL - Top Application Toolbar ===
+    auto toolbar = buildToolbar();
+    toolBarPtr = toolbar.get();
+
+    auto toolbarPanel = create<FlexPanel>().withSize(0, 40).build();
+    toolbarPanel->setBackgroundColor(theming::Color(0.12f, 0.12f, 0.14f, 1.0f));
+    toolbarPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
+    toolbarPanel->setBorderWidth(1);
+    toolbarPanel->setPadding(5);
+    toolbarPanel->addChild(std::move(toolbar));
+
     // === LEFT PANEL - Controls & Inputs ===
     auto leftPanel = buildControlPanel();
 
@@ -190,17 +201,32 @@ private:
     // === RIGHT PANEL - Component Showcase ===
     auto rightPanel = buildComponentShowcase();
 
-    // === Assemble with FlexLayout ===
-    auto mainContainer = create<FlexPanel>().withLayout(mainLayout).build();
-    mainContainer->setBackgroundColor(theming::Color(0.08f, 0.08f, 0.1f, 1.0f));
-    mainContainer->setPadding(15);
+    // === Assemble 3-panel layout with FlexLayout ===
+    auto threePanelContainer = create<FlexPanel>().withLayout(mainLayout).build();
+    threePanelContainer->setBackgroundColor(theming::Color(0.08f, 0.08f, 0.1f, 1.0f));
+    threePanelContainer->setPadding(15);
 
-    mainContainer->addChild(std::move(leftPanel));
-    mainContainer->addChild(std::move(centerPanel));
-    mainContainer->addChild(std::move(rightPanel));
+    threePanelContainer->addChild(std::move(leftPanel));
+    threePanelContainer->addChild(std::move(centerPanel));
+    threePanelContainer->addChild(std::move(rightPanel));
 
-    // Add main container to scene
-    addChild(std::move(mainContainer));
+    // === Create outer vertical layout: Toolbar on top, 3-panel below ===
+    auto outerLayout = std::make_shared<FlexLayout>();
+    outerLayout->configure(FlexLayout::Configuration{
+      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 0.0f});
+    outerLayout->setItemProperties({
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // Toolbar panel: fixed height
+      {.grow = 1.0f, .shrink = 1.0f, .basis = 0.0f}  // 3-panel container: fill remaining space
+    });
+
+    auto rootContainer = create<FlexPanel>().withLayout(outerLayout).build();
+    rootContainer->setBackgroundColor(theming::Color(0.08f, 0.08f, 0.1f, 1.0f));
+
+    rootContainer->addChild(std::move(toolbarPanel));
+    rootContainer->addChild(std::move(threePanelContainer));
+
+    // Add root container to scene
+    addChild(std::move(rootContainer));
 
     // Initialize main container size to match scene/window
     if (!children.empty() && children[0]) {
@@ -232,11 +258,6 @@ private:
     leftPanel->setBorderWidth(2);
     leftPanel->setTitle("Controls");
     leftPanel->setPadding(15);
-
-    // === Toolbar Demo ===
-    auto toolbar = buildToolbar();
-    toolBarPtr = toolbar.get();
-    leftPanel->addChild(std::move(toolbar));
 
     // === TextInput Demo ===
     auto textInput =
