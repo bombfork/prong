@@ -78,26 +78,26 @@ public:
   }
 
   /**
-   * @brief Get or create a glyph texture for a character
-   * @param ch Character to render
+   * @brief Get or create a glyph texture for a Unicode code point
+   * @param codepoint Unicode code point to render
    * @return Glyph information
    */
-  const Glyph& getGlyph(char ch) {
+  const Glyph& getGlyph(uint32_t codepoint) {
     // Check if glyph already cached
-    auto it = glyphs_.find(ch);
+    auto it = glyphs_.find(codepoint);
     if (it != glyphs_.end()) {
       return it->second;
     }
 
     // Render new glyph
-    Glyph glyph = renderGlyph(ch);
-    glyphs_[ch] = glyph;
-    return glyphs_[ch];
+    Glyph glyph = renderGlyph(codepoint);
+    glyphs_[codepoint] = glyph;
+    return glyphs_[codepoint];
   }
 
   /**
    * @brief Render text at specified position
-   * @param text Text to render
+   * @param text Text to render (UTF-8 encoded)
    * @param x X position (screen coordinates)
    * @param y Y position (screen coordinates, baseline)
    * @param r Red color component (0-1)
@@ -140,8 +140,10 @@ public:
     float cursorX = x;
     float cursorY = y;
 
-    for (char ch : text) {
-      const Glyph& glyph = getGlyph(ch);
+    // Decode UTF-8 and render each code point
+    std::vector<uint32_t> codepoints = decodeUTF8(text);
+    for (uint32_t codepoint : codepoints) {
+      const Glyph& glyph = getGlyph(codepoint);
 
       float xpos = cursorX + glyph.bearingX;
       // For top-left origin: y is the baseline, bearingY is distance from baseline to top
@@ -185,13 +187,14 @@ public:
 
   /**
    * @brief Measure the width of rendered text
-   * @param text Text to measure
+   * @param text Text to measure (UTF-8 encoded)
    * @return Width in pixels
    */
   float measureText(const std::string& text) {
     float width = 0.0f;
-    for (char ch : text) {
-      const Glyph& glyph = getGlyph(ch);
+    std::vector<uint32_t> codepoints = decodeUTF8(text);
+    for (uint32_t codepoint : codepoints) {
+      const Glyph& glyph = getGlyph(codepoint);
       width += glyph.advance;
     }
     return width;
@@ -218,17 +221,71 @@ public:
 
 private:
   /**
+   * @brief Decode UTF-8 string into Unicode code points
+   * @param text UTF-8 encoded string
+   * @return Vector of Unicode code points
+   */
+  std::vector<uint32_t> decodeUTF8(const std::string& text) const {
+    std::vector<uint32_t> codepoints;
+    size_t i = 0;
+    while (i < text.length()) {
+      uint32_t codepoint = 0;
+      uint8_t byte = static_cast<uint8_t>(text[i]);
+
+      if (byte < 0x80) {
+        // 1-byte sequence (ASCII)
+        codepoint = byte;
+        i += 1;
+      } else if ((byte & 0xE0) == 0xC0) {
+        // 2-byte sequence
+        if (i + 1 < text.length()) {
+          codepoint = ((byte & 0x1F) << 6) | (static_cast<uint8_t>(text[i + 1]) & 0x3F);
+          i += 2;
+        } else {
+          i += 1; // Skip invalid byte
+        }
+      } else if ((byte & 0xF0) == 0xE0) {
+        // 3-byte sequence
+        if (i + 2 < text.length()) {
+          codepoint = ((byte & 0x0F) << 12) | ((static_cast<uint8_t>(text[i + 1]) & 0x3F) << 6) |
+                      (static_cast<uint8_t>(text[i + 2]) & 0x3F);
+          i += 3;
+        } else {
+          i += 1; // Skip invalid byte
+        }
+      } else if ((byte & 0xF8) == 0xF0) {
+        // 4-byte sequence
+        if (i + 3 < text.length()) {
+          codepoint = ((byte & 0x07) << 18) | ((static_cast<uint8_t>(text[i + 1]) & 0x3F) << 12) |
+                      ((static_cast<uint8_t>(text[i + 2]) & 0x3F) << 6) | (static_cast<uint8_t>(text[i + 3]) & 0x3F);
+          i += 4;
+        } else {
+          i += 1; // Skip invalid byte
+        }
+      } else {
+        // Invalid UTF-8 sequence, skip
+        i += 1;
+      }
+
+      if (codepoint > 0) {
+        codepoints.push_back(codepoint);
+      }
+    }
+    return codepoints;
+  }
+
+  /**
    * @brief Render a single glyph to an OpenGL texture
    */
-  Glyph renderGlyph(char ch) {
+  Glyph renderGlyph(uint32_t codepoint) {
     Glyph glyph{};
 
     // Get glyph metrics
     int advance, leftSideBearing;
-    stbtt_GetCodepointHMetrics(&fontInfo_, ch, &advance, &leftSideBearing);
+    stbtt_GetCodepointHMetrics(&fontInfo_, static_cast<int>(codepoint), &advance, &leftSideBearing);
 
     int x0, y0, x1, y1;
-    stbtt_GetCodepointBitmapBox(&fontInfo_, ch, scale_, scale_, &x0, &y0, &x1, &y1);
+    stbtt_GetCodepointBitmapBox(&fontInfo_, static_cast<int>(codepoint), scale_, scale_, &x0, &y0, &x1, &y1);
 
     glyph.width = x1 - x0;
     glyph.height = y1 - y0;
@@ -239,7 +296,8 @@ private:
     // Render glyph to bitmap
     std::vector<uint8_t> bitmap(glyph.width * glyph.height);
     if (glyph.width > 0 && glyph.height > 0) {
-      stbtt_MakeCodepointBitmap(&fontInfo_, bitmap.data(), glyph.width, glyph.height, glyph.width, scale_, scale_, ch);
+      stbtt_MakeCodepointBitmap(&fontInfo_, bitmap.data(), glyph.width, glyph.height, glyph.width, scale_, scale_,
+                                static_cast<int>(codepoint));
     }
 
     // Convert single-channel bitmap to RGBA format
@@ -272,7 +330,7 @@ private:
 
   stbtt_fontinfo fontInfo_;
   std::vector<uint8_t> fontBuffer_;
-  std::unordered_map<char, Glyph> glyphs_;
+  std::unordered_map<uint32_t, Glyph> glyphs_;
   float fontSize_ = 0.0f;
   float scale_ = 0.0f;
   int ascent_ = 0;
