@@ -409,50 +409,81 @@ public:
                          theme.titleTextColor.a);
     }
 
-    // Render children (Component base will handle propagation)
-    Component::renderAll();
+    // Children will be rendered by parent's renderAll() call
+    // DO NOT call renderAll() here - that's for the parent to call
   }
 
   void update(double deltaTime) override {
-    // Default implementation - can be extended if needed
-    Component::updateAll(deltaTime);
+    // Default implementation - just passes through to children
+    // DO NOT call updateAll() here - that's for the parent to call
+    // The parent's updateAll() will already handle updating children
+    (void)deltaTime;
   }
 
-  bool handleEventSelf(const core::Event& event) override {
-    switch (event.type) {
-    case core::Event::Type::MOUSE_PRESS:
-      // Check if clicking in title bar for dragging
-      if (state.showTitleBar && event.localY < TITLE_BAR_HEIGHT) {
+  bool handleEvent(const core::Event& event) override {
+    // Custom event handling for Dialog to properly implement modal behavior:
+    // 1. Handle title bar dragging FIRST (before children)
+    // 2. Let children handle events (buttons, content, etc.)
+    // 3. For modal dialogs, consume remaining mouse events to block background
+
+    if (!enabled || !visible) {
+      return false;
+    }
+
+    // Check if event is within dialog bounds
+    bool isWithinBounds = !Component::isPositionalEvent(event.type) || containsEvent(event);
+    if (!isWithinBounds) {
+      return false;
+    }
+
+    // Handle title bar dragging FIRST (before children get the event)
+    if (state.showTitleBar && event.localY < TITLE_BAR_HEIGHT) {
+      if (event.type == core::Event::Type::MOUSE_PRESS) {
         state.dragging = true;
-        state.dragStartX = event.localX;
-        state.dragStartY = event.localY;
+        state.dragStartX = getGlobalX() + event.localX;
+        state.dragStartY = getGlobalY() + event.localY;
         state.dragOffsetX = getGlobalX();
         state.dragOffsetY = getGlobalY();
         return true;
       }
-      // Dialog consumes all mouse press events to prevent pass-through
-      return true;
+    }
 
-    case core::Event::Type::MOUSE_RELEASE:
-      if (state.dragging) {
+    // Handle ongoing drag
+    if (state.dragging) {
+      if (event.type == core::Event::Type::MOUSE_MOVE) {
+        int globalMouseX = getGlobalX() + event.localX;
+        int globalMouseY = getGlobalY() + event.localY;
+        int deltaX = globalMouseX - state.dragStartX;
+        int deltaY = globalMouseY - state.dragStartY;
+        Component::setPosition(state.dragOffsetX + deltaX, state.dragOffsetY + deltaY);
+        return true;
+      } else if (event.type == core::Event::Type::MOUSE_RELEASE) {
         state.dragging = false;
         return true;
       }
-      // Dialog consumes all mouse release events to prevent pass-through
-      return true;
+    }
 
-    case core::Event::Type::MOUSE_MOVE:
-      if (state.dragging) {
-        int deltaX = event.localX - state.dragStartX;
-        int deltaY = event.localY - state.dragStartY;
-        Component::setPosition(state.dragOffsetX + deltaX, state.dragOffsetY + deltaY);
-        return true;
+    // Propagate to children (in reverse z-order)
+    for (auto it = children.rbegin(); it != children.rend(); ++it) {
+      auto& child = *it;
+      if (child && child->isVisible()) {
+        int childX, childY;
+        child->getPosition(childX, childY);
+
+        core::Event childEvent = event;
+        if (Component::isPositionalEvent(event.type)) {
+          childEvent.localX = event.localX - childX;
+          childEvent.localY = event.localY - childY;
+        }
+
+        if (child->handleEvent(childEvent)) {
+          return true; // Child handled it
+        }
       }
-      // Don't consume mouse move if not dragging (let children receive hover events)
-      return false;
+    }
 
-    case core::Event::Type::KEY_PRESS:
-      // Escape key closes dialog
+    // Handle ESC key
+    if (event.type == core::Event::Type::KEY_PRESS) {
       if (event.key == static_cast<int>(events::Key::ESCAPE)) {
         hide();
         if (dialogCallback) {
@@ -460,12 +491,23 @@ public:
         }
         return true;
       }
-      // Let children handle other keys
-      return false;
-
-    default:
-      return false;
     }
+
+    // Modal dialogs consume ALL remaining mouse events to block background
+    if (state.type == DialogType::MODAL) {
+      if (event.type == core::Event::Type::MOUSE_PRESS || event.type == core::Event::Type::MOUSE_RELEASE ||
+          event.type == core::Event::Type::MOUSE_MOVE) {
+        return true; // Consume to prevent background interaction
+      }
+    }
+
+    return false;
+  }
+
+  bool handleEventSelf(const core::Event& event) override {
+    // Not used - we override handleEvent() directly for custom propagation
+    (void)event;
+    return false;
   }
 
   void setBounds(int x, int y, int width, int height) override { Component::setBounds(x, y, width, height); }

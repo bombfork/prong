@@ -3,7 +3,7 @@
  * @brief Comprehensive Demo Scene for Prong UI Framework
  *
  * This scene demonstrates ALL framework components and layouts:
- * - Components: Button, Panel, ListBox, TextInput
+ * - Components: Button, Panel, ListBox, TextInput, Dialog
  * - Layouts: FlexLayout, StackLayout, GridLayout, FlowLayout
  * - Scene-based architecture with ComponentBuilder pattern
  * - Hierarchical event handling (Scene::handleEvent propagates to children)
@@ -15,7 +15,7 @@
  * - Children handle events first (topmost rendered components get priority)
  * - Components override handleEventSelf() for custom event handling
  *
- * Note: Dialog, Toolbar, Viewport, Slider, ContextMenu are available but
+ * Note: Toolbar, Viewport, Slider, ContextMenu are available but
  * require additional setup and are not shown in this basic demo.
  */
 
@@ -24,6 +24,7 @@
 #include "../../common/glfw_adapters/glfw_adapters.h"
 #include <GLFW/glfw3.h>
 #include <bombfork/prong/components/button.h>
+#include <bombfork/prong/components/dialog.h>
 #include <bombfork/prong/components/list_box.h>
 #include <bombfork/prong/components/panel.h>
 #include <bombfork/prong/components/text_input.h>
@@ -54,6 +55,7 @@ private:
   // Keep references to interactive components
   TextInput* textInputPtr = nullptr;
   ListBox* listBoxPtr = nullptr;
+  Dialog* dialogPtr = nullptr;
   GLFWwindow* glfwWindow = nullptr;
   int clickCount = 0;
 
@@ -204,6 +206,11 @@ private:
       children[0]->invalidateLayout();
     }
 
+    // === Create About Dialog ===
+    auto dialog = buildAboutDialog();
+    dialogPtr = dialog.get();
+    addChild(std::move(dialog));
+
     // Print welcome message
     printWelcomeMessage();
   }
@@ -274,16 +281,17 @@ private:
     buttonRow->addChild(std::move(clearButton));
     leftPanel->addChild(std::move(buttonRow));
 
-    // === Info Button ===
-    auto infoButton = create<Button>("Show Info")
-                        .withClickCallback([]() {
-                          std::cout << "\n=== Prong UI Framework ===" << std::endl;
-                          std::cout << "Modern C++20 UI Framework" << std::endl;
-                          std::cout << "All layouts demonstrated!" << std::endl;
-                          std::cout << "========================\n" << std::endl;
-                        })
-                        .build();
-    leftPanel->addChild(std::move(infoButton));
+    // === About Dialog Button ===
+    auto aboutButton = create<Button>("About")
+                         .withClickCallback([this]() {
+                           if (dialogPtr) {
+                             std::cout << "Showing About dialog..." << std::endl;
+                             dialogPtr->show();
+                           }
+                         })
+                         .build();
+    aboutButton->setBackgroundColor(theming::Color(0.2f, 0.5f, 0.7f, 1.0f));
+    leftPanel->addChild(std::move(aboutButton));
 
     // === Spacer ===
     auto spacer = create<Panel<>>().build();
@@ -466,6 +474,7 @@ private:
     listBox->addItem("✓ Panel");
     listBox->addItem("✓ TextInput");
     listBox->addItem("✓ ListBox");
+    listBox->addItem("✓ Dialog");
     listBox->addItem("");
     listBox->addItem("All layouts shown:");
     listBox->addItem("✓ FlexLayout");
@@ -474,7 +483,6 @@ private:
     listBox->addItem("✓ FlowLayout");
     listBox->addItem("");
     listBox->addItem("Available (not shown):");
-    listBox->addItem("• Dialog");
     listBox->addItem("• Toolbar");
     listBox->addItem("• Viewport");
     listBox->addItem("• Slider");
@@ -485,6 +493,87 @@ private:
     rightPanel->addChild(std::move(listBox));
 
     return rightPanel;
+  }
+
+  /**
+   * @brief Build About Dialog with content and close button
+   */
+  std::unique_ptr<Dialog> buildAboutDialog() {
+    auto dialog = std::make_unique<Dialog>();
+
+    // Configure dialog properties
+    dialog->setTitle("About Prong UI Framework");
+    dialog->setDialogType(Dialog::DialogType::MODAL);
+    dialog->setMinimumSize(500, 400);
+
+    // Center dialog in window (will be positioned when shown)
+    int dialogWidth = 500;
+    int dialogHeight = 400;
+    int dialogX = (width - dialogWidth) / 2;
+    int dialogY = (height - dialogHeight) / 2;
+    dialog->setBounds(dialogX, dialogY, dialogWidth, dialogHeight);
+
+    // Initially hidden
+    dialog->hide();
+
+    // Create content panel with information
+    auto contentLayout = std::make_shared<FlexLayout>();
+    contentLayout->configure(FlexLayout::Configuration{
+      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 15.0f});
+
+    auto contentPanel = create<FlexPanel>().withLayout(contentLayout).build();
+    contentPanel->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f));
+    contentPanel->setPadding(20);
+    contentPanel->setBounds(0, 40, 500, 310); // Below title bar, above button area
+
+    // Add content text using buttons as labels (since we don't have a Label component)
+    auto titleLabel = create<Button>("Prong UI Framework").build();
+    titleLabel->setBackgroundColor(theming::Color(0.2f, 0.2f, 0.25f, 1.0f));
+    titleLabel->setEnabled(false); // Make it non-interactive
+    contentPanel->addChild(std::move(titleLabel));
+
+    auto versionLabel = create<Button>("Version 1.0.0").build();
+    versionLabel->setBackgroundColor(theming::Color(0.2f, 0.2f, 0.25f, 1.0f));
+    versionLabel->setEnabled(false);
+    contentPanel->addChild(std::move(versionLabel));
+
+    auto descLabel = create<Button>("A modern C++20 UI framework").build();
+    descLabel->setBackgroundColor(theming::Color(0.2f, 0.2f, 0.25f, 1.0f));
+    descLabel->setEnabled(false);
+    contentPanel->addChild(std::move(descLabel));
+
+    auto featuresLabel = create<Button>("Features: CRTP, Zero-cost abstractions").build();
+    featuresLabel->setBackgroundColor(theming::Color(0.2f, 0.2f, 0.25f, 1.0f));
+    featuresLabel->setEnabled(false);
+    contentPanel->addChild(std::move(featuresLabel));
+
+    auto rendererLabel = create<Button>("Renderer-agnostic and Window-agnostic").build();
+    rendererLabel->setBackgroundColor(theming::Color(0.2f, 0.2f, 0.25f, 1.0f));
+    rendererLabel->setEnabled(false);
+    contentPanel->addChild(std::move(rendererLabel));
+
+    // Add close button at the bottom
+    auto closeButton = create<Button>("Close")
+                         .withClickCallback([this]() {
+                           std::cout << "Closing About dialog..." << std::endl;
+                           if (dialogPtr) {
+                             dialogPtr->hide();
+                           }
+                         })
+                         .build();
+    closeButton->setBackgroundColor(theming::Color(0.3f, 0.5f, 0.3f, 1.0f));
+    closeButton->setBounds(175, 360, 150, 30); // Centered at bottom
+
+    // Add content and button to dialog
+    dialog->addChild(std::move(contentPanel));
+    dialog->addChild(std::move(closeButton));
+
+    // Set dialog callback
+    dialog->setDialogCallback([](Dialog::DialogResult result) {
+      std::cout << "Dialog closed with result: " << static_cast<int>(result) << std::endl;
+    });
+
+    return dialog;
   }
 
   /**
@@ -499,13 +588,13 @@ private:
     std::cout << "  ✓ Panel           - Container components with styling" << std::endl;
     std::cout << "  ✓ TextInput       - Text entry with clipboard support" << std::endl;
     std::cout << "  ✓ ListBox         - Scrollable item list with selection" << std::endl;
+    std::cout << "  ✓ Dialog          - Modal dialogs with buttons and content" << std::endl;
     std::cout << "\nLayout Managers Demonstrated:" << std::endl;
     std::cout << "  ✓ FlexLayout      - Flexible box layout (main structure)" << std::endl;
     std::cout << "  ✓ GridLayout      - 3x3 button grid" << std::endl;
     std::cout << "  ✓ StackLayout     - Horizontal button stack" << std::endl;
     std::cout << "  ✓ FlowLayout      - Wrapping tag interface" << std::endl;
     std::cout << "\nAdditional Components Available:" << std::endl;
-    std::cout << "  • Dialog          - Modal dialogs with buttons" << std::endl;
     std::cout << "  • Toolbar         - Top toolbar with tool buttons" << std::endl;
     std::cout << "  • Viewport        - Scrollable viewport with grid" << std::endl;
     std::cout << "  • Slider          - Value adjustment with visual feedback" << std::endl;
@@ -513,10 +602,10 @@ private:
     std::cout << "  • DockLayout      - Dockable panel layout manager" << std::endl;
     std::cout << "\nInteractive Features:" << std::endl;
     std::cout << "  • Type in text field and click 'Add' to add items" << std::endl;
-    std::cout << "  • Click 'Show Info' for framework information" << std::endl;
+    std::cout << "  • Click 'About' button to see modal dialog with framework info" << std::endl;
     std::cout << "  • Click any button to see console output" << std::endl;
     std::cout << "  • Select items in ListBox" << std::endl;
-    std::cout << "  • ESC or 'Exit Application' to close" << std::endl;
+    std::cout << "  • ESC key or 'Exit Application' to close" << std::endl;
     std::cout << "\n══════════════════════════════════════════════════════════════\n" << std::endl;
   }
 
