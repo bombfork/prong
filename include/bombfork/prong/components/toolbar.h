@@ -72,6 +72,12 @@ public:
     // For separators and spacers
     int separatorSize = 1; // Width for vertical separator, height for horizontal
     int spacerSize = 0;    // 0 = flexible, >0 = fixed size
+
+    // Layout position (calculated during updateLayout)
+    int posX = 0;
+    int posY = 0;
+    int layoutWidth = 0;
+    int layoutHeight = 0;
   };
 
   using ToolCallback = std::function<void(int toolId)>;
@@ -562,7 +568,7 @@ public:
 
     renderBackground();
 
-    // Render visible tools
+    // Render visible tools (including separators)
     for (const auto& tool : tools) {
       if (!tool->visible)
         continue;
@@ -570,7 +576,7 @@ public:
       if (tool->button) {
         tool->button->render();
       } else if (tool->type == ToolType::SEPARATOR) {
-        renderSeparators();
+        renderSeparator(tool.get());
       }
     }
 
@@ -689,6 +695,20 @@ private:
           currentX += toolWidth + state.toolSpacing;
         } else {
           currentY += toolHeight + state.toolSpacing;
+        }
+      } else if (tool->type == ToolType::SEPARATOR) {
+        // Store separator position and dimensions for rendering
+        tool->posX = currentX;
+        tool->posY = currentY;
+
+        if (state.orientation == Orientation::HORIZONTAL) {
+          tool->layoutWidth = tool->separatorSize;
+          tool->layoutHeight = toolHeight;
+          currentX += tool->separatorSize + state.toolSpacing;
+        } else {
+          tool->layoutWidth = toolWidth;
+          tool->layoutHeight = tool->separatorSize;
+          currentY += tool->separatorSize + state.toolSpacing;
         }
       }
     }
@@ -829,14 +849,19 @@ private:
   }
 
   /**
-   * @brief Render tool separators
+   * @brief Render a single separator
    */
-  void renderSeparators() {
-    if (!renderer)
+  void renderSeparator(ToolItem* separator) {
+    if (!renderer || !separator)
       return;
 
-    // Render separators between tools
-    // Implementation depends on renderer API
+    // Calculate global position for rendering
+    int globalX = getGlobalX() + separator->posX;
+    int globalY = getGlobalY() + separator->posY;
+
+    // Render separator as a thin line using the separator color from theme
+    renderer->drawRect(globalX, globalY, separator->layoutWidth, separator->layoutHeight, theme.separatorColor.r,
+                       theme.separatorColor.g, theme.separatorColor.b, theme.separatorColor.a);
   }
 
   /**

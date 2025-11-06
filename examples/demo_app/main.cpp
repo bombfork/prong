@@ -110,12 +110,6 @@ int main() {
       scene->updateAll(deltaTime);
       scene->renderAll();
 
-      if (fontRenderer) {
-        fontRenderer->renderText("Prong UI Framework - Scene Demo", 440, 715, 1.0f, 1.0f, 1.0f, 1.0f);
-        std::string fpsText = "FPS: " + std::to_string(static_cast<int>(std::round(1.0 / deltaTime)));
-        fontRenderer->renderText(fpsText, 1180, 18, 0.5f, 1.0f, 0.5f, 1.0f);
-      }
-
       renderer->endFrame();
     }
 

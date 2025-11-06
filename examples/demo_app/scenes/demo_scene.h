@@ -3,7 +3,7 @@
  * @brief Comprehensive Demo Scene for Prong UI Framework
  *
  * This scene demonstrates ALL framework components and layouts:
- * - Components: Button, Panel, ListBox, TextInput, Dialog
+ * - Components: Button, Panel, ListBox, TextInput, Dialog, ToolBar
  * - Layouts: FlexLayout, StackLayout, GridLayout, FlowLayout
  * - Scene-based architecture with ComponentBuilder pattern
  * - Hierarchical event handling (Scene::handleEvent propagates to children)
@@ -15,7 +15,7 @@
  * - Children handle events first (topmost rendered components get priority)
  * - Components override handleEventSelf() for custom event handling
  *
- * Note: Toolbar, Viewport, Slider, ContextMenu are available but
+ * Note: Viewport, Slider, ContextMenu are available but
  * require additional setup and are not shown in this basic demo.
  */
 
@@ -28,6 +28,7 @@
 #include <bombfork/prong/components/list_box.h>
 #include <bombfork/prong/components/panel.h>
 #include <bombfork/prong/components/text_input.h>
+#include <bombfork/prong/components/toolbar.h>
 #include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/scene.h>
 #include <bombfork/prong/layout/flex_layout.h>
@@ -48,6 +49,39 @@ using namespace bombfork::prong;
 using namespace bombfork::prong::layout;
 
 /**
+ * @brief Simple label component for rendering text
+ */
+class StatusLabel : public Component {
+private:
+  std::string text_;
+  theming::Color textColor_;
+
+public:
+  StatusLabel(const std::string& text, theming::Color color = theming::Color(1.0f, 1.0f, 1.0f, 1.0f))
+    : Component(nullptr), text_(text), textColor_(color) {}
+
+  void setText(const std::string& text) { text_ = text; }
+
+  void update(double deltaTime) override { (void)deltaTime; }
+
+  void render() override {
+    if (!renderer)
+      return;
+
+    // Render text at the component's global position
+    int gx = getGlobalX();
+    int gy = getGlobalY();
+
+    // Calculate baseline Y position
+    // Text baseline needs to be positioned so the text appears centered in the component
+    // For a 24px font in a 30px component, baseline at +18 from top works well
+    int baselineY = gy;
+
+    renderer->drawText(text_.c_str(), gx + 10, baselineY, textColor_.r, textColor_.g, textColor_.b, textColor_.a);
+  }
+};
+
+/**
  * @brief Comprehensive demo scene showing UI components and layouts
  */
 class DemoScene : public Scene {
@@ -56,8 +90,12 @@ private:
   TextInput* textInputPtr = nullptr;
   ListBox* listBoxPtr = nullptr;
   Dialog* dialogPtr = nullptr;
+  ToolBar* toolBarPtr = nullptr;
+  StatusLabel* fpsLabelPtr = nullptr;
   GLFWwindow* glfwWindow = nullptr;
   int clickCount = 0;
+  double lastFpsUpdateTime = 0.0;
+  double lastDeltaTime = 0.016;
 
   // GLFW adapters for TextInput
   examples::glfw::GLFWAdapters adapters;
@@ -76,6 +114,21 @@ public:
   }
 
   virtual ~DemoScene() = default;
+
+  /**
+   * @brief Update scene and FPS counter
+   */
+  void update(double deltaTime) override {
+    lastDeltaTime = deltaTime;
+    lastFpsUpdateTime += deltaTime;
+
+    // Update FPS counter every 0.1 seconds
+    if (lastFpsUpdateTime >= 0.1 && fpsLabelPtr) {
+      int fps = static_cast<int>(std::round(1.0 / deltaTime));
+      fpsLabelPtr->setText("FPS: " + std::to_string(fps));
+      lastFpsUpdateTime = 0.0;
+    }
+  }
 
   /**
    * @brief Setup window callbacks to route events to the scene
@@ -179,6 +232,22 @@ private:
       {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}  // Right panel: fixed width (320px)
     });
 
+    // === TOOLBAR PANEL - Top Application Toolbar ===
+    auto toolbar = buildToolbar();
+    toolBarPtr = toolbar.get();
+
+    // Create toolbar panel with FlexLayout to properly size the toolbar
+    auto toolbarPanelLayout = std::make_shared<FlexLayout>();
+    toolbarPanelLayout->configure(FlexLayout::Configuration{
+      .direction = FlexDirection::ROW, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 0.0f});
+
+    auto toolbarPanel = create<FlexPanel>().withSize(0, 40).withLayout(toolbarPanelLayout).build();
+    toolbarPanel->setBackgroundColor(theming::Color(0.12f, 0.12f, 0.14f, 1.0f));
+    toolbarPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
+    toolbarPanel->setBorderWidth(1);
+    toolbarPanel->setPadding(5);
+    toolbarPanel->addChild(std::move(toolbar));
+
     // === LEFT PANEL - Controls & Inputs ===
     auto leftPanel = buildControlPanel();
 
@@ -188,17 +257,60 @@ private:
     // === RIGHT PANEL - Component Showcase ===
     auto rightPanel = buildComponentShowcase();
 
-    // === Assemble with FlexLayout ===
-    auto mainContainer = create<FlexPanel>().withLayout(mainLayout).build();
-    mainContainer->setBackgroundColor(theming::Color(0.08f, 0.08f, 0.1f, 1.0f));
-    mainContainer->setPadding(15);
+    // === Assemble 3-panel layout with FlexLayout ===
+    auto threePanelContainer = create<FlexPanel>().withLayout(mainLayout).build();
+    threePanelContainer->setBackgroundColor(theming::Color(0.08f, 0.08f, 0.1f, 1.0f));
+    threePanelContainer->setPadding(15);
 
-    mainContainer->addChild(std::move(leftPanel));
-    mainContainer->addChild(std::move(centerPanel));
-    mainContainer->addChild(std::move(rightPanel));
+    threePanelContainer->addChild(std::move(leftPanel));
+    threePanelContainer->addChild(std::move(centerPanel));
+    threePanelContainer->addChild(std::move(rightPanel));
 
-    // Add main container to scene
-    addChild(std::move(mainContainer));
+    // === STATUS BAR PANEL - Bottom Status Information ===
+    auto statusBarLayout = std::make_shared<FlexLayout>();
+    statusBarLayout->configure(FlexLayout::Configuration{.direction = FlexDirection::ROW,
+                                                         .justify = FlexJustify::SPACE_BETWEEN,
+                                                         .align = FlexAlign::CENTER,
+                                                         .gap = 10.0f});
+
+    auto statusBarPanel = create<FlexPanel>().withSize(0, 30).withLayout(statusBarLayout).build();
+    statusBarPanel->setBackgroundColor(theming::Color(0.1f, 0.1f, 0.12f, 1.0f));
+    statusBarPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
+    statusBarPanel->setBorderWidth(1);
+    statusBarPanel->setPadding(5);
+
+    // Left status label
+    auto appNameLabel = std::make_unique<StatusLabel>("Prong UI Framework - Scene Demo");
+    appNameLabel->setRenderer(renderer);
+    appNameLabel->setBounds(0, 0, 300, 20);
+    statusBarPanel->addChild(std::move(appNameLabel));
+
+    // Right FPS label
+    auto fpsLabel = std::make_unique<StatusLabel>("FPS: 60", theming::Color(0.5f, 1.0f, 0.5f, 1.0f));
+    fpsLabel->setRenderer(renderer);
+    fpsLabel->setBounds(0, 0, 100, 20);
+    fpsLabelPtr = fpsLabel.get();
+    statusBarPanel->addChild(std::move(fpsLabel));
+
+    // === Create outer vertical layout: Toolbar on top, 3-panel in middle, status bar at bottom ===
+    auto outerLayout = std::make_shared<FlexLayout>();
+    outerLayout->configure(FlexLayout::Configuration{
+      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 0.0f});
+    outerLayout->setItemProperties({
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // Toolbar panel: fixed height
+      {.grow = 1.0f, .shrink = 1.0f, .basis = 0.0f}, // 3-panel container: fill remaining space
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}  // Status bar: fixed height
+    });
+
+    auto rootContainer = create<FlexPanel>().withLayout(outerLayout).build();
+    rootContainer->setBackgroundColor(theming::Color(0.08f, 0.08f, 0.1f, 1.0f));
+
+    rootContainer->addChild(std::move(toolbarPanel));
+    rootContainer->addChild(std::move(threePanelContainer));
+    rootContainer->addChild(std::move(statusBarPanel));
+
+    // Add root container to scene
+    addChild(std::move(rootContainer));
 
     // Initialize main container size to match scene/window
     if (!children.empty() && children[0]) {
@@ -470,20 +582,20 @@ private:
     });
     listBox->addItem("Welcome to Prong Demo!");
     listBox->addItem("All components shown:");
-    listBox->addItem("✓ Button");
-    listBox->addItem("✓ Panel");
-    listBox->addItem("✓ TextInput");
-    listBox->addItem("✓ ListBox");
-    listBox->addItem("✓ Dialog");
+    listBox->addItem("* Button");
+    listBox->addItem("* Panel");
+    listBox->addItem("* TextInput");
+    listBox->addItem("* ListBox");
+    listBox->addItem("* Dialog");
+    listBox->addItem("* ToolBar");
     listBox->addItem("");
     listBox->addItem("All layouts shown:");
-    listBox->addItem("✓ FlexLayout");
-    listBox->addItem("✓ GridLayout");
-    listBox->addItem("✓ StackLayout");
-    listBox->addItem("✓ FlowLayout");
+    listBox->addItem("* FlexLayout");
+    listBox->addItem("* GridLayout");
+    listBox->addItem("* StackLayout");
+    listBox->addItem("* FlowLayout");
     listBox->addItem("");
     listBox->addItem("Available (not shown):");
-    listBox->addItem("• Toolbar");
     listBox->addItem("• Viewport");
     listBox->addItem("• Slider");
     listBox->addItem("• ContextMenu");
@@ -493,6 +605,57 @@ private:
     rightPanel->addChild(std::move(listBox));
 
     return rightPanel;
+  }
+
+  /**
+   * @brief Build Toolbar with multiple actions and separator
+   */
+  std::unique_ptr<ToolBar> buildToolbar() {
+    auto toolbar = std::make_unique<ToolBar>();
+    toolbar->setRenderer(renderer);
+
+    // Set toolbar size and orientation
+    toolbar->setOrientation(ToolBar::Orientation::HORIZONTAL);
+    toolbar->setToolSize(ToolBar::ToolSize::MEDIUM);
+    toolbar->setShowText(true);
+
+    // Add File action
+    int fileId = toolbar->addTool("File", "", "Open or save files", "Ctrl+F");
+
+    // Add Edit action
+    int editId = toolbar->addTool("Edit", "", "Edit operations", "Ctrl+E");
+
+    // Add a separator
+    toolbar->addSeparator();
+
+    // Add View action (toggle button)
+    int viewId = toolbar->addToggleTool("View", "", "Toggle view options", false, "Ctrl+V");
+
+    // Add another separator
+    toolbar->addSeparator();
+
+    // Add Help action
+    int helpId = toolbar->addTool("Help", "", "Show help documentation", "F1");
+
+    // Set toolbar callback for actions
+    toolbar->setToolCallback([this, fileId, editId, viewId, helpId](int toolId) {
+      if (toolId == fileId) {
+        std::cout << "[Toolbar] File action triggered" << std::endl;
+      } else if (toolId == editId) {
+        std::cout << "[Toolbar] Edit action triggered" << std::endl;
+      } else if (toolId == viewId) {
+        std::cout << "[Toolbar] View action triggered (toggle state changed)" << std::endl;
+      } else if (toolId == helpId) {
+        std::cout << "[Toolbar] Help action triggered" << std::endl;
+      }
+    });
+
+    // Set toolbar state callback for toggle buttons
+    toolbar->setToolStateCallback([](int toolId, bool checked) {
+      std::cout << "[Toolbar] Tool " << toolId << " checked state: " << (checked ? "ON" : "OFF") << std::endl;
+    });
+
+    return toolbar;
   }
 
   /**
@@ -584,23 +747,24 @@ private:
     std::cout << "║         Prong UI Framework - Comprehensive Demo             ║" << std::endl;
     std::cout << "╚══════════════════════════════════════════════════════════════╝" << std::endl;
     std::cout << "\nCore Components Demonstrated:" << std::endl;
-    std::cout << "  ✓ Button          - Interactive buttons with callbacks" << std::endl;
-    std::cout << "  ✓ Panel           - Container components with styling" << std::endl;
-    std::cout << "  ✓ TextInput       - Text entry with clipboard support" << std::endl;
-    std::cout << "  ✓ ListBox         - Scrollable item list with selection" << std::endl;
-    std::cout << "  ✓ Dialog          - Modal dialogs with buttons and content" << std::endl;
+    std::cout << "  * Button          - Interactive buttons with callbacks" << std::endl;
+    std::cout << "  * Panel           - Container components with styling" << std::endl;
+    std::cout << "  * TextInput       - Text entry with clipboard support" << std::endl;
+    std::cout << "  * ListBox         - Scrollable item list with selection" << std::endl;
+    std::cout << "  * Dialog          - Modal dialogs with buttons and content" << std::endl;
+    std::cout << "  * ToolBar         - Toolbar with actions, toggles, and separators" << std::endl;
     std::cout << "\nLayout Managers Demonstrated:" << std::endl;
-    std::cout << "  ✓ FlexLayout      - Flexible box layout (main structure)" << std::endl;
-    std::cout << "  ✓ GridLayout      - 3x3 button grid" << std::endl;
-    std::cout << "  ✓ StackLayout     - Horizontal button stack" << std::endl;
-    std::cout << "  ✓ FlowLayout      - Wrapping tag interface" << std::endl;
+    std::cout << "  * FlexLayout      - Flexible box layout (main structure)" << std::endl;
+    std::cout << "  * GridLayout      - 3x3 button grid" << std::endl;
+    std::cout << "  * StackLayout     - Horizontal button stack" << std::endl;
+    std::cout << "  * FlowLayout      - Wrapping tag interface" << std::endl;
     std::cout << "\nAdditional Components Available:" << std::endl;
-    std::cout << "  • Toolbar         - Top toolbar with tool buttons" << std::endl;
     std::cout << "  • Viewport        - Scrollable viewport with grid" << std::endl;
     std::cout << "  • Slider          - Value adjustment with visual feedback" << std::endl;
     std::cout << "  • ContextMenu     - Right-click context menus" << std::endl;
     std::cout << "  • DockLayout      - Dockable panel layout manager" << std::endl;
     std::cout << "\nInteractive Features:" << std::endl;
+    std::cout << "  • Click Toolbar actions (File, Edit, View, Help) to see console output" << std::endl;
     std::cout << "  • Type in text field and click 'Add' to add items" << std::endl;
     std::cout << "  • Click 'About' button to see modal dialog with framework info" << std::endl;
     std::cout << "  • Click any button to see console output" << std::endl;
