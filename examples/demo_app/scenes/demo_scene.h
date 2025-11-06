@@ -3,7 +3,7 @@
  * @brief Comprehensive Demo Scene for Prong UI Framework
  *
  * This scene demonstrates ALL framework components and layouts:
- * - Components: Button, Panel, ListBox, TextInput, Dialog
+ * - Components: Button, Panel, ListBox, TextInput, Dialog, ToolBar
  * - Layouts: FlexLayout, StackLayout, GridLayout, FlowLayout
  * - Scene-based architecture with ComponentBuilder pattern
  * - Hierarchical event handling (Scene::handleEvent propagates to children)
@@ -15,7 +15,7 @@
  * - Children handle events first (topmost rendered components get priority)
  * - Components override handleEventSelf() for custom event handling
  *
- * Note: Toolbar, Viewport, Slider, ContextMenu are available but
+ * Note: Viewport, Slider, ContextMenu are available but
  * require additional setup and are not shown in this basic demo.
  */
 
@@ -28,6 +28,7 @@
 #include <bombfork/prong/components/list_box.h>
 #include <bombfork/prong/components/panel.h>
 #include <bombfork/prong/components/text_input.h>
+#include <bombfork/prong/components/toolbar.h>
 #include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/scene.h>
 #include <bombfork/prong/layout/flex_layout.h>
@@ -56,6 +57,7 @@ private:
   TextInput* textInputPtr = nullptr;
   ListBox* listBoxPtr = nullptr;
   Dialog* dialogPtr = nullptr;
+  ToolBar* toolBarPtr = nullptr;
   GLFWwindow* glfwWindow = nullptr;
   int clickCount = 0;
 
@@ -230,6 +232,11 @@ private:
     leftPanel->setBorderWidth(2);
     leftPanel->setTitle("Controls");
     leftPanel->setPadding(15);
+
+    // === Toolbar Demo ===
+    auto toolbar = buildToolbar();
+    toolBarPtr = toolbar.get();
+    leftPanel->addChild(std::move(toolbar));
 
     // === TextInput Demo ===
     auto textInput =
@@ -475,6 +482,7 @@ private:
     listBox->addItem("✓ TextInput");
     listBox->addItem("✓ ListBox");
     listBox->addItem("✓ Dialog");
+    listBox->addItem("✓ ToolBar");
     listBox->addItem("");
     listBox->addItem("All layouts shown:");
     listBox->addItem("✓ FlexLayout");
@@ -483,7 +491,6 @@ private:
     listBox->addItem("✓ FlowLayout");
     listBox->addItem("");
     listBox->addItem("Available (not shown):");
-    listBox->addItem("• Toolbar");
     listBox->addItem("• Viewport");
     listBox->addItem("• Slider");
     listBox->addItem("• ContextMenu");
@@ -493,6 +500,57 @@ private:
     rightPanel->addChild(std::move(listBox));
 
     return rightPanel;
+  }
+
+  /**
+   * @brief Build Toolbar with multiple actions and separator
+   */
+  std::unique_ptr<ToolBar> buildToolbar() {
+    auto toolbar = std::make_unique<ToolBar>();
+    toolbar->setRenderer(renderer);
+
+    // Set toolbar size and orientation
+    toolbar->setOrientation(ToolBar::Orientation::HORIZONTAL);
+    toolbar->setToolSize(ToolBar::ToolSize::MEDIUM);
+    toolbar->setShowText(true);
+
+    // Add File action
+    int fileId = toolbar->addTool("File", "", "Open or save files", "Ctrl+F");
+
+    // Add Edit action
+    int editId = toolbar->addTool("Edit", "", "Edit operations", "Ctrl+E");
+
+    // Add a separator
+    toolbar->addSeparator();
+
+    // Add View action (toggle button)
+    int viewId = toolbar->addToggleTool("View", "", "Toggle view options", false, "Ctrl+V");
+
+    // Add another separator
+    toolbar->addSeparator();
+
+    // Add Help action
+    int helpId = toolbar->addTool("Help", "", "Show help documentation", "F1");
+
+    // Set toolbar callback for actions
+    toolbar->setToolCallback([this, fileId, editId, viewId, helpId](int toolId) {
+      if (toolId == fileId) {
+        std::cout << "[Toolbar] File action triggered" << std::endl;
+      } else if (toolId == editId) {
+        std::cout << "[Toolbar] Edit action triggered" << std::endl;
+      } else if (toolId == viewId) {
+        std::cout << "[Toolbar] View action triggered (toggle state changed)" << std::endl;
+      } else if (toolId == helpId) {
+        std::cout << "[Toolbar] Help action triggered" << std::endl;
+      }
+    });
+
+    // Set toolbar state callback for toggle buttons
+    toolbar->setToolStateCallback([](int toolId, bool checked) {
+      std::cout << "[Toolbar] Tool " << toolId << " checked state: " << (checked ? "ON" : "OFF") << std::endl;
+    });
+
+    return toolbar;
   }
 
   /**
@@ -589,18 +647,19 @@ private:
     std::cout << "  ✓ TextInput       - Text entry with clipboard support" << std::endl;
     std::cout << "  ✓ ListBox         - Scrollable item list with selection" << std::endl;
     std::cout << "  ✓ Dialog          - Modal dialogs with buttons and content" << std::endl;
+    std::cout << "  ✓ ToolBar         - Toolbar with actions, toggles, and separators" << std::endl;
     std::cout << "\nLayout Managers Demonstrated:" << std::endl;
     std::cout << "  ✓ FlexLayout      - Flexible box layout (main structure)" << std::endl;
     std::cout << "  ✓ GridLayout      - 3x3 button grid" << std::endl;
     std::cout << "  ✓ StackLayout     - Horizontal button stack" << std::endl;
     std::cout << "  ✓ FlowLayout      - Wrapping tag interface" << std::endl;
     std::cout << "\nAdditional Components Available:" << std::endl;
-    std::cout << "  • Toolbar         - Top toolbar with tool buttons" << std::endl;
     std::cout << "  • Viewport        - Scrollable viewport with grid" << std::endl;
     std::cout << "  • Slider          - Value adjustment with visual feedback" << std::endl;
     std::cout << "  • ContextMenu     - Right-click context menus" << std::endl;
     std::cout << "  • DockLayout      - Dockable panel layout manager" << std::endl;
     std::cout << "\nInteractive Features:" << std::endl;
+    std::cout << "  • Click Toolbar actions (File, Edit, View, Help) to see console output" << std::endl;
     std::cout << "  • Type in text field and click 'Add' to add items" << std::endl;
     std::cout << "  • Click 'About' button to see modal dialog with framework info" << std::endl;
     std::cout << "  • Click any button to see console output" << std::endl;
