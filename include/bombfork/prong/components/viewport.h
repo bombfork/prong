@@ -484,16 +484,16 @@ public:
    */
   void applyTheme(const bombfork::prong::theming::AdvancedTheme& advancedTheme) {
     // Map advanced theme to viewport theme
-    theme.backgroundColor = advancedTheme.primary;
-    theme.borderColor = advancedTheme.border;
-    theme.gridColor = advancedTheme.text;
-    theme.rulerColor = advancedTheme.secondary;
-    theme.rulerTextColor = advancedTheme.text;
-    theme.selectionColor = advancedTheme.accent;
-    theme.selectionBorderColor = advancedTheme.accent;
-    theme.scrollbarTrackColor = advancedTheme.secondary;
-    theme.scrollbarThumbColor = advancedTheme.text;
-    theme.scrollbarThumbHoverColor = advancedTheme.accent;
+    theme.backgroundColor = advancedTheme.colors.surface;
+    theme.borderColor = advancedTheme.colors.border;
+    theme.gridColor = advancedTheme.colors.textSecondary;
+    theme.rulerColor = advancedTheme.colors.secondary;
+    theme.rulerTextColor = advancedTheme.colors.textPrimary;
+    theme.selectionColor = advancedTheme.colors.selected;
+    theme.selectionBorderColor = advancedTheme.colors.borderFocus;
+    theme.scrollbarTrackColor = advancedTheme.colors.secondary;
+    theme.scrollbarThumbColor = advancedTheme.colors.textSecondary;
+    theme.scrollbarThumbHoverColor = advancedTheme.colors.hover;
   }
 
   /**
@@ -627,8 +627,10 @@ public:
 
   bombfork::prong::layout::LayoutMeasurement measurePreferredSize() const {
     // Return preferred size based on content dimensions
-    return bombfork::prong::layout::LayoutMeasurement{state.contentWidth > 0 ? state.contentWidth : 400,
-                                                      state.contentHeight > 0 ? state.contentHeight : 300};
+    int preferredWidth = state.contentWidth > 0 ? state.contentWidth : 400;
+    int preferredHeight = state.contentHeight > 0 ? state.contentHeight : 300;
+    return bombfork::prong::layout::LayoutMeasurement(bombfork::prong::layout::Measurement(preferredWidth),
+                                                      bombfork::prong::layout::Measurement(preferredHeight));
   }
 
 private:
