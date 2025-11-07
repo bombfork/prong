@@ -63,8 +63,9 @@ public:
     float animationDuration = 0.3f; // seconds
   };
 
-  using RenderCallback = std::function<void(bombfork::prong::rendering::IRenderer* renderer,
-                                            const ViewportTransform& transform, int viewportWidth, int viewportHeight)>;
+  using RenderCallback =
+    std::function<void(bombfork::prong::rendering::IRenderer* renderer, const ViewportTransform& transform,
+                       int viewportWidth, int viewportHeight, int viewportX, int viewportY)>;
   using ZoomChangedCallback = std::function<void(float zoomLevel)>;
   using PanChangedCallback = std::function<void(float panX, float panY)>;
   using SelectionCallback = std::function<void(int x, int y, int width, int height)>;
@@ -547,9 +548,14 @@ public:
                          theme.borderColor.a);
     }
 
+    // Enable scissor test to clip content to viewport bounds
+    renderer->enableScissorTest(gx, gy, width, height);
+
     // Call custom render callback if provided
     if (renderCallback) {
-      renderCallback(renderer, transform, width, height);
+      // Pass the viewport's global position to the callback so it can offset all rendering
+      // The callback should add viewportX/viewportY to all draw coordinates
+      renderCallback(renderer, transform, width, height, gx, gy);
     }
 
     // Render grid if enabled
@@ -571,6 +577,9 @@ public:
     if (state.showFPS) {
       renderFPS();
     }
+
+    // Disable scissor test after rendering all viewport content
+    renderer->disableScissorTest();
   }
 
   bool handleEventSelf(const core::Event& event) override {

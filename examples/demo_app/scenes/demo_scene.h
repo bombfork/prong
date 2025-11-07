@@ -582,10 +582,11 @@ private:
     wrapperPanel->setTitle("Viewport (Scrollable Content with Pan & Zoom)");
     wrapperPanel->setPadding(10);
 
-    // Create viewport with fixed size to demonstrate scrolling
+    // Create viewport with fixed height to demonstrate scrolling
+    // Width will be set by FlexLayout, only set height
     auto viewport = std::make_unique<Viewport>();
     viewport->setRenderer(renderer);
-    viewport->setBounds(0, 0, 0, 250); // Fixed height to ensure scrolling is needed
+    viewport->setSize(0, 250); // Fixed height, width will be set by layout
 
     // Set large content size to enable scrolling
     viewport->setContentSize(800, 600);
@@ -595,52 +596,57 @@ private:
     viewport->setShowScrollbars(true);
 
     // Create render callback with visible content
-    viewport->setRenderCallback(
-      [this](rendering::IRenderer* rend, const Viewport::ViewportTransform& transform, int, int) {
-        // Draw a checkerboard pattern to show viewport boundaries
-        const int tileSize = 40;
-        for (int y = 0; y < 15; ++y) {
-          for (int x = 0; x < 20; ++x) {
-            bool isDark = (x + y) % 2 == 0;
-            float brightness = isDark ? 0.25f : 0.35f;
+    // The callback receives viewportX/viewportY which is the viewport's global screen position
+    // All rendering must be offset by viewportX/viewportY to appear within the viewport
+    viewport->setRenderCallback([this](rendering::IRenderer* rend, const Viewport::ViewportTransform& transform, int,
+                                       int, int viewportX, int viewportY) {
+      // Draw a checkerboard pattern to show viewport boundaries
+      // Content coordinates: (0,0) to (800,600) in content space
+      // Transform: apply zoom and pan, then offset by viewport position
+      const int tileSize = 40;
+      for (int y = 0; y < 15; ++y) {
+        for (int x = 0; x < 20; ++x) {
+          bool isDark = (x + y) % 2 == 0;
+          float brightness = isDark ? 0.25f : 0.35f;
 
-            int tileX = static_cast<int>(x * tileSize * transform.zoomLevel + transform.panX);
-            int tileY = static_cast<int>(y * tileSize * transform.zoomLevel + transform.panY);
-            int tileW = static_cast<int>(tileSize * transform.zoomLevel);
-            int tileH = static_cast<int>(tileSize * transform.zoomLevel);
+          // Content position -> zoomed position -> panned position -> screen position
+          int tileX = static_cast<int>(viewportX + x * tileSize * transform.zoomLevel + transform.panX);
+          int tileY = static_cast<int>(viewportY + y * tileSize * transform.zoomLevel + transform.panY);
+          int tileW = static_cast<int>(tileSize * transform.zoomLevel);
+          int tileH = static_cast<int>(tileSize * transform.zoomLevel);
 
-            rend->drawRect(tileX, tileY, tileW, tileH, brightness, brightness, brightness, 1.0f);
-          }
+          rend->drawRect(tileX, tileY, tileW, tileH, brightness, brightness, brightness, 1.0f);
         }
+      }
 
-        // Draw border rectangles to show content boundaries
-        int contentW = static_cast<int>(800 * transform.zoomLevel);
-        int contentH = static_cast<int>(600 * transform.zoomLevel);
-        int borderX = static_cast<int>(transform.panX);
-        int borderY = static_cast<int>(transform.panY);
+      // Draw border rectangles to show content boundaries
+      int contentW = static_cast<int>(800 * transform.zoomLevel);
+      int contentH = static_cast<int>(600 * transform.zoomLevel);
+      int borderX = static_cast<int>(viewportX + transform.panX);
+      int borderY = static_cast<int>(viewportY + transform.panY);
 
-        // Outer content border (cyan)
-        rend->drawRect(borderX, borderY, contentW, contentH, 0.0f, 0.8f, 0.8f, 1.0f);
+      // Outer content border (cyan)
+      rend->drawRect(borderX, borderY, contentW, contentH, 0.0f, 0.8f, 0.8f, 1.0f);
 
-        // Inner border showing safe area (yellow)
-        rend->drawRect(borderX + 20, borderY + 20, contentW - 40, contentH - 40, 0.8f, 0.8f, 0.0f, 1.0f);
+      // Inner border showing safe area (yellow)
+      rend->drawRect(borderX + 20, borderY + 20, contentW - 40, contentH - 40, 0.8f, 0.8f, 0.0f, 1.0f);
 
-        // Draw some text labels to demonstrate content
-        if (rend) {
-          int labelX = static_cast<int>(50 * transform.zoomLevel + transform.panX);
-          int labelY = static_cast<int>(50 * transform.zoomLevel + transform.panY);
-          rend->drawText("Viewport Demo: Drag to pan, scroll to zoom", labelX, labelY, 1.0f, 1.0f, 1.0f, 1.0f);
+      // Draw some text labels to demonstrate content
+      if (rend) {
+        int labelX = static_cast<int>(viewportX + 50 * transform.zoomLevel + transform.panX);
+        int labelY = static_cast<int>(viewportY + 50 * transform.zoomLevel + transform.panY);
+        rend->drawText("Viewport Demo: Drag to pan, scroll to zoom", labelX, labelY, 1.0f, 1.0f, 1.0f, 1.0f);
 
-          labelY += static_cast<int>(30 * transform.zoomLevel);
-          rend->drawText("Content Size: 800x600", labelX, labelY, 0.8f, 0.8f, 0.8f, 1.0f);
+        labelY += static_cast<int>(30 * transform.zoomLevel);
+        rend->drawText("Content Size: 800x600", labelX, labelY, 0.8f, 0.8f, 0.8f, 1.0f);
 
-          labelY += static_cast<int>(30 * transform.zoomLevel);
-          rend->drawText("Cyan border = content boundary", labelX, labelY, 0.0f, 0.8f, 0.8f, 1.0f);
+        labelY += static_cast<int>(30 * transform.zoomLevel);
+        rend->drawText("Cyan border = content boundary", labelX, labelY, 0.0f, 0.8f, 0.8f, 1.0f);
 
-          labelY += static_cast<int>(30 * transform.zoomLevel);
-          rend->drawText("Yellow border = safe area", labelX, labelY, 0.8f, 0.8f, 0.0f, 1.0f);
-        }
-      });
+        labelY += static_cast<int>(30 * transform.zoomLevel);
+        rend->drawText("Yellow border = safe area", labelX, labelY, 0.8f, 0.8f, 0.0f, 1.0f);
+      }
+    });
 
     // Add zoom/pan change callbacks for debugging
     viewport->setZoomCallback([](float zoom) { std::cout << "Viewport zoom: " << zoom << std::endl; });
