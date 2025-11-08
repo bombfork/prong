@@ -438,10 +438,10 @@ private:
     // Configure flex properties: all panels fixed at their natural sizes
     // This allows each layout to size itself based on its content
     centerLayout->setItemProperties({
-      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // GridLayout: fixed at natural size (120px)
-      {.grow = 0.0f, .shrink = 1.0f, .basis = 0.0f}, // FlowLayout: fixed at natural size, can shrink if needed
+      {.grow = 0.0f, .shrink = 1.0f, .basis = 0.0f}, // GridLayout: fixed at natural size (120px)
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // FlowLayout: fixed at natural size, can shrink if needed
       {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // StackLayout: fixed at natural size (60px)
-      {.grow = 1.0f, .shrink = 1.0f, .basis = 0.0f}  // Viewport: grow to fill remaining space
+      {.grow = 1.0f, .shrink = 0.0f, .basis = 0.0f}  // Viewport: grow to fill remaining space
     });
 
     auto centerPanel = create<FlexPanel>().withLayout(centerLayout).build();
@@ -586,7 +586,7 @@ private:
     // Width will be set by FlexLayout, only set height
     auto viewport = std::make_unique<Viewport>();
     viewport->setRenderer(renderer);
-    viewport->setSize(0, 250); // Fixed height, width will be set by layout
+    viewport->setSize(0, 0); // Fixed height, width will be set by layout
 
     // Set large content size to enable scrolling
     viewport->setContentSize(800, 600);
