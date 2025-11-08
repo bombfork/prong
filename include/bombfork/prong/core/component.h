@@ -168,11 +168,23 @@ public:
    * @param newHeight Component height
    */
   virtual void setBounds(int newX, int newY, int newWidth, int newHeight) {
+    // Check if size actually changed
+    bool sizeChanged = (width != newWidth || height != newHeight);
+
     localX = newX;
     localY = newY;
     width = newWidth;
     height = newHeight;
     invalidateGlobalCache();
+
+    // If size changed, notify children so they can apply their resize behavior
+    if (sizeChanged) {
+      for (auto& child : children) {
+        if (child) {
+          child->onParentResize(newWidth, newHeight);
+        }
+      }
+    }
   }
 
   /**
