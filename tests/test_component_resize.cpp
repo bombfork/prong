@@ -63,14 +63,19 @@ void testResizeBehaviorFill() {
   auto* childPtr = child.get();
   parent.addChild(std::move(child));
 
-  // Resize parent - FILL should match parent size
+  // Resize parent larger - FILL should match parent size (grow)
   childPtr->onParentResize(1024, 768);
 
   int x, y, w, h;
   childPtr->getBounds(x, y, w, h);
   assert(x == 0 && y == 0 && w == 1024 && h == 768);
 
-  std::cout << "✓ ResizeBehavior::FILL test passed" << std::endl;
+  // Resize parent smaller - FILL should match parent size (shrink)
+  childPtr->onParentResize(640, 480);
+  childPtr->getBounds(x, y, w, h);
+  assert(x == 0 && y == 0 && w == 640 && h == 480);
+
+  std::cout << "✓ ResizeBehavior::FILL test passed (grow and shrink)" << std::endl;
 }
 
 void testResizeBehaviorScale() {
@@ -89,14 +94,19 @@ void testResizeBehaviorScale() {
   // First call to onParentResize establishes original parent size
   childPtr->onParentResize(800, 600);
 
-  // Now resize to 2x - should scale proportionally
+  // Resize to 2x - should scale proportionally (grow)
   childPtr->onParentResize(1600, 1200);
 
   int x, y, w, h;
   childPtr->getBounds(x, y, w, h);
   assert(x == 200 && y == 200 && w == 400 && h == 300);
 
-  std::cout << "✓ ResizeBehavior::SCALE test passed" << std::endl;
+  // Resize to 0.5x - should scale proportionally (shrink)
+  childPtr->onParentResize(400, 300);
+  childPtr->getBounds(x, y, w, h);
+  assert(x == 50 && y == 50 && w == 100 && h == 75);
+
+  std::cout << "✓ ResizeBehavior::SCALE test passed (grow and shrink)" << std::endl;
 }
 
 void testResizeBehaviorMaintainAspect() {

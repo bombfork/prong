@@ -115,6 +115,11 @@ protected:
   ResponsiveConstraints constraints;
   int originalParentWidth = 0;
   int originalParentHeight = 0;
+  // Original component dimensions (for SCALE and MAINTAIN_ASPECT behaviors)
+  int originalLocalX = 0;
+  int originalLocalY = 0;
+  int originalWidth = 0;
+  int originalHeight = 0;
 
   // Parent/child relationships
   Component* parent = nullptr;
@@ -438,10 +443,15 @@ public:
    * @param parentHeight New parent height
    */
   virtual void onParentResize(int parentWidth, int parentHeight) {
-    // Initialize original parent dimensions if not set
+    // Initialize original dimensions if not set (first resize call)
     if (originalParentWidth == 0 && originalParentHeight == 0) {
       originalParentWidth = parentWidth;
       originalParentHeight = parentHeight;
+      // Store original component dimensions for SCALE and MAINTAIN_ASPECT
+      originalLocalX = localX;
+      originalLocalY = localY;
+      originalWidth = width;
+      originalHeight = height;
     }
 
     // Apply resize behavior
@@ -452,28 +462,29 @@ public:
       break;
     }
     case ResizeBehavior::SCALE: {
-      // Scale proportionally
+      // Scale proportionally from ORIGINAL dimensions
       if (originalParentWidth > 0 && originalParentHeight > 0) {
         float scaleX = parentWidth / static_cast<float>(originalParentWidth);
         float scaleY = parentHeight / static_cast<float>(originalParentHeight);
 
-        int newX = static_cast<int>(localX * scaleX);
-        int newY = static_cast<int>(localY * scaleY);
-        int newWidth = static_cast<int>(width * scaleX);
-        int newHeight = static_cast<int>(height * scaleY);
+        // Scale from original dimensions, not current ones!
+        int newX = static_cast<int>(originalLocalX * scaleX);
+        int newY = static_cast<int>(originalLocalY * scaleY);
+        int newWidth = static_cast<int>(originalWidth * scaleX);
+        int newHeight = static_cast<int>(originalHeight * scaleY);
 
         setBounds(newX, newY, newWidth, newHeight);
       }
       break;
     }
     case ResizeBehavior::MAINTAIN_ASPECT: {
-      // Scale while maintaining aspect ratio
-      if (originalParentWidth > 0 && originalParentHeight > 0 && width > 0 && height > 0) {
-        float currentAspect = width / static_cast<float>(height);
+      // Scale while maintaining aspect ratio from ORIGINAL dimensions
+      if (originalParentWidth > 0 && originalParentHeight > 0 && originalWidth > 0 && originalHeight > 0) {
+        float currentAspect = originalWidth / static_cast<float>(originalHeight);
         float scale = std::min(parentWidth / static_cast<float>(originalParentWidth),
                                parentHeight / static_cast<float>(originalParentHeight));
 
-        int newWidth = static_cast<int>(width * scale);
+        int newWidth = static_cast<int>(originalWidth * scale);
         int newHeight = static_cast<int>(newWidth / currentAspect);
 
         // Center in available space
