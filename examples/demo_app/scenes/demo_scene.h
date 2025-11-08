@@ -4,7 +4,7 @@
  *
  * This scene demonstrates ALL framework components and layouts:
  * - Components: Button, Panel, ListBox, TextInput, Dialog, ToolBar, Viewport
- * - Layouts: FlexLayout, StackLayout, GridLayout, FlowLayout
+ * - Layouts: FlexLayout, StackLayout, GridLayout, FlowLayout, DockLayout
  * - Scene-based architecture with ComponentBuilder pattern
  * - Hierarchical event handling (Scene::handleEvent propagates to children)
  * - Interactive features and callbacks
@@ -32,6 +32,7 @@
 #include <bombfork/prong/components/viewport.h>
 #include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/scene.h>
+#include <bombfork/prong/layout/dock_layout.h>
 #include <bombfork/prong/layout/flex_layout.h>
 #include <bombfork/prong/layout/flow_layout.h>
 #include <bombfork/prong/layout/grid_layout.h>
@@ -441,6 +442,7 @@ private:
       {.grow = 0.0f, .shrink = 1.0f, .basis = 0.0f}, // GridLayout: fixed at natural size (120px)
       {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // FlowLayout: fixed at natural size, can shrink if needed
       {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // StackLayout: fixed at natural size (60px)
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // DockLayout: fixed at 300px height
       {.grow = 1.0f, .shrink = 0.0f, .basis = 0.0f}  // Viewport: grow to fill remaining space
     });
 
@@ -463,6 +465,10 @@ private:
     // === StackLayout Demo ===
     auto stackPanel = buildStackLayoutDemo();
     centerPanel->addChild(std::move(stackPanel));
+
+    // === DockLayout Demo ===
+    auto dockPanel = buildDockLayoutDemo();
+    centerPanel->addChild(std::move(dockPanel));
 
     // === Viewport Demo ===
     auto viewportPanel = buildViewportDemo();
@@ -564,6 +570,165 @@ private:
     }
 
     return stackPanel;
+  }
+
+  /**
+   * @brief Build DockLayout demonstration with multiple docked regions
+   */
+  std::unique_ptr<FlexPanel> buildDockLayoutDemo() {
+    // Create wrapper panel with title
+    auto wrapperLayout = std::make_shared<FlexLayout>();
+    wrapperLayout->configure(FlexLayout::Configuration{
+      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 0.0f});
+
+    auto wrapperPanel = create<FlexPanel>().withSize(0, 300).withLayout(wrapperLayout).build();
+    wrapperPanel->setBackgroundColor(theming::Color(0.18f, 0.18f, 0.2f, 1.0f));
+    wrapperPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
+    wrapperPanel->setBorderWidth(1);
+    wrapperPanel->setTitle("DockLayout (Application-style Panel Docking)");
+    wrapperPanel->setPadding(10);
+
+    // Create DockLayout
+    auto dockLayout = std::make_shared<DockLayout>();
+    dockLayout->configure(
+      DockLayout::DockConfiguration{.allowFloating = false, .showTabs = false, .splitterThickness = 2.0f});
+
+    // Create the main dock panel
+    auto dockPanel = std::make_unique<DockPanel>();
+    dockPanel->setRenderer(renderer);
+    dockPanel->setSize(0, 270); // Fixed height for demo, width will be set by layout
+    dockPanel->setBackgroundColor(theming::Color(0.12f, 0.12f, 0.14f, 1.0f));
+    dockPanel->setLayoutManager(dockLayout);
+
+    // === LEFT DOCK - File Browser Style ===
+    auto leftPanel = create<Panel<>>().withSize(0, 0).build();
+    leftPanel->setBackgroundColor(theming::Color(0.2f, 0.25f, 0.3f, 1.0f));
+    leftPanel->setBorderColor(theming::Color(0.4f, 0.5f, 0.6f, 1.0f));
+    leftPanel->setBorderWidth(1);
+    leftPanel->setTitle("Files");
+    leftPanel->setPadding(5);
+
+    // Add file browser-style buttons
+    auto fileLayout = std::make_shared<StackLayout>();
+    fileLayout->configure(StackLayout::Configuration{
+      .orientation = StackOrientation::VERTICAL, .alignment = StackAlignment::STRETCH, .spacing = 3.0f});
+    leftPanel->setLayout(fileLayout);
+
+    std::vector<std::string> files = {"main.cpp", "scene.h", "layout.h", "component.h"};
+    for (const auto& file : files) {
+      auto fileBtn =
+        create<Button>(file)
+          .withClickCallback([file]() { std::cout << "[DockLayout] File selected: " << file << std::endl; })
+          .build();
+      fileBtn->setBackgroundColor(theming::Color(0.25f, 0.3f, 0.35f, 1.0f));
+      leftPanel->addChild(std::move(fileBtn));
+    }
+
+    // === TOP DOCK - Toolbar Style ===
+    auto topPanel = create<Panel<>>().withSize(0, 0).build();
+    topPanel->setBackgroundColor(theming::Color(0.25f, 0.2f, 0.3f, 1.0f));
+    topPanel->setBorderColor(theming::Color(0.5f, 0.4f, 0.6f, 1.0f));
+    topPanel->setBorderWidth(1);
+    topPanel->setTitle("Tools");
+    topPanel->setPadding(5);
+
+    // Add horizontal tool buttons
+    auto toolLayout = std::make_shared<StackLayout>();
+    toolLayout->configure(StackLayout::Configuration{
+      .orientation = StackOrientation::HORIZONTAL, .alignment = StackAlignment::CENTER, .spacing = 5.0f});
+    topPanel->setLayout(toolLayout);
+
+    std::vector<std::string> tools = {"Build", "Run", "Debug", "Profile"};
+    for (const auto& tool : tools) {
+      auto toolBtn = create<Button>(tool)
+                       .withClickCallback([tool]() { std::cout << "[DockLayout] Tool clicked: " << tool << std::endl; })
+                       .build();
+      toolBtn->setBackgroundColor(theming::Color(0.3f, 0.25f, 0.35f, 1.0f));
+      topPanel->addChild(std::move(toolBtn));
+    }
+
+    // === RIGHT DOCK - Properties Style ===
+    auto rightPanel = create<Panel<>>().withSize(0, 0).build();
+    rightPanel->setBackgroundColor(theming::Color(0.3f, 0.25f, 0.2f, 1.0f));
+    rightPanel->setBorderColor(theming::Color(0.6f, 0.5f, 0.4f, 1.0f));
+    rightPanel->setBorderWidth(1);
+    rightPanel->setTitle("Properties");
+    rightPanel->setPadding(5);
+
+    // Add property-style labels
+    auto propLayout = std::make_shared<StackLayout>();
+    propLayout->configure(StackLayout::Configuration{
+      .orientation = StackOrientation::VERTICAL, .alignment = StackAlignment::STRETCH, .spacing = 3.0f});
+    rightPanel->setLayout(propLayout);
+
+    std::vector<std::string> props = {"Width: 800", "Height: 600", "X: 0", "Y: 0"};
+    for (const auto& prop : props) {
+      auto propBtn = create<Button>(prop).build();
+      propBtn->setBackgroundColor(theming::Color(0.35f, 0.3f, 0.25f, 1.0f));
+      propBtn->setEnabled(false); // Non-interactive labels
+      rightPanel->addChild(std::move(propBtn));
+    }
+
+    // === CENTER DOCK - Main Content Area ===
+    auto centerPanel = create<Panel<>>().withSize(0, 0).build();
+    centerPanel->setBackgroundColor(theming::Color(0.15f, 0.15f, 0.15f, 1.0f));
+    centerPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.3f, 1.0f));
+    centerPanel->setBorderWidth(1);
+    centerPanel->setTitle("Editor");
+    centerPanel->setPadding(5);
+
+    // Add center content label
+    auto centerLabel = create<Button>("Main content area - click docked panels to interact").build();
+    centerLabel->setBackgroundColor(theming::Color(0.2f, 0.2f, 0.2f, 1.0f));
+    centerLabel->setEnabled(false);
+    centerPanel->addChild(std::move(centerLabel));
+
+    // Configure dock regions with appropriate sizing
+    DockLayout::DockRegion leftRegion;
+    leftRegion.area = DockArea::LEFT;
+    leftRegion.components.push_back(leftPanel.get());
+    leftRegion.activeComponentIndex = 0;
+    leftRegion.splitterConfig.initialRatio = 0.20f; // 20% of width
+    leftRegion.splitterConfig.minSize = 100.0f;
+    leftRegion.splitterConfig.maxSize = 250.0f;
+
+    DockLayout::DockRegion topRegion;
+    topRegion.area = DockArea::TOP;
+    topRegion.components.push_back(topPanel.get());
+    topRegion.activeComponentIndex = 0;
+    topRegion.splitterConfig.initialRatio = 0.15f; // 15% of height
+    topRegion.splitterConfig.minSize = 40.0f;
+    topRegion.splitterConfig.maxSize = 80.0f;
+
+    DockLayout::DockRegion rightRegion;
+    rightRegion.area = DockArea::RIGHT;
+    rightRegion.components.push_back(rightPanel.get());
+    rightRegion.activeComponentIndex = 0;
+    rightRegion.splitterConfig.initialRatio = 0.20f; // 20% of width
+    rightRegion.splitterConfig.minSize = 100.0f;
+    rightRegion.splitterConfig.maxSize = 250.0f;
+
+    DockLayout::DockRegion centerRegion;
+    centerRegion.area = DockArea::CENTER;
+    centerRegion.components.push_back(centerPanel.get());
+    centerRegion.activeComponentIndex = 0;
+
+    // Add regions to layout (order doesn't matter, positioning is based on DockArea)
+    dockLayout->addRegion(leftRegion);
+    dockLayout->addRegion(topRegion);
+    dockLayout->addRegion(rightRegion);
+    dockLayout->addRegion(centerRegion);
+
+    // Add panels to dock container
+    dockPanel->addChild(std::move(leftPanel));
+    dockPanel->addChild(std::move(topPanel));
+    dockPanel->addChild(std::move(rightPanel));
+    dockPanel->addChild(std::move(centerPanel));
+
+    // Add dock panel to wrapper
+    wrapperPanel->addChild(std::move(dockPanel));
+
+    return wrapperPanel;
   }
 
   /**
@@ -699,11 +864,11 @@ private:
     listBox->addItem("* GridLayout");
     listBox->addItem("* StackLayout");
     listBox->addItem("* FlowLayout");
+    listBox->addItem("* DockLayout");
     listBox->addItem("");
     listBox->addItem("Available (not shown):");
     listBox->addItem("• Slider");
     listBox->addItem("• ContextMenu");
-    listBox->addItem("• DockLayout");
 
     listBoxPtr = listBox.get();
     rightPanel->addChild(std::move(listBox));
@@ -863,15 +1028,16 @@ private:
     std::cout << "  * GridLayout      - 3x3 button grid" << std::endl;
     std::cout << "  * StackLayout     - Horizontal button stack" << std::endl;
     std::cout << "  * FlowLayout      - Wrapping tag interface" << std::endl;
+    std::cout << "  * DockLayout      - Application-style panel docking (TOP, LEFT, RIGHT, CENTER)" << std::endl;
     std::cout << "\nAdditional Components Available:" << std::endl;
     std::cout << "  • Slider          - Value adjustment with visual feedback" << std::endl;
     std::cout << "  • ContextMenu     - Right-click context menus" << std::endl;
-    std::cout << "  • DockLayout      - Dockable panel layout manager" << std::endl;
     std::cout << "\nInteractive Features:" << std::endl;
     std::cout << "  • Click Toolbar actions (File, Edit, View, Help) to see console output" << std::endl;
     std::cout << "  • Type in text field and click 'Add' to add items" << std::endl;
     std::cout << "  • Click 'About' button to see modal dialog with framework info" << std::endl;
     std::cout << "  • Drag in Viewport to pan, scroll wheel to zoom" << std::endl;
+    std::cout << "  • Click DockLayout panels (Files, Tools, Properties) to see docking behavior" << std::endl;
     std::cout << "  • Click any button to see console output" << std::endl;
     std::cout << "  • Select items in ListBox" << std::endl;
     std::cout << "  • ESC key or 'Exit Application' to close" << std::endl;
