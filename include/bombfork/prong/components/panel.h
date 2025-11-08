@@ -397,6 +397,53 @@ public:
     }
   }
 
+  // === Resize Handling ===
+
+  /**
+   * @brief Handle parent resize events
+   *
+   * Panels can automatically fill parent or use standard resize behavior.
+   * This override checks for auto-fill first, then delegates to Component.
+   *
+   * @param parentWidth New parent width
+   * @param parentHeight New parent height
+   */
+  void onParentResize(int parentWidth, int parentHeight) override {
+    // If auto-fill is enabled, use FILL behavior regardless of setting
+    if (autoFillParent) {
+      // Try to get content bounds from parent if it's a Panel
+      Panel* parentPanel = dynamic_cast<Panel*>(parent);
+      if (parentPanel) {
+        int contentX, contentY, contentWidth, contentHeight;
+        parentPanel->getContentBounds(contentX, contentY, contentWidth, contentHeight);
+
+        // Convert parent's global content bounds to local coordinates
+        int parentGx, parentGy;
+        parent->getGlobalPosition(parentGx, parentGy);
+        int localContentX = contentX - parentGx;
+        int localContentY = contentY - parentGy;
+
+        setBounds(localContentX, localContentY, contentWidth, contentHeight);
+      } else {
+        // Parent is not a Panel, fill entire parent space
+        setBounds(0, 0, parentWidth, parentHeight);
+      }
+
+      // Mark layout as invalid to trigger re-layout
+      invalidateLayout();
+
+      // Propagate to children
+      for (auto& child : children) {
+        if (child) {
+          child->onParentResize(width, height);
+        }
+      }
+    } else {
+      // Use standard resize behavior from Component
+      Component::onParentResize(parentWidth, parentHeight);
+    }
+  }
+
   // === Update ===
 
   void update(double deltaTime) override {

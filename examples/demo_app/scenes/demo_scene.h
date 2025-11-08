@@ -315,9 +315,10 @@ private:
     // Add root container to scene
     addChild(std::move(rootContainer));
 
-    // Initialize main container size to match scene/window
+    // Initialize main container size to match scene/window and set it to FILL behavior
     if (!children.empty() && children[0]) {
       children[0]->setBounds(0, 0, width, height);
+      children[0]->setResizeBehavior(Component::ResizeBehavior::FILL);
       children[0]->invalidateLayout();
     }
 
@@ -1040,20 +1041,24 @@ private:
     std::cout << "  • Click DockLayout panels (Files, Tools, Properties) to see docking behavior" << std::endl;
     std::cout << "  • Click any button to see console output" << std::endl;
     std::cout << "  • Select items in ListBox" << std::endl;
+    std::cout << "  • RESIZE the window to see automatic layout reflow!" << std::endl;
     std::cout << "  • ESC key or 'Exit Application' to close" << std::endl;
     std::cout << "\n══════════════════════════════════════════════════════════════\n" << std::endl;
   }
 
   /**
-   * @brief Handle window resize
+   * @brief Handle window resize - automatic propagation via Scene base class
    */
   void onWindowResize(int width, int height) override {
+    // Call base implementation which handles:
+    // 1. Update scene bounds
+    // 2. Invalidate layout
+    // 3. Notify renderer
+    // 4. Propagate resize to children (which triggers their ResizeBehavior)
     Scene::onWindowResize(width, height);
 
-    if (!children.empty() && children[0]) {
-      children[0]->setBounds(0, 0, width, height);
-      children[0]->invalidateLayout();
-    }
+    // No manual sizing needed - root container has FILL behavior set in buildUI()
+    // and will automatically resize to match the scene dimensions
   }
 };
 
