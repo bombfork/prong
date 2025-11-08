@@ -3,7 +3,7 @@
  * @brief Comprehensive Demo Scene for Prong UI Framework
  *
  * This scene demonstrates ALL framework components and layouts:
- * - Components: Button, Panel, ListBox, TextInput, Dialog, ToolBar
+ * - Components: Button, Panel, ListBox, TextInput, Dialog, ToolBar, Viewport
  * - Layouts: FlexLayout, StackLayout, GridLayout, FlowLayout
  * - Scene-based architecture with ComponentBuilder pattern
  * - Hierarchical event handling (Scene::handleEvent propagates to children)
@@ -15,7 +15,7 @@
  * - Children handle events first (topmost rendered components get priority)
  * - Components override handleEventSelf() for custom event handling
  *
- * Note: Viewport, Slider, ContextMenu are available but
+ * Note: Slider, ContextMenu are available but
  * require additional setup and are not shown in this basic demo.
  */
 
@@ -29,6 +29,7 @@
 #include <bombfork/prong/components/panel.h>
 #include <bombfork/prong/components/text_input.h>
 #include <bombfork/prong/components/toolbar.h>
+#include <bombfork/prong/components/viewport.h>
 #include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/scene.h>
 #include <bombfork/prong/layout/flex_layout.h>
@@ -92,6 +93,7 @@ private:
   Dialog* dialogPtr = nullptr;
   ToolBar* toolBarPtr = nullptr;
   StatusLabel* fpsLabelPtr = nullptr;
+  Viewport* viewportPtr = nullptr;
   GLFWwindow* glfwWindow = nullptr;
   int clickCount = 0;
   double lastFpsUpdateTime = 0.0;
@@ -436,9 +438,10 @@ private:
     // Configure flex properties: all panels fixed at their natural sizes
     // This allows each layout to size itself based on its content
     centerLayout->setItemProperties({
-      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // GridLayout: fixed at natural size (120px)
-      {.grow = 0.0f, .shrink = 1.0f, .basis = 0.0f}, // FlowLayout: fixed at natural size, can shrink if needed
-      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}  // StackLayout: fixed at natural size (60px)
+      {.grow = 0.0f, .shrink = 1.0f, .basis = 0.0f}, // GridLayout: fixed at natural size (120px)
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // FlowLayout: fixed at natural size, can shrink if needed
+      {.grow = 0.0f, .shrink = 0.0f, .basis = 0.0f}, // StackLayout: fixed at natural size (60px)
+      {.grow = 1.0f, .shrink = 0.0f, .basis = 0.0f}  // Viewport: grow to fill remaining space
     });
 
     auto centerPanel = create<FlexPanel>().withLayout(centerLayout).build();
@@ -460,6 +463,10 @@ private:
     // === StackLayout Demo ===
     auto stackPanel = buildStackLayoutDemo();
     centerPanel->addChild(std::move(stackPanel));
+
+    // === Viewport Demo ===
+    auto viewportPanel = buildViewportDemo();
+    centerPanel->addChild(std::move(viewportPanel));
 
     return centerPanel;
   }
@@ -560,6 +567,103 @@ private:
   }
 
   /**
+   * @brief Build Viewport demonstration with scrollable content
+   */
+  std::unique_ptr<FlexPanel> buildViewportDemo() {
+    // Create wrapper panel with title
+    auto wrapperLayout = std::make_shared<FlexLayout>();
+    wrapperLayout->configure(FlexLayout::Configuration{
+      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 0.0f});
+
+    auto wrapperPanel = create<FlexPanel>().withSize(0, 0).withLayout(wrapperLayout).build();
+    wrapperPanel->setBackgroundColor(theming::Color(0.18f, 0.18f, 0.2f, 1.0f));
+    wrapperPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
+    wrapperPanel->setBorderWidth(1);
+    wrapperPanel->setTitle("Viewport (Scrollable Content with Pan & Zoom)");
+    wrapperPanel->setPadding(10);
+
+    // Create viewport with fixed height to demonstrate scrolling
+    // Width will be set by FlexLayout, only set height
+    auto viewport = std::make_unique<Viewport>();
+    viewport->setRenderer(renderer);
+    viewport->setSize(0, 0); // Fixed height, width will be set by layout
+
+    // Set large content size to enable scrolling
+    viewport->setContentSize(800, 600);
+
+    // Enable visual features
+    viewport->setShowGrid(true);
+    viewport->setShowScrollbars(true);
+
+    // Create render callback with visible content
+    // The callback receives viewportX/viewportY which is the viewport's global screen position
+    // All rendering must be offset by viewportX/viewportY to appear within the viewport
+    viewport->setRenderCallback([this](rendering::IRenderer* rend, const Viewport::ViewportTransform& transform, int,
+                                       int, int viewportX, int viewportY) {
+      // Draw a checkerboard pattern to show viewport boundaries
+      // Content coordinates: (0,0) to (800,600) in content space
+      // Transform: apply zoom and pan, then offset by viewport position
+      const int tileSize = 40;
+      for (int y = 0; y < 15; ++y) {
+        for (int x = 0; x < 20; ++x) {
+          bool isDark = (x + y) % 2 == 0;
+          float brightness = isDark ? 0.25f : 0.35f;
+
+          // Content position -> zoomed position -> panned position -> screen position
+          int tileX = static_cast<int>(viewportX + x * tileSize * transform.zoomLevel + transform.panX);
+          int tileY = static_cast<int>(viewportY + y * tileSize * transform.zoomLevel + transform.panY);
+          int tileW = static_cast<int>(tileSize * transform.zoomLevel);
+          int tileH = static_cast<int>(tileSize * transform.zoomLevel);
+
+          rend->drawRect(tileX, tileY, tileW, tileH, brightness, brightness, brightness, 1.0f);
+        }
+      }
+
+      // Draw border rectangles to show content boundaries
+      int contentW = static_cast<int>(800 * transform.zoomLevel);
+      int contentH = static_cast<int>(600 * transform.zoomLevel);
+      int borderX = static_cast<int>(viewportX + transform.panX);
+      int borderY = static_cast<int>(viewportY + transform.panY);
+
+      // Outer content border (cyan)
+      rend->drawRect(borderX, borderY, contentW, contentH, 0.0f, 0.8f, 0.8f, 1.0f);
+
+      // Inner border showing safe area (yellow)
+      rend->drawRect(borderX + 20, borderY + 20, contentW - 40, contentH - 40, 0.8f, 0.8f, 0.0f, 1.0f);
+
+      // Draw some text labels to demonstrate content
+      if (rend) {
+        int labelX = static_cast<int>(viewportX + 50 * transform.zoomLevel + transform.panX);
+        int labelY = static_cast<int>(viewportY + 50 * transform.zoomLevel + transform.panY);
+        rend->drawText("Viewport Demo: Drag to pan, scroll to zoom", labelX, labelY, 1.0f, 1.0f, 1.0f, 1.0f);
+
+        labelY += static_cast<int>(30 * transform.zoomLevel);
+        rend->drawText("Content Size: 800x600", labelX, labelY, 0.8f, 0.8f, 0.8f, 1.0f);
+
+        labelY += static_cast<int>(30 * transform.zoomLevel);
+        rend->drawText("Cyan border = content boundary", labelX, labelY, 0.0f, 0.8f, 0.8f, 1.0f);
+
+        labelY += static_cast<int>(30 * transform.zoomLevel);
+        rend->drawText("Yellow border = safe area", labelX, labelY, 0.8f, 0.8f, 0.0f, 1.0f);
+      }
+    });
+
+    // Add zoom/pan change callbacks for debugging
+    viewport->setZoomCallback([](float zoom) { std::cout << "Viewport zoom: " << zoom << std::endl; });
+
+    viewport->setPanCallback(
+      [](float panX, float panY) { std::cout << "Viewport pan: (" << panX << ", " << panY << ")" << std::endl; });
+
+    // Center content initially
+    viewport->centerContent();
+
+    viewportPtr = viewport.get();
+    wrapperPanel->addChild(std::move(viewport));
+
+    return wrapperPanel;
+  }
+
+  /**
    * @brief Build right panel with component showcase
    */
   std::unique_ptr<FlexPanel> buildComponentShowcase() {
@@ -588,6 +692,7 @@ private:
     listBox->addItem("* ListBox");
     listBox->addItem("* Dialog");
     listBox->addItem("* ToolBar");
+    listBox->addItem("* Viewport");
     listBox->addItem("");
     listBox->addItem("All layouts shown:");
     listBox->addItem("* FlexLayout");
@@ -596,7 +701,6 @@ private:
     listBox->addItem("* FlowLayout");
     listBox->addItem("");
     listBox->addItem("Available (not shown):");
-    listBox->addItem("• Viewport");
     listBox->addItem("• Slider");
     listBox->addItem("• ContextMenu");
     listBox->addItem("• DockLayout");
@@ -753,13 +857,13 @@ private:
     std::cout << "  * ListBox         - Scrollable item list with selection" << std::endl;
     std::cout << "  * Dialog          - Modal dialogs with buttons and content" << std::endl;
     std::cout << "  * ToolBar         - Toolbar with actions, toggles, and separators" << std::endl;
+    std::cout << "  * Viewport        - Pan & zoom viewport with scrollable content" << std::endl;
     std::cout << "\nLayout Managers Demonstrated:" << std::endl;
     std::cout << "  * FlexLayout      - Flexible box layout (main structure)" << std::endl;
     std::cout << "  * GridLayout      - 3x3 button grid" << std::endl;
     std::cout << "  * StackLayout     - Horizontal button stack" << std::endl;
     std::cout << "  * FlowLayout      - Wrapping tag interface" << std::endl;
     std::cout << "\nAdditional Components Available:" << std::endl;
-    std::cout << "  • Viewport        - Scrollable viewport with grid" << std::endl;
     std::cout << "  • Slider          - Value adjustment with visual feedback" << std::endl;
     std::cout << "  • ContextMenu     - Right-click context menus" << std::endl;
     std::cout << "  • DockLayout      - Dockable panel layout manager" << std::endl;
@@ -767,6 +871,7 @@ private:
     std::cout << "  • Click Toolbar actions (File, Edit, View, Help) to see console output" << std::endl;
     std::cout << "  • Type in text field and click 'Add' to add items" << std::endl;
     std::cout << "  • Click 'About' button to see modal dialog with framework info" << std::endl;
+    std::cout << "  • Drag in Viewport to pan, scroll wheel to zoom" << std::endl;
     std::cout << "  • Click any button to see console output" << std::endl;
     std::cout << "  • Select items in ListBox" << std::endl;
     std::cout << "  • ESC key or 'Exit Application' to close" << std::endl;

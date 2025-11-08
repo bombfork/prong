@@ -63,8 +63,9 @@ public:
     float animationDuration = 0.3f; // seconds
   };
 
-  using RenderCallback = std::function<void(bombfork::prong::rendering::IRenderer* renderer,
-                                            const ViewportTransform& transform, int viewportWidth, int viewportHeight)>;
+  using RenderCallback =
+    std::function<void(bombfork::prong::rendering::IRenderer* renderer, const ViewportTransform& transform,
+                       int viewportWidth, int viewportHeight, int viewportX, int viewportY)>;
   using ZoomChangedCallback = std::function<void(float zoomLevel)>;
   using PanChangedCallback = std::function<void(float panX, float panY)>;
   using SelectionCallback = std::function<void(int x, int y, int width, int height)>;
@@ -484,16 +485,16 @@ public:
    */
   void applyTheme(const bombfork::prong::theming::AdvancedTheme& advancedTheme) {
     // Map advanced theme to viewport theme
-    theme.backgroundColor = advancedTheme.primary;
-    theme.borderColor = advancedTheme.border;
-    theme.gridColor = advancedTheme.text;
-    theme.rulerColor = advancedTheme.secondary;
-    theme.rulerTextColor = advancedTheme.text;
-    theme.selectionColor = advancedTheme.accent;
-    theme.selectionBorderColor = advancedTheme.accent;
-    theme.scrollbarTrackColor = advancedTheme.secondary;
-    theme.scrollbarThumbColor = advancedTheme.text;
-    theme.scrollbarThumbHoverColor = advancedTheme.accent;
+    theme.backgroundColor = advancedTheme.colors.surface;
+    theme.borderColor = advancedTheme.colors.border;
+    theme.gridColor = advancedTheme.colors.textSecondary;
+    theme.rulerColor = advancedTheme.colors.secondary;
+    theme.rulerTextColor = advancedTheme.colors.textPrimary;
+    theme.selectionColor = advancedTheme.colors.selected;
+    theme.selectionBorderColor = advancedTheme.colors.borderFocus;
+    theme.scrollbarTrackColor = advancedTheme.colors.secondary;
+    theme.scrollbarThumbColor = advancedTheme.colors.textSecondary;
+    theme.scrollbarThumbHoverColor = advancedTheme.colors.hover;
   }
 
   /**
@@ -547,9 +548,14 @@ public:
                          theme.borderColor.a);
     }
 
+    // Enable scissor test to clip content to viewport bounds
+    renderer->enableScissorTest(gx, gy, width, height);
+
     // Call custom render callback if provided
     if (renderCallback) {
-      renderCallback(renderer, transform, width, height);
+      // Pass the viewport's global position to the callback so it can offset all rendering
+      // The callback should add viewportX/viewportY to all draw coordinates
+      renderCallback(renderer, transform, width, height, gx, gy);
     }
 
     // Render grid if enabled
@@ -571,6 +577,9 @@ public:
     if (state.showFPS) {
       renderFPS();
     }
+
+    // Disable scissor test after rendering all viewport content
+    renderer->disableScissorTest();
   }
 
   bool handleEventSelf(const core::Event& event) override {
@@ -627,8 +636,10 @@ public:
 
   bombfork::prong::layout::LayoutMeasurement measurePreferredSize() const {
     // Return preferred size based on content dimensions
-    return bombfork::prong::layout::LayoutMeasurement{state.contentWidth > 0 ? state.contentWidth : 400,
-                                                      state.contentHeight > 0 ? state.contentHeight : 300};
+    int preferredWidth = state.contentWidth > 0 ? state.contentWidth : 400;
+    int preferredHeight = state.contentHeight > 0 ? state.contentHeight : 300;
+    return bombfork::prong::layout::LayoutMeasurement(bombfork::prong::layout::Measurement(preferredWidth),
+                                                      bombfork::prong::layout::Measurement(preferredHeight));
   }
 
 private:
