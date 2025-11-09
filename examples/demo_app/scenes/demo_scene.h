@@ -340,8 +340,7 @@ private:
     leftLayout->configure(FlexLayout::Configuration{
       .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 1.0f});
 
-    auto leftPanel = create<FlexPanel>().withSize(200, 0).withLayout(leftLayout).build();
-    leftPanel->setResizeBehavior(Component::ResizeBehavior::FILL);
+    auto leftPanel = create<FlexPanel>().withSize(300, 0).withLayout(leftLayout).build();
     leftPanel->setBackgroundColor(theming::Color(0.15f, 0.15f, 0.18f, 1.0f));
     leftPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     leftPanel->setBorderWidth(2);
@@ -450,7 +449,6 @@ private:
 
     auto centerPanel = create<FlexPanel>().withLayout(centerLayout).build();
 
-    centerPanel->setResizeBehavior(Component::ResizeBehavior::FILL);
     centerPanel->setBackgroundColor(theming::Color(0.12f, 0.12f, 0.14f, 1.0f));
     centerPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     centerPanel->setBorderWidth(2);
@@ -646,7 +644,6 @@ private:
     // === RIGHT DOCK - Properties Style ===
     auto rightPanel = create<Panel<>>().withSize(0, 0).build();
 
-    rightPanel->setResizeBehavior(Component::ResizeBehavior::FILL);
     rightPanel->setBackgroundColor(theming::Color(0.3f, 0.25f, 0.2f, 1.0f));
     rightPanel->setBorderColor(theming::Color(0.6f, 0.5f, 0.4f, 1.0f));
     rightPanel->setBorderWidth(1);

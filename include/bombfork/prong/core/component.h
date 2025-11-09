@@ -520,12 +520,9 @@ public:
     // Mark layout as invalid to trigger re-layout
     invalidateLayout();
 
-    // Propagate to children
-    for (auto& child : children) {
-      if (child) {
-        child->onParentResize(width, height);
-      }
-    }
+    // Note: We don't propagate to children here because setBounds() already
+    // handles propagation when the size actually changes. Propagating here
+    // would cause children to receive onParentResize() twice.
   }
 
 protected:
