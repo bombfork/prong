@@ -502,6 +502,20 @@ public:
     horizontalResizeBehavior = horizontal;
     verticalResizeBehavior = vertical;
     usePerAxisBehavior = true;
+
+    // Initialize original dimensions NOW so FIXED behavior works from the start
+    // This captures the component's current size as the "original" before any layout runs
+    if (originalWidth == 0 && originalHeight == 0) {
+      originalLocalX = localX;
+      originalLocalY = localY;
+      originalWidth = width;
+      originalHeight = height;
+
+      // Also initialize parent dimensions if we have a parent
+      if (parent) {
+        parent->getSize(originalParentWidth, originalParentHeight);
+      }
+    }
   }
 
   /**
