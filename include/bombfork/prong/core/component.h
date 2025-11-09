@@ -53,6 +53,15 @@ public:
   };
 
   /**
+   * @brief Per-axis resize behavior for independent horizontal/vertical control
+   */
+  enum class AxisResizeBehavior {
+    FIXED, // Keep original size on this axis
+    SCALE, // Scale proportionally with parent on this axis
+    FILL   // Fill available parent space on this axis
+  };
+
+  /**
    * @brief Constraints for responsive sizing
    */
   struct ResponsiveConstraints {
@@ -112,6 +121,9 @@ protected:
 
   // Resize handling
   ResizeBehavior resizeBehavior = ResizeBehavior::FIXED;
+  AxisResizeBehavior horizontalResizeBehavior = AxisResizeBehavior::FIXED;
+  AxisResizeBehavior verticalResizeBehavior = AxisResizeBehavior::FIXED;
+  bool usePerAxisBehavior = false; // If true, use per-axis behaviors instead of resizeBehavior
   ResponsiveConstraints constraints;
   int originalParentWidth = 0;
   int originalParentHeight = 0;
@@ -426,12 +438,41 @@ public:
    * @brief Set resize behavior for this component
    * @param behavior How component should respond to parent resize
    */
-  void setResizeBehavior(ResizeBehavior behavior) { resizeBehavior = behavior; }
+  void setResizeBehavior(ResizeBehavior behavior) {
+    resizeBehavior = behavior;
+    usePerAxisBehavior = false;
+  }
 
   /**
    * @brief Get current resize behavior
    */
   ResizeBehavior getResizeBehavior() const { return resizeBehavior; }
+
+  /**
+   * @brief Set per-axis resize behavior for independent horizontal/vertical control
+   * @param horizontal Resize behavior for horizontal axis
+   * @param vertical Resize behavior for vertical axis
+   */
+  void setAxisResizeBehavior(AxisResizeBehavior horizontal, AxisResizeBehavior vertical) {
+    horizontalResizeBehavior = horizontal;
+    verticalResizeBehavior = vertical;
+    usePerAxisBehavior = true;
+  }
+
+  /**
+   * @brief Get horizontal resize behavior
+   */
+  AxisResizeBehavior getHorizontalResizeBehavior() const { return horizontalResizeBehavior; }
+
+  /**
+   * @brief Get vertical resize behavior
+   */
+  AxisResizeBehavior getVerticalResizeBehavior() const { return verticalResizeBehavior; }
+
+  /**
+   * @brief Check if using per-axis resize behavior
+   */
+  bool isUsingPerAxisBehavior() const { return usePerAxisBehavior; }
 
   /**
    * @brief Set responsive constraints for sizing
@@ -466,7 +507,32 @@ public:
       originalHeight = height;
     }
 
-    // Apply resize behavior
+    // Use per-axis behavior if enabled, otherwise use unified behavior
+    if (usePerAxisBehavior) {
+      applyPerAxisResize(parentWidth, parentHeight);
+    } else {
+      applyUnifiedResize(parentWidth, parentHeight);
+    }
+
+    // Apply constraints
+    applyConstraints();
+
+    // Mark layout as invalid to trigger re-layout
+    invalidateLayout();
+
+    // Propagate to children
+    for (auto& child : children) {
+      if (child) {
+        child->onParentResize(width, height);
+      }
+    }
+  }
+
+protected:
+  /**
+   * @brief Apply unified resize behavior (original behavior)
+   */
+  void applyUnifiedResize(int parentWidth, int parentHeight) {
     switch (resizeBehavior) {
     case ResizeBehavior::FILL: {
       // Fill available parent space
@@ -511,22 +577,58 @@ public:
       // Do nothing - keep original size and position
       break;
     }
-
-    // Apply constraints
-    applyConstraints();
-
-    // Mark layout as invalid to trigger re-layout
-    invalidateLayout();
-
-    // Propagate to children
-    for (auto& child : children) {
-      if (child) {
-        child->onParentResize(width, height);
-      }
-    }
   }
 
-protected:
+  /**
+   * @brief Apply per-axis resize behavior for independent horizontal/vertical control
+   */
+  void applyPerAxisResize(int parentWidth, int parentHeight) {
+    int newX = localX;
+    int newY = localY;
+    int newWidth = width;
+    int newHeight = height;
+
+    // Calculate scale factors
+    float scaleX = (originalParentWidth > 0) ? parentWidth / static_cast<float>(originalParentWidth) : 1.0f;
+    float scaleY = (originalParentHeight > 0) ? parentHeight / static_cast<float>(originalParentHeight) : 1.0f;
+
+    // Apply horizontal behavior
+    switch (horizontalResizeBehavior) {
+    case AxisResizeBehavior::FILL:
+      newX = 0;
+      newWidth = parentWidth;
+      break;
+    case AxisResizeBehavior::SCALE:
+      newX = static_cast<int>(originalLocalX * scaleX);
+      newWidth = static_cast<int>(originalWidth * scaleX);
+      break;
+    case AxisResizeBehavior::FIXED:
+      // Keep original X and width
+      newX = originalLocalX;
+      newWidth = originalWidth;
+      break;
+    }
+
+    // Apply vertical behavior
+    switch (verticalResizeBehavior) {
+    case AxisResizeBehavior::FILL:
+      newY = 0;
+      newHeight = parentHeight;
+      break;
+    case AxisResizeBehavior::SCALE:
+      newY = static_cast<int>(originalLocalY * scaleY);
+      newHeight = static_cast<int>(originalHeight * scaleY);
+      break;
+    case AxisResizeBehavior::FIXED:
+      // Keep original Y and height
+      newY = originalLocalY;
+      newHeight = originalHeight;
+      break;
+    }
+
+    setBounds(newX, newY, newWidth, newHeight);
+  }
+
   /**
    * @brief Apply responsive constraints to current size
    */
