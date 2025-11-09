@@ -180,6 +180,51 @@ public:
    * @param newHeight Component height
    */
   virtual void setBounds(int newX, int newY, int newWidth, int newHeight) {
+    // If this component has per-axis resize behavior, apply it before setting bounds
+    // This allows components to resist unwanted size changes (e.g., FIXED axis)
+    if (usePerAxisBehavior && parent != nullptr) {
+      // Check if size would change
+      if (width != newWidth || height != newHeight) {
+        // Get parent size (our resize behavior is relative to parent)
+        int parentWidth, parentHeight;
+        parent->getSize(parentWidth, parentHeight);
+
+        // Apply per-axis behavior to determine actual size we should use
+        int adjustedWidth = newWidth;
+        int adjustedHeight = newHeight;
+
+        // Apply horizontal behavior
+        switch (horizontalResizeBehavior) {
+        case AxisResizeBehavior::FIXED:
+          // Keep original width, ignore requested width
+          adjustedWidth = (originalWidth > 0) ? originalWidth : width;
+          break;
+        case AxisResizeBehavior::SCALE:
+        case AxisResizeBehavior::FILL:
+          // Allow the requested width
+          adjustedWidth = newWidth;
+          break;
+        }
+
+        // Apply vertical behavior
+        switch (verticalResizeBehavior) {
+        case AxisResizeBehavior::FIXED:
+          // Keep original height, ignore requested height
+          adjustedHeight = (originalHeight > 0) ? originalHeight : height;
+          break;
+        case AxisResizeBehavior::SCALE:
+        case AxisResizeBehavior::FILL:
+          // Allow the requested height
+          adjustedHeight = newHeight;
+          break;
+        }
+
+        // Use adjusted sizes
+        newWidth = adjustedWidth;
+        newHeight = adjustedHeight;
+      }
+    }
+
     // Check if size actually changed
     bool sizeChanged = (width != newWidth || height != newHeight);
 
