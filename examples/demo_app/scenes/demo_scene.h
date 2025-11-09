@@ -76,7 +76,6 @@ public:
 
     // Calculate baseline Y position
     // Text baseline needs to be positioned so the text appears centered in the component
-    // For a 24px font in a 30px component, baseline at +18 from top works well
     int baselineY = gy;
 
     renderer->drawText(text_.c_str(), gx + 10, baselineY, textColor_.r, textColor_.g, textColor_.b, textColor_.a);
@@ -125,8 +124,8 @@ public:
     lastDeltaTime = deltaTime;
     lastFpsUpdateTime += deltaTime;
 
-    // Update FPS counter every 0.1 seconds
-    if (lastFpsUpdateTime >= 0.1 && fpsLabelPtr) {
+    // Update FPS counter every 1 seconds
+    if (lastFpsUpdateTime >= 1 && fpsLabelPtr) {
       int fps = static_cast<int>(std::round(1.0 / deltaTime));
       fpsLabelPtr->setText("FPS: " + std::to_string(fps));
       lastFpsUpdateTime = 0.0;
@@ -223,10 +222,10 @@ private:
     // Create GLFW adapters for TextInput
     adapters = examples::glfw::GLFWAdapters::create(glfwWindow);
 
-    // === Main Layout - FlexLayout Horizontal ===
+    // === Main Layout - FlexLayout Vertical ===
     auto mainLayout = std::make_shared<FlexLayout>();
     mainLayout->configure(FlexLayout::Configuration{
-      .direction = FlexDirection::ROW, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 15.0f});
+      .direction = FlexDirection::ROW, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 3.0f});
 
     // Set flex item properties: left and right panels fixed width, center panel grows to fill
     mainLayout->setItemProperties({
@@ -244,26 +243,29 @@ private:
     toolbarPanelLayout->configure(FlexLayout::Configuration{
       .direction = FlexDirection::ROW, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 0.0f});
 
-    auto toolbarPanel = create<FlexPanel>().withSize(0, 40).withLayout(toolbarPanelLayout).build();
-    toolbarPanel->setBackgroundColor(theming::Color(0.12f, 0.12f, 0.14f, 1.0f));
+    auto toolbarPanel = create<FlexPanel>().withSize(0, 35).withLayout(toolbarPanelLayout).build();
     toolbarPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     toolbarPanel->setBorderWidth(1);
-    toolbarPanel->setPadding(5);
     toolbarPanel->addChild(std::move(toolbar));
 
     // === LEFT PANEL - Controls & Inputs ===
     auto leftPanel = buildControlPanel();
+    // Fixed width horizontally (controlled by FlexLayout grow/shrink=0), fill vertically
+    leftPanel->setAxisResizeBehavior(Component::AxisResizeBehavior::FIXED, Component::AxisResizeBehavior::FILL);
 
     // === CENTER PANEL - Layout Demonstrations ===
     auto centerPanel = buildCenterPanel();
+    // Fill horizontally (controlled by FlexLayout grow/shrink=1), fill vertically
+    centerPanel->setAxisResizeBehavior(Component::AxisResizeBehavior::FILL, Component::AxisResizeBehavior::FILL);
 
     // === RIGHT PANEL - Component Showcase ===
     auto rightPanel = buildComponentShowcase();
+    // Fixed width horizontally (controlled by FlexLayout grow/shrink=0), fill vertically
+    rightPanel->setAxisResizeBehavior(Component::AxisResizeBehavior::FIXED, Component::AxisResizeBehavior::FILL);
 
     // === Assemble 3-panel layout with FlexLayout ===
     auto threePanelContainer = create<FlexPanel>().withLayout(mainLayout).build();
     threePanelContainer->setBackgroundColor(theming::Color(0.08f, 0.08f, 0.1f, 1.0f));
-    threePanelContainer->setPadding(15);
 
     threePanelContainer->addChild(std::move(leftPanel));
     threePanelContainer->addChild(std::move(centerPanel));
@@ -280,7 +282,6 @@ private:
     statusBarPanel->setBackgroundColor(theming::Color(0.1f, 0.1f, 0.12f, 1.0f));
     statusBarPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     statusBarPanel->setBorderWidth(1);
-    statusBarPanel->setPadding(5);
 
     // Left status label
     auto appNameLabel = std::make_unique<StatusLabel>("Prong UI Framework - Scene Demo");
@@ -315,9 +316,10 @@ private:
     // Add root container to scene
     addChild(std::move(rootContainer));
 
-    // Initialize main container size to match scene/window
+    // Initialize main container size to match scene/window and set it to FILL behavior
     if (!children.empty() && children[0]) {
       children[0]->setBounds(0, 0, width, height);
+      children[0]->setResizeBehavior(Component::ResizeBehavior::FILL);
       children[0]->invalidateLayout();
     }
 
@@ -336,20 +338,19 @@ private:
   std::unique_ptr<FlexPanel> buildControlPanel() {
     auto leftLayout = std::make_shared<FlexLayout>();
     leftLayout->configure(FlexLayout::Configuration{
-      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 10.0f});
+      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 1.0f});
 
-    auto leftPanel = create<FlexPanel>().withSize(280, 0).withLayout(leftLayout).build();
-
+    auto leftPanel = create<FlexPanel>().withSize(300, 0).withLayout(leftLayout).build();
     leftPanel->setBackgroundColor(theming::Color(0.15f, 0.15f, 0.18f, 1.0f));
     leftPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     leftPanel->setBorderWidth(2);
     leftPanel->setTitle("Controls");
-    leftPanel->setPadding(15);
 
     // === TextInput Demo ===
     auto textInput =
       create<TextInput>()
         .withPlaceholder("Enter text here...")
+        .withSize(0, 30)
         .withTextChangedCallback([](const std::string& text) { std::cout << "Text: " << text << std::endl; })
         .build();
     textInputPtr = textInput.get();
@@ -363,7 +364,7 @@ private:
     buttonRowLayout->configure(FlexLayout::Configuration{.direction = FlexDirection::ROW,
                                                          .justify = FlexJustify::SPACE_BETWEEN,
                                                          .align = FlexAlign::STRETCH,
-                                                         .gap = 10.0f});
+                                                         .gap = 1.0f});
 
     auto buttonRow = create<FlexPanel>().withLayout(buttonRowLayout).build();
     buttonRow->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f));
@@ -452,7 +453,6 @@ private:
     centerPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     centerPanel->setBorderWidth(2);
     centerPanel->setTitle("Layout Demonstrations");
-    centerPanel->setPadding(15);
 
     // === GridLayout Demo ===
     auto gridPanel = buildGridLayoutDemo();
@@ -495,7 +495,6 @@ private:
     gridPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     gridPanel->setBorderWidth(1);
     gridPanel->setTitle("GridLayout (3x3 Button Grid)");
-    gridPanel->setPadding(10);
 
     // Add 9 buttons in 3x3 grid
     for (int i = 1; i <= 9; ++i) {
@@ -526,7 +525,6 @@ private:
     flowPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     flowPanel->setBorderWidth(1);
     flowPanel->setTitle("FlowLayout (Tag-like Interface)");
-    flowPanel->setPadding(10);
 
     // Add various-sized "tag" buttons
     std::vector<std::string> tags = {"C++20", "UI",        "Framework",   "Modern",
@@ -558,7 +556,6 @@ private:
     stackPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     stackPanel->setBorderWidth(1);
     stackPanel->setTitle("StackLayout (Horizontal Stack)");
-    stackPanel->setPadding(10);
     stackPanel->setLayoutManager(stackLayout);
 
     // Add horizontally stacked buttons
@@ -586,7 +583,6 @@ private:
     wrapperPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     wrapperPanel->setBorderWidth(1);
     wrapperPanel->setTitle("DockLayout (Application-style Panel Docking)");
-    wrapperPanel->setPadding(10);
 
     // Create DockLayout
     auto dockLayout = std::make_shared<DockLayout>();
@@ -606,7 +602,6 @@ private:
     leftPanel->setBorderColor(theming::Color(0.4f, 0.5f, 0.6f, 1.0f));
     leftPanel->setBorderWidth(1);
     leftPanel->setTitle("Files");
-    leftPanel->setPadding(5);
 
     // Add file browser-style buttons
     auto fileLayout = std::make_shared<StackLayout>();
@@ -630,7 +625,6 @@ private:
     topPanel->setBorderColor(theming::Color(0.5f, 0.4f, 0.6f, 1.0f));
     topPanel->setBorderWidth(1);
     topPanel->setTitle("Tools");
-    topPanel->setPadding(5);
 
     // Add horizontal tool buttons
     auto toolLayout = std::make_shared<StackLayout>();
@@ -649,11 +643,11 @@ private:
 
     // === RIGHT DOCK - Properties Style ===
     auto rightPanel = create<Panel<>>().withSize(0, 0).build();
+
     rightPanel->setBackgroundColor(theming::Color(0.3f, 0.25f, 0.2f, 1.0f));
     rightPanel->setBorderColor(theming::Color(0.6f, 0.5f, 0.4f, 1.0f));
     rightPanel->setBorderWidth(1);
     rightPanel->setTitle("Properties");
-    rightPanel->setPadding(5);
 
     // Add property-style labels
     auto propLayout = std::make_shared<StackLayout>();
@@ -675,7 +669,6 @@ private:
     centerPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.3f, 1.0f));
     centerPanel->setBorderWidth(1);
     centerPanel->setTitle("Editor");
-    centerPanel->setPadding(5);
 
     // Add center content label
     auto centerLabel = create<Button>("Main content area - click docked panels to interact").build();
@@ -745,7 +738,6 @@ private:
     wrapperPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
     wrapperPanel->setBorderWidth(1);
     wrapperPanel->setTitle("Viewport (Scrollable Content with Pan & Zoom)");
-    wrapperPanel->setPadding(10);
 
     // Create viewport with fixed height to demonstrate scrolling
     // Width will be set by FlexLayout, only set height
@@ -763,8 +755,8 @@ private:
     // Create render callback with visible content
     // The callback receives viewportX/viewportY which is the viewport's global screen position
     // All rendering must be offset by viewportX/viewportY to appear within the viewport
-    viewport->setRenderCallback([this](rendering::IRenderer* rend, const Viewport::ViewportTransform& transform, int,
-                                       int, int viewportX, int viewportY) {
+    viewport->setRenderCallback([](rendering::IRenderer* rend, const Viewport::ViewportTransform& transform, int, int,
+                                   int viewportX, int viewportY) {
       // Draw a checkerboard pattern to show viewport boundaries
       // Content coordinates: (0,0) to (800,600) in content space
       // Transform: apply zoom and pan, then offset by viewport position
@@ -834,15 +826,14 @@ private:
   std::unique_ptr<FlexPanel> buildComponentShowcase() {
     auto rightLayout = std::make_shared<FlexLayout>();
     rightLayout->configure(FlexLayout::Configuration{
-      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 10.0f});
+      .direction = FlexDirection::COLUMN, .justify = FlexJustify::START, .align = FlexAlign::STRETCH, .gap = 1.0f});
 
     auto rightPanel = create<FlexPanel>().withSize(320, 0).withLayout(rightLayout).build();
 
     rightPanel->setBackgroundColor(theming::Color(0.15f, 0.15f, 0.18f, 1.0f));
     rightPanel->setBorderColor(theming::Color(0.3f, 0.3f, 0.35f, 1.0f));
-    rightPanel->setBorderWidth(2);
+    rightPanel->setBorderWidth(1);
     rightPanel->setTitle("Component Showcase");
-    rightPanel->setPadding(15);
 
     // === ListBox Demo ===
     auto listBox = std::make_unique<ListBox>();
@@ -907,7 +898,7 @@ private:
     int helpId = toolbar->addTool("Help", "", "Show help documentation", "F1");
 
     // Set toolbar callback for actions
-    toolbar->setToolCallback([this, fileId, editId, viewId, helpId](int toolId) {
+    toolbar->setToolCallback([fileId, editId, viewId, helpId](int toolId) {
       if (toolId == fileId) {
         std::cout << "[Toolbar] File action triggered" << std::endl;
       } else if (toolId == editId) {
@@ -955,7 +946,6 @@ private:
 
     auto contentPanel = create<FlexPanel>().withLayout(contentLayout).build();
     contentPanel->setBackgroundColor(theming::Color(0.0f, 0.0f, 0.0f, 0.0f));
-    contentPanel->setPadding(20);
     contentPanel->setBounds(0, 40, 500, 310); // Below title bar, above button area
 
     // Add content text using buttons as labels (since we don't have a Label component)
@@ -1012,8 +1002,9 @@ private:
    * @brief Print welcome message
    */
   void printWelcomeMessage() {
-    std::cout << "\n╔══════════════════════════════════════════════════════════════╗" << std::endl;
-    std::cout << "║         Prong UI Framework - Comprehensive Demo             ║" << std::endl;
+    std::cout << std::endl;
+    std::cout << "╔══════════════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║          Prong UI Framework - Comprehensive Demo             ║" << std::endl;
     std::cout << "╚══════════════════════════════════════════════════════════════╝" << std::endl;
     std::cout << "\nCore Components Demonstrated:" << std::endl;
     std::cout << "  * Button          - Interactive buttons with callbacks" << std::endl;
@@ -1040,20 +1031,24 @@ private:
     std::cout << "  • Click DockLayout panels (Files, Tools, Properties) to see docking behavior" << std::endl;
     std::cout << "  • Click any button to see console output" << std::endl;
     std::cout << "  • Select items in ListBox" << std::endl;
+    std::cout << "  • RESIZE the window to see automatic layout reflow!" << std::endl;
     std::cout << "  • ESC key or 'Exit Application' to close" << std::endl;
     std::cout << "\n══════════════════════════════════════════════════════════════\n" << std::endl;
   }
 
   /**
-   * @brief Handle window resize
+   * @brief Handle window resize - automatic propagation via Scene base class
    */
   void onWindowResize(int width, int height) override {
+    // Call base implementation which handles:
+    // 1. Update scene bounds
+    // 2. Invalidate layout
+    // 3. Notify renderer
+    // 4. Propagate resize to children (which triggers their ResizeBehavior)
     Scene::onWindowResize(width, height);
 
-    if (!children.empty() && children[0]) {
-      children[0]->setBounds(0, 0, width, height);
-      children[0]->invalidateLayout();
-    }
+    // No manual sizing needed - root container has FILL behavior set in buildUI()
+    // and will automatically resize to match the scene dimensions
   }
 };
 

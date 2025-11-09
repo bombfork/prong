@@ -193,18 +193,19 @@ private:
   /**
    * @brief Notify children of window resize
    *
-   * Children can override setBounds() to implement custom resize behavior.
+   * Calls onParentResize() on all children to trigger their resize behavior.
    *
    * @param width New window width
    * @param height New window height
    */
   void notifyChildrenOfResize(int width, int height) {
-    (void)width;  // Available for child components to use
-    (void)height; // Available for child components to use
-
-    // Children can override setBounds() to implement custom resize behavior.
-    // By default, children maintain their current position and size.
-    // For automatic layout, use Layout managers or override this method.
+    // Notify all children of the resize
+    // They will apply their ResizeBehavior and propagate to their children
+    for (auto& child : children) {
+      if (child) {
+        child->onParentResize(width, height);
+      }
+    }
   }
 };
 

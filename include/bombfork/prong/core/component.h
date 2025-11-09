@@ -4,6 +4,8 @@
 #include <bombfork/prong/layout/layout_manager.h>
 
 #include <algorithm>
+#include <climits>
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <string>
@@ -38,6 +40,40 @@ public:
     HOVERING, // Mouse is over component
     FOCUSED,  // Component has keyboard focus
     ACTIVE    // Component is being interacted with
+  };
+
+  /**
+   * @brief Resize behavior controls how component responds to parent resize
+   */
+  enum class ResizeBehavior {
+    FIXED,          // Keep original size and position
+    SCALE,          // Scale proportionally with parent
+    FILL,           // Fill available parent space
+    MAINTAIN_ASPECT // Scale while maintaining aspect ratio
+  };
+
+  /**
+   * @brief Per-axis resize behavior for independent horizontal/vertical control
+   */
+  enum class AxisResizeBehavior {
+    FIXED, // Keep original size on this axis
+    SCALE, // Scale proportionally with parent on this axis
+    FILL   // Fill available parent space on this axis
+  };
+
+  /**
+   * @brief Constraints for responsive sizing
+   */
+  struct ResponsiveConstraints {
+    int minWidth = 0;
+    int minHeight = 0;
+    int maxWidth = INT_MAX;
+    int maxHeight = INT_MAX;
+    float aspectRatio = 0.0f; // 0 = no constraint
+
+    ResponsiveConstraints() = default;
+    ResponsiveConstraints(int minW, int minH, int maxW = INT_MAX, int maxH = INT_MAX, float ar = 0.0f)
+      : minWidth(minW), minHeight(minH), maxWidth(maxW), maxHeight(maxH), aspectRatio(ar) {}
   };
 
 public:
@@ -82,6 +118,20 @@ protected:
   bool enabled = true;
   FocusState focusState = FocusState::NONE;
   bool isCurrentlyHovered = false; // Track if mouse is currently over this component
+
+  // Resize handling
+  ResizeBehavior resizeBehavior = ResizeBehavior::FIXED;
+  AxisResizeBehavior horizontalResizeBehavior = AxisResizeBehavior::FIXED;
+  AxisResizeBehavior verticalResizeBehavior = AxisResizeBehavior::FIXED;
+  bool usePerAxisBehavior = false; // If true, use per-axis behaviors instead of resizeBehavior
+  ResponsiveConstraints constraints;
+  int originalParentWidth = 0;
+  int originalParentHeight = 0;
+  // Original component dimensions (for SCALE and MAINTAIN_ASPECT behaviors)
+  int originalLocalX = 0;
+  int originalLocalY = 0;
+  int originalWidth = 0;
+  int originalHeight = 0;
 
   // Parent/child relationships
   Component* parent = nullptr;
@@ -130,11 +180,68 @@ public:
    * @param newHeight Component height
    */
   virtual void setBounds(int newX, int newY, int newWidth, int newHeight) {
+    // If this component has per-axis resize behavior, apply it before setting bounds
+    // This allows components to resist unwanted size changes (e.g., FIXED axis)
+    if (usePerAxisBehavior && parent != nullptr) {
+      // Check if size would change
+      if (width != newWidth || height != newHeight) {
+        // Get parent size (our resize behavior is relative to parent)
+        int parentWidth, parentHeight;
+        parent->getSize(parentWidth, parentHeight);
+
+        // Apply per-axis behavior to determine actual size we should use
+        int adjustedWidth = newWidth;
+        int adjustedHeight = newHeight;
+
+        // Apply horizontal behavior
+        switch (horizontalResizeBehavior) {
+        case AxisResizeBehavior::FIXED:
+          // Keep original width, ignore requested width
+          adjustedWidth = (originalWidth > 0) ? originalWidth : width;
+          break;
+        case AxisResizeBehavior::SCALE:
+        case AxisResizeBehavior::FILL:
+          // Allow the requested width
+          adjustedWidth = newWidth;
+          break;
+        }
+
+        // Apply vertical behavior
+        switch (verticalResizeBehavior) {
+        case AxisResizeBehavior::FIXED:
+          // Keep original height, ignore requested height
+          adjustedHeight = (originalHeight > 0) ? originalHeight : height;
+          break;
+        case AxisResizeBehavior::SCALE:
+        case AxisResizeBehavior::FILL:
+          // Allow the requested height
+          adjustedHeight = newHeight;
+          break;
+        }
+
+        // Use adjusted sizes
+        newWidth = adjustedWidth;
+        newHeight = adjustedHeight;
+      }
+    }
+
+    // Check if size actually changed
+    bool sizeChanged = (width != newWidth || height != newHeight);
+
     localX = newX;
     localY = newY;
     width = newWidth;
     height = newHeight;
     invalidateGlobalCache();
+
+    // If size changed, notify children so they can apply their resize behavior
+    if (sizeChanged) {
+      for (auto& child : children) {
+        if (child) {
+          child->onParentResize(newWidth, newHeight);
+        }
+      }
+    }
   }
 
   /**
@@ -370,6 +477,242 @@ public:
 
   virtual bool canReceiveFocus() const { return enabled && visible; }
 
+  // === Resize Management ===
+
+  /**
+   * @brief Set resize behavior for this component
+   * @param behavior How component should respond to parent resize
+   */
+  void setResizeBehavior(ResizeBehavior behavior) {
+    resizeBehavior = behavior;
+    usePerAxisBehavior = false;
+  }
+
+  /**
+   * @brief Get current resize behavior
+   */
+  ResizeBehavior getResizeBehavior() const { return resizeBehavior; }
+
+  /**
+   * @brief Set per-axis resize behavior for independent horizontal/vertical control
+   * @param horizontal Resize behavior for horizontal axis
+   * @param vertical Resize behavior for vertical axis
+   */
+  void setAxisResizeBehavior(AxisResizeBehavior horizontal, AxisResizeBehavior vertical) {
+    horizontalResizeBehavior = horizontal;
+    verticalResizeBehavior = vertical;
+    usePerAxisBehavior = true;
+
+    // Initialize original dimensions NOW so FIXED behavior works from the start
+    // This captures the component's current size as the "original" before any layout runs
+    if (originalWidth == 0 && originalHeight == 0) {
+      originalLocalX = localX;
+      originalLocalY = localY;
+      originalWidth = width;
+      originalHeight = height;
+
+      // Also initialize parent dimensions if we have a parent
+      if (parent) {
+        parent->getSize(originalParentWidth, originalParentHeight);
+      }
+    }
+  }
+
+  /**
+   * @brief Get horizontal resize behavior
+   */
+  AxisResizeBehavior getHorizontalResizeBehavior() const { return horizontalResizeBehavior; }
+
+  /**
+   * @brief Get vertical resize behavior
+   */
+  AxisResizeBehavior getVerticalResizeBehavior() const { return verticalResizeBehavior; }
+
+  /**
+   * @brief Check if using per-axis resize behavior
+   */
+  bool isUsingPerAxisBehavior() const { return usePerAxisBehavior; }
+
+  /**
+   * @brief Set responsive constraints for sizing
+   * @param newConstraints Min/max size and aspect ratio constraints
+   */
+  void setConstraints(const ResponsiveConstraints& newConstraints) { constraints = newConstraints; }
+
+  /**
+   * @brief Get current constraints
+   */
+  const ResponsiveConstraints& getConstraints() const { return constraints; }
+
+  /**
+   * @brief Called when parent component is resized
+   *
+   * Override this to implement custom resize behavior. The default
+   * implementation uses the ResizeBehavior setting to automatically
+   * handle common resize patterns.
+   *
+   * @param parentWidth New parent width
+   * @param parentHeight New parent height
+   */
+  virtual void onParentResize(int parentWidth, int parentHeight) {
+    // Initialize original dimensions if not set (first resize call)
+    if (originalParentWidth == 0 && originalParentHeight == 0) {
+      originalParentWidth = parentWidth;
+      originalParentHeight = parentHeight;
+      // Store original component dimensions for SCALE and MAINTAIN_ASPECT
+      originalLocalX = localX;
+      originalLocalY = localY;
+      originalWidth = width;
+      originalHeight = height;
+    }
+
+    // Use per-axis behavior if enabled, otherwise use unified behavior
+    if (usePerAxisBehavior) {
+      applyPerAxisResize(parentWidth, parentHeight);
+    } else {
+      applyUnifiedResize(parentWidth, parentHeight);
+    }
+
+    // Apply constraints
+    applyConstraints();
+
+    // Mark layout as invalid to trigger re-layout
+    invalidateLayout();
+
+    // Note: We don't propagate to children here because setBounds() already
+    // handles propagation when the size actually changes. Propagating here
+    // would cause children to receive onParentResize() twice.
+  }
+
+protected:
+  /**
+   * @brief Apply unified resize behavior (original behavior)
+   */
+  void applyUnifiedResize(int parentWidth, int parentHeight) {
+    switch (resizeBehavior) {
+    case ResizeBehavior::FILL: {
+      // Fill available parent space
+      setBounds(0, 0, parentWidth, parentHeight);
+      break;
+    }
+    case ResizeBehavior::SCALE: {
+      // Scale proportionally from ORIGINAL dimensions
+      if (originalParentWidth > 0 && originalParentHeight > 0) {
+        float scaleX = parentWidth / static_cast<float>(originalParentWidth);
+        float scaleY = parentHeight / static_cast<float>(originalParentHeight);
+
+        // Scale from original dimensions, not current ones!
+        int newX = static_cast<int>(originalLocalX * scaleX);
+        int newY = static_cast<int>(originalLocalY * scaleY);
+        int newWidth = static_cast<int>(originalWidth * scaleX);
+        int newHeight = static_cast<int>(originalHeight * scaleY);
+
+        setBounds(newX, newY, newWidth, newHeight);
+      }
+      break;
+    }
+    case ResizeBehavior::MAINTAIN_ASPECT: {
+      // Scale while maintaining aspect ratio from ORIGINAL dimensions
+      if (originalParentWidth > 0 && originalParentHeight > 0 && originalWidth > 0 && originalHeight > 0) {
+        float currentAspect = originalWidth / static_cast<float>(originalHeight);
+        float scale = std::min(parentWidth / static_cast<float>(originalParentWidth),
+                               parentHeight / static_cast<float>(originalParentHeight));
+
+        int newWidth = static_cast<int>(originalWidth * scale);
+        int newHeight = static_cast<int>(newWidth / currentAspect);
+
+        // Center in available space
+        int newX = (parentWidth - newWidth) / 2;
+        int newY = (parentHeight - newHeight) / 2;
+
+        setBounds(newX, newY, newWidth, newHeight);
+      }
+      break;
+    }
+    case ResizeBehavior::FIXED:
+      // Do nothing - keep original size and position
+      break;
+    }
+  }
+
+  /**
+   * @brief Apply per-axis resize behavior for independent horizontal/vertical control
+   */
+  void applyPerAxisResize(int parentWidth, int parentHeight) {
+    int newX = localX;
+    int newY = localY;
+    int newWidth = width;
+    int newHeight = height;
+
+    // Calculate scale factors
+    float scaleX = (originalParentWidth > 0) ? parentWidth / static_cast<float>(originalParentWidth) : 1.0f;
+    float scaleY = (originalParentHeight > 0) ? parentHeight / static_cast<float>(originalParentHeight) : 1.0f;
+
+    // Apply horizontal behavior
+    switch (horizontalResizeBehavior) {
+    case AxisResizeBehavior::FILL:
+      newX = 0;
+      newWidth = parentWidth;
+      break;
+    case AxisResizeBehavior::SCALE:
+      newX = static_cast<int>(originalLocalX * scaleX);
+      newWidth = static_cast<int>(originalWidth * scaleX);
+      break;
+    case AxisResizeBehavior::FIXED:
+      // Keep original X and width
+      newX = originalLocalX;
+      newWidth = originalWidth;
+      break;
+    }
+
+    // Apply vertical behavior
+    switch (verticalResizeBehavior) {
+    case AxisResizeBehavior::FILL:
+      newY = 0;
+      newHeight = parentHeight;
+      break;
+    case AxisResizeBehavior::SCALE:
+      newY = static_cast<int>(originalLocalY * scaleY);
+      newHeight = static_cast<int>(originalHeight * scaleY);
+      break;
+    case AxisResizeBehavior::FIXED:
+      // Keep original Y and height
+      newY = originalLocalY;
+      newHeight = originalHeight;
+      break;
+    }
+
+    setBounds(newX, newY, newWidth, newHeight);
+  }
+
+  /**
+   * @brief Apply responsive constraints to current size
+   */
+  void applyConstraints() {
+    if (constraints.minWidth > 0 || constraints.maxWidth < INT_MAX || constraints.minHeight > 0 ||
+        constraints.maxHeight < INT_MAX || constraints.aspectRatio > 0.0f) {
+
+      int newWidth = width;
+      int newHeight = height;
+
+      // Apply min/max constraints
+      newWidth = std::clamp(newWidth, constraints.minWidth, constraints.maxWidth);
+      newHeight = std::clamp(newHeight, constraints.minHeight, constraints.maxHeight);
+
+      // Apply aspect ratio constraint
+      if (constraints.aspectRatio > 0.0f) {
+        newHeight = static_cast<int>(newWidth / constraints.aspectRatio);
+        // Re-check height constraints after aspect ratio adjustment
+        newHeight = std::clamp(newHeight, constraints.minHeight, constraints.maxHeight);
+      }
+
+      if (newWidth != width || newHeight != height) {
+        setSize(newWidth, newHeight);
+      }
+    }
+  }
+
+public:
   // === Parent/Child Management ===
 
   void addChild(std::unique_ptr<Component> child) {
