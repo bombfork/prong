@@ -196,6 +196,62 @@ Prong uses a **hierarchical event propagation model** where events flow through 
 
 Components must be enabled and visible to receive events. The Scene is the entry point for all events from the window system.
 
+### Resize Behavior
+
+Components can specify how they respond to parent resize events through resize behaviors. This is essential for responsive UI layouts.
+
+#### Unified Resize Behavior
+
+The `ResizeBehavior` enum provides unified control over both axes:
+- `FIXED`: Keep original size and position (default)
+- `SCALE`: Scale proportionally with parent
+- `FILL`: Fill available parent space
+- `MAINTAIN_ASPECT`: Scale while maintaining aspect ratio
+
+```cpp
+component->setResizeBehavior(Component::ResizeBehavior::FILL);
+```
+
+#### Per-Axis Resize Behavior
+
+For more control, use `AxisResizeBehavior` to set independent horizontal and vertical behavior:
+- `AxisResizeBehavior::FIXED`: Keep original size on this axis
+- `AxisResizeBehavior::SCALE`: Scale proportionally with parent on this axis
+- `AxisResizeBehavior::FILL`: Fill available parent space on this axis
+
+```cpp
+// Fixed width, fill height (common for panels in horizontal FlexLayout)
+panel->setAxisResizeBehavior(Component::AxisResizeBehavior::FIXED,
+                             Component::AxisResizeBehavior::FILL);
+```
+
+**Important**: When using FlexLayout, per-axis behavior is usually preferred:
+- For horizontal FlexLayout (ROW): Use `FIXED` or `SCALE` horizontally (let FlexLayout control width), `FILL` vertically
+- For vertical FlexLayout (COLUMN): Use `FILL` horizontally, `FIXED` or `SCALE` vertically (let FlexLayout control height)
+
+Example from demo app:
+```cpp
+// Left panel in horizontal FlexLayout: fixed width (200px), fills height
+leftPanel->setAxisResizeBehavior(Component::AxisResizeBehavior::FIXED,
+                                 Component::AxisResizeBehavior::FILL);
+
+// Center panel: fills both dimensions (grows with FlexLayout)
+centerPanel->setAxisResizeBehavior(Component::AxisResizeBehavior::FILL,
+                                   Component::AxisResizeBehavior::FILL);
+```
+
+#### Responsive Constraints
+
+Combine resize behavior with constraints for bounded resizing:
+```cpp
+Component::ResponsiveConstraints constraints;
+constraints.minWidth = 200;
+constraints.maxWidth = 600;
+constraints.minHeight = 150;
+constraints.maxHeight = 450;
+component->setConstraints(constraints);
+```
+
 ### Layout System
 
 Layout managers (`include/bombfork/prong/layout/`) use CRTP and provide:
@@ -331,7 +387,7 @@ The namespace for the installed target is `bombfork::prong`.
 - **Focus model**: Components track their own focus state via `FocusState` enum; Scene manages global focus
 - **Thread safety**: ThemeManager is thread-safe; other components assume single-threaded use
 - Always use the `mise build` command to build the library, tests and examples.
-- The demo app located in @examples/simple_app/ is used to test the library's UX, it is built and run with the `mise demo` command. It is meant to gather feedback from the user, and for overall feature validation.
+- The demo app located in @examples/demo_app/ is used to test the library's UX, it is built and run with the `mise demo` command. It is meant to gather feedback from the user, and for overall feature validation.
 - Use gh cli to interact with the github repo when needed
 - ALWAYS use ninja generator when using cmake.
 - NEVER bypass iwyu or clang-format
