@@ -56,6 +56,7 @@ mise build
 ```
 
 This command:
+
 - Configures CMake with Ninja generator
 - Builds the core library
 - Builds all tests
@@ -129,6 +130,7 @@ This builds and executes all unit tests. All tests must pass before submitting a
 Header dependencies are verified automatically by IWYU and is integrated to cmake and git hooks.
 
 IWYU ensures that:
+
 - Headers only include what they directly use
 - No transitive include dependencies
 - Header files are self-contained
@@ -138,6 +140,7 @@ The git hooks will automatically check this before commits.
 ### Demo Application Testing
 
 The demo app (`examples/demo_app/`) is used for:
+
 - UX testing and validation
 - Manual feature testing
 - Gathering user feedback
@@ -160,6 +163,7 @@ Prong follows a **header-only architecture** where possible. Only add `.cpp` imp
 - Platform-specific code requiring conditional compilation
 
 **Existing `.cpp` files:**
+
 - `src/core/coordinate_system.cpp` - World ↔ Screen transformations
 - `src/core/async_callback_queue.cpp` - Thread-safe callback management
 - `src/theming/theme_manager.cpp` - Global theme state
@@ -193,6 +197,7 @@ class LayoutManager {
 Prong uses a **relative coordinate system** where child positions are always relative to their parent:
 
 **DO:**
+
 ```cpp
 // Position children relative to parent
 panel->setPosition(100, 50);        // Panel at (100, 50) in parent space
@@ -201,6 +206,7 @@ panel->addChild(std::move(button)); // Button now at global (120, 60)
 ```
 
 **DON'T:**
+
 ```cpp
 // Never use global coordinates when positioning children
 int globalX, globalY;
@@ -209,6 +215,7 @@ button->setPosition(globalX + 20, globalY + 10);  // WRONG!
 ```
 
 **Rendering:**
+
 - Use `getGlobalX()` and `getGlobalY()` in `render()` methods
 - Global coordinates are cached automatically
 - Never manually track or store global positions
@@ -376,6 +383,7 @@ mise demo
 ### 4. Commit
 
 Git hooks will automatically:
+
 - Run clang-format on changed files
 - Run iwyu checks
 - Validate commit message format
@@ -405,6 +413,7 @@ Then create a Pull Request on GitHub with:
 **Title:** Clear, concise description of changes
 
 **Description should include:**
+
 - Summary of changes
 - Motivation and context
 - Related issue numbers (e.g., "Fixes #123", "Closes #456")
@@ -413,6 +422,7 @@ Then create a Pull Request on GitHub with:
 - Any breaking changes
 
 **Example PR description:**
+
 ```markdown
 ## Summary
 Add responsive resize behavior to Panel component to support dynamic layouts.
@@ -449,6 +459,7 @@ Prong uses [hk](https://github.com/jdx/hk) to manage git hooks. The configuratio
 ### Pre-commit Hook
 
 The pre-commit hook automatically:
+
 - Runs `clang-format` on all staged C++ files (`**/*.cpp`, `**/*.h`)
 - Checks formatting with `mise run format-check`
 - Automatically fixes formatting issues with `mise run format` when `fix = true`

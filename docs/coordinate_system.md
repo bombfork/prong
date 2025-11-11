@@ -64,7 +64,7 @@ panel->addChild(std::move(button));
 
 For any component, its global position is:
 
-```
+```text
 globalX = localX + parent.globalX
 globalY = localY + parent.globalY
 ```
@@ -524,6 +524,7 @@ See the `CoordinateSystem` class documentation for details on world coordinate t
 **Symptoms**: Component appears at (0, 0) or wrong location
 
 **Likely causes**:
+
 1. Using local coordinates for rendering instead of global
 2. Not calling `getGlobalX()` and `getGlobalY()`
 
@@ -542,6 +543,7 @@ void render() override {
 **Symptoms**: Child stays in place when parent moves
 
 **Likely causes**:
+
 1. Child is not actually added to parent via `addChild()`
 2. Child's position is being set to global coordinates
 3. Child is being repositioned after parent moves
@@ -560,6 +562,7 @@ parent->addChild(std::move(child));  // Establish relationship
 **Symptoms**: Clicks/hover don't work at new position
 
 **Likely causes**:
+
 1. Component not added to the scene hierarchy
 2. Custom `containsEvent()` implementation using incorrect coordinate space
 
@@ -580,10 +583,12 @@ bool containsGlobal(int globalX, int globalY) const {
 **Symptoms**: Slow rendering or event handling
 
 **Likely causes**:
+
 1. Constantly invalidating cache by repeatedly calling `setPosition()`
 2. Very deep component nesting (>50 levels)
 
 **Solution**:
+
 - Only update positions when actually changed
 - Consider flattening the hierarchy if possible
 - Profile to confirm this is actually the bottleneck

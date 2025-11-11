@@ -5,21 +5,25 @@ Demonstrates performance characteristics with 100 components and optimization te
 ## Performance Features
 
 ### 1. Layout Caching
+
 - Layouts only recalculate when invalidated
 - Use `invalidateLayout()` only when necessary
 - Batch multiple changes before invalidating
 
 ### 2. Coordinate Caching
+
 - Global coordinates cached and invalidated automatically
 - Multiple `getGlobalPosition()` calls in one frame are cheap
 - Cache invalidates on position changes and cascades to children
 
 ### 3. CRTP Zero-Cost Abstraction
+
 - No virtual function overhead for layouts
 - Compile-time polymorphism
 - Templates resolve at compile time
 
 ### 4. Efficient Event Propagation
+
 - Hit testing before processing
 - Events stop at handler (don't continue unnecessarily)
 - Reverse iteration for Z-order

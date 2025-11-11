@@ -13,6 +13,22 @@ hooks {
                 fix = "mise run format {{ files }}"
                 stage = List("**/*.cpp", "**/*.h")
             }
+            ["markdown-lint"] {
+                // Lint markdown files
+                glob = List("**/*.md")
+                check = "mise run markdown-check {{ files }}"
+                fix = "mise run markdown-fix {{ files }}"
+                stage = List("**/*.md")
+            }
+        }
+    }
+    ["pre-push"] {
+        fix = false  // No auto-fixing on pre-push
+        steps = new Mapping<String, Step> {
+            ["build-validation"] {
+                // Run full build validation before pushing
+                check = "mise run build-ci"
+            }
         }
     }
 }

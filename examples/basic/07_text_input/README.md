@@ -3,6 +3,7 @@
 Interactive text entry component with full keyboard support and copy/paste functionality.
 
 ## What This Demonstrates
+
 - Using TextInput component for user text entry
 - Setting up GLFW adapters (clipboard and keyboard)
 - Handling text change callbacks
@@ -15,10 +16,12 @@ Interactive text entry component with full keyboard support and copy/paste funct
 **TextInput**: A single-line text entry component with full text editing capabilities. Supports cursor movement, text selection, copy/paste, and standard keyboard shortcuts.
 
 **Platform Adapters**: TextInput requires two platform-specific adapters:
+
 - **IClipboard**: Provides clipboard access for copy/paste operations
 - **IKeyboard**: Converts platform key codes to Prong's agnostic Key enum
 
 **GLFW Adapters**: Prong provides reference implementations for GLFW:
+
 ```cpp
 auto adapters = glfw::GLFWAdapters::create(glfwWindow);
 textInput->setClipboard(adapters.clipboard.get());
@@ -26,6 +29,7 @@ textInput->setKeyboard(adapters.keyboard.get());
 ```
 
 **Keyboard Shortcuts**:
+
 - `Ctrl+C`: Copy selected text
 - `Ctrl+V`: Paste from clipboard
 - `Ctrl+X`: Cut selected text
@@ -36,6 +40,7 @@ textInput->setKeyboard(adapters.keyboard.get());
 - `Backspace/Delete`: Remove characters
 
 ## Building
+
 ```bash
 cd /home/atom/projects/bombfork/prong
 mise build-examples
@@ -63,6 +68,7 @@ mise build-examples
 5. **Watch callbacks**: See console output as you type in each field
 
 **Form Validation Example**:
+
 ```cpp
 auto emailInput = create<TextInput>()
   .withPlaceholder("user@example.com")
@@ -74,6 +80,7 @@ auto emailInput = create<TextInput>()
 ```
 
 **Common Use Cases**:
+
 - Login forms (username, password)
 - Search boxes
 - Settings panels (name, URL, path inputs)

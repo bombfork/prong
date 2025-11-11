@@ -3,6 +3,7 @@
 2D grid layout manager for arranging components in rows and columns.
 
 ## What This Demonstrates
+
 - Using GridLayout for 2D arrangements
 - Configuring rows and columns
 - Setting row and column gaps
@@ -18,12 +19,14 @@
 **Automatic Placement**: Children are placed automatically in grid cells, filling left-to-right, top-to-bottom. Just add children in the order you want them to appear.
 
 **Configuration**:
+
 - `setRows(n)`: Number of rows in the grid
 - `setColumns(n)`: Number of columns in the grid
 - `setRowGap(px)`: Vertical spacing between cells
 - `setColumnGap(px)`: Horizontal spacing between cells
 
 ## Building
+
 ```bash
 cd /home/atom/projects/bombfork/prong
 mise build-examples
@@ -49,6 +52,7 @@ mise build-examples
 5. **Nested grids**: Create a panel with GridLayout that contains other panels with GridLayout
 
 **Common Use Cases**:
+
 - Calculator interfaces
 - Numeric keypads
 - Icon/app launchers

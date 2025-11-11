@@ -3,6 +3,7 @@
 Scrollable list component with selection support and dynamic item management.
 
 ## What This Demonstrates
+
 - Using ListBox component for item lists
 - Creating ListBox with initial items
 - Handling selection callbacks
@@ -21,6 +22,7 @@ Scrollable list component with selection support and dynamic item management.
 **Selection Callback**: Register a callback with `withSelectionCallback()` to be notified when an item is selected. The callback receives both the index and the item text.
 
 **Dynamic Manipulation**:
+
 ```cpp
 listBox->addItem("New Item");           // Add to end
 listBox->removeItem(index);             // Remove by index
@@ -32,6 +34,7 @@ const auto& items = listBox->getItems(); // Get all items
 **Scrolling**: ListBox automatically provides scrolling when content exceeds the visible area. Users can use mouse wheel or click-and-drag to scroll.
 
 ## Building
+
 ```bash
 cd /home/atom/projects/bombfork/prong
 mise build-examples
@@ -64,12 +67,14 @@ mise build-examples
 6. **Clear**: Click "Clear All" to empty the task list
 
 **Multi-selection Example** (not in basic example):
+
 ```cpp
 // For multi-selection support, you would need to track multiple indices
 // and modify the ListBox to support multiple selections
 ```
 
 **Common Use Cases**:
+
 - File browsers (list of files)
 - Settings panels (list of options)
 - Contact lists
@@ -80,6 +85,7 @@ mise build-examples
 - Message/email lists
 
 **Integration with Other Components**:
+
 ```cpp
 // Example: Master-detail pattern
 auto listBox = create<ListBox>()

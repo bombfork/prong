@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Prong is a modern C++20 UI framework from BombFork designed for high-performance applications. It's header-mostly, uses CRTP (Curiously Recurring Template Pattern) for zero-cost abstractions, and is both renderer-agnostic and window-agnostic.
 
 **Key Design Principles:**
+
 - Header-mostly architecture (minimal implementation files)
 - CRTP-based component system for compile-time polymorphism
 - Zero dependencies for core functionality
@@ -16,6 +17,7 @@ Prong is a modern C++20 UI framework from BombFork designed for high-performance
 ## Build Commands
 
 ### Standard Build
+
 ```bash
 mkdir build && cd build
 cmake .. -DPRONG_BUILD_EXAMPLES=ON -DPRONG_BUILD_TESTS=ON
@@ -23,10 +25,12 @@ cmake --build .
 ```
 
 ### Build Options
+
 - `PRONG_BUILD_EXAMPLES` - Build example applications (default: ON)
 - `PRONG_BUILD_TESTS` - Build unit tests (default: ON)
 
 ### Installation
+
 ```bash
 sudo cmake --install .
 ```
@@ -56,6 +60,7 @@ This eliminates virtual function call overhead while maintaining clean abstracti
 ### Component System
 
 The `Component` class (`include/bombfork/prong/core/component.h`) is the foundation:
+
 - **Parent/child relationships**: Components form a tree structure with automatic ownership via `std::unique_ptr`
 - **Event propagation**: Events flow down from parent to children, with children handling first (topmost rendered components get priority)
 - **Coordinate systems**: Uses a relative coordinate system with caching - see detailed section below
@@ -66,6 +71,7 @@ The `Component` class (`include/bombfork/prong/core/component.h`) is the foundat
 ### Coordinate System
 
 Prong uses a **relative coordinate system** where child positions are always relative to their parent's origin. This design provides several benefits:
+
 - **Intuitive positioning**: Child components don't need to know their parent's position
 - **Automatic updates**: Moving a parent automatically moves all children
 - **Layout flexibility**: Layout managers work with local coordinates only
@@ -160,6 +166,7 @@ The `Component::handleEvent()` method automatically converts global screen coord
 #### Cache Invalidation
 
 The global coordinate cache is automatically invalidated when:
+
 - A component's position changes via `setPosition()` or `setBounds()`
 - A component is added to a new parent
 - Cache invalidation automatically cascades to all descendants
@@ -177,6 +184,7 @@ You should never need to manually invalidate the cache.
 ### Renderer Abstraction
 
 The `IRenderer` interface (`include/bombfork/prong/rendering/irenderer.h`) provides:
+
 - Frame lifecycle: `beginFrame()`, `endFrame()`, `present()`
 - Drawing primitives: `drawRect()`, `drawSprite()`, `drawText()`
 - Batching support: `drawSprites()` for efficient multi-sprite rendering
@@ -187,6 +195,7 @@ All rendering must go through the `IRenderer` interface. Components receive rend
 ### Event System
 
 Prong uses a **hierarchical event propagation model** where events flow through the component tree:
+
 - **Event handling**: Components override `handleEventSelf()` to respond to events
 - **Automatic propagation**: Events propagate from parent to children automatically via `Component::handleEvent()`
 - **Hit testing**: Uses `Component::containsEvent()` for positional event checking
@@ -203,6 +212,7 @@ Components can specify how they respond to parent resize events through resize b
 #### Unified Resize Behavior
 
 The `ResizeBehavior` enum provides unified control over both axes:
+
 - `FIXED`: Keep original size and position (default)
 - `SCALE`: Scale proportionally with parent
 - `FILL`: Fill available parent space
@@ -215,6 +225,7 @@ component->setResizeBehavior(Component::ResizeBehavior::FILL);
 #### Per-Axis Resize Behavior
 
 For more control, use `AxisResizeBehavior` to set independent horizontal and vertical behavior:
+
 - `AxisResizeBehavior::FIXED`: Keep original size on this axis
 - `AxisResizeBehavior::SCALE`: Scale proportionally with parent on this axis
 - `AxisResizeBehavior::FILL`: Fill available parent space on this axis
@@ -226,10 +237,12 @@ panel->setAxisResizeBehavior(Component::AxisResizeBehavior::FIXED,
 ```
 
 **Important**: When using FlexLayout, per-axis behavior is usually preferred:
+
 - For horizontal FlexLayout (ROW): Use `FIXED` or `SCALE` horizontally (let FlexLayout control width), `FILL` vertically
 - For vertical FlexLayout (COLUMN): Use `FILL` horizontally, `FIXED` or `SCALE` vertically (let FlexLayout control height)
 
 Example from demo app:
+
 ```cpp
 // Left panel in horizontal FlexLayout: fixed width (200px), fills height
 leftPanel->setAxisResizeBehavior(Component::AxisResizeBehavior::FIXED,
@@ -243,6 +256,7 @@ centerPanel->setAxisResizeBehavior(Component::AxisResizeBehavior::FILL,
 #### Responsive Constraints
 
 Combine resize behavior with constraints for bounded resizing:
+
 ```cpp
 Component::ResponsiveConstraints constraints;
 constraints.minWidth = 200;
@@ -255,6 +269,7 @@ component->setConstraints(constraints);
 ### Layout System
 
 Layout managers (`include/bombfork/prong/layout/`) use CRTP and provide:
+
 - **FlexLayout**: Flexbox-inspired with direction, justify, align, gap, and grow/shrink factors
 - **GridLayout**: CSS Grid-inspired with rows/columns and gaps
 - **DockLayout**: Docking panels (top, bottom, left, right, center fill)
@@ -262,12 +277,14 @@ Layout managers (`include/bombfork/prong/layout/`) use CRTP and provide:
 - **FlowLayout**: Automatic wrapping layout
 
 Layout managers implement:
+
 - `measureLayout()`: Calculate required space for components
 - `layout()`: Position and size components within available space
 
 ### Theming System
 
 Located in `include/bombfork/prong/theming/`:
+
 - **ThemeManager**: Singleton managing global themes, thread-safe
 - **Color**: RGBA color with utility methods and named constants
 
@@ -276,6 +293,7 @@ Themes use semantic color names.
 ## Implementation Files
 
 Only these modules require `.cpp` files (all in `src/`):
+
 - `core/coordinate_system.cpp` - World ↔ Screen transformations
 - `core/async_callback_queue.cpp` - Thread-safe callback management
 - `theming/theme_manager.cpp` - Global theme state
@@ -285,6 +303,7 @@ All UI components (Button, Panel, ListBox, TextInput, Dialog, Toolbar, Viewport)
 ## Namespace Structure
 
 All code lives under `bombfork::prong` with subnamespaces:
+
 - `bombfork::prong::core` - Component base classes
 - `bombfork::prong::components` - All UI widgets (Button, Panel, ListBox, TextInput, Dialog, Toolbar, Viewport)
 - `bombfork::prong::layout` - Layout managers
@@ -300,10 +319,12 @@ All code lives under `bombfork::prong` with subnamespaces:
 The `TextInput` component requires two platform-specific interfaces for full functionality:
 
 **IClipboard** (`include/bombfork/prong/events/iclipboard.h`):
+
 - Provides clipboard access for copy/paste operations
 - Must be injected via `textInput->setClipboard(clipboard)`
 
 **IKeyboard** (`include/bombfork/prong/events/ikeyboard.h`):
+
 - Converts platform-specific key codes to Prong's agnostic `Key` enum
 - Must be injected via `textInput->setKeyboard(keyboard)`
 
@@ -355,6 +376,7 @@ The mock implementations provide simple in-memory storage for testing without re
 ## C++20 Features
 
 The codebase requires C++20 and uses:
+
 - Concepts for template constraints
 - Ranges for algorithms
 - Three-way comparison operator (spaceship)
@@ -366,6 +388,7 @@ GCC 10+, Clang 13+, or MSVC 2019+ required.
 ## CMake Integration
 
 When used as a library via FetchContent:
+
 ```cmake
 FetchContent_Declare(prong
     GIT_REPOSITORY https://github.com/bombfork/prong.git

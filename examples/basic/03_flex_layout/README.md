@@ -3,6 +3,7 @@
 Flexbox-inspired layout manager for responsive, flexible UI designs.
 
 ## What This Demonstrates
+
 - Using FlexLayout in ROW and COLUMN directions
 - Setting grow factors for flexible sizing
 - Configuring justify content (START, SPACE_BETWEEN, etc.)
@@ -16,6 +17,7 @@ Flexbox-inspired layout manager for responsive, flexible UI designs.
 **Grow Factor**: Determines how much a component grows relative to siblings. If one child has grow=1 and another has grow=2, the second child gets twice as much of the remaining space.
 
 **Justify Content**: Controls spacing along the main axis (horizontal for ROW, vertical for COLUMN)
+
 - `START`: Pack items at the start
 - `CENTER`: Center items
 - `END`: Pack items at the end
@@ -24,12 +26,14 @@ Flexbox-inspired layout manager for responsive, flexible UI designs.
 - `SPACE_EVENLY`: Distribute items with equal space
 
 **Align Items**: Controls alignment along the cross axis
+
 - `START`: Align items at the start
 - `CENTER`: Center items
 - `END`: Align items at the end
 - `STRETCH`: Stretch items to fill cross axis
 
 ## Building
+
 ```bash
 cd /home/atom/projects/bombfork/prong
 mise build-examples

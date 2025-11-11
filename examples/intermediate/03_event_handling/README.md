@@ -151,6 +151,7 @@ Hover state is updated automatically during event propagation - you just need to
 ## Interactive Example Features
 
 ### Click Tracking
+
 ```cpp
 case Event::Type::MOUSE_PRESS:
   if (event.button == 0) {
@@ -160,6 +161,7 @@ case Event::Type::MOUSE_PRESS:
 ```
 
 ### Drag Tracking
+
 ```cpp
 case Event::Type::MOUSE_PRESS:
   isDragging = true;
@@ -181,6 +183,7 @@ case Event::Type::MOUSE_RELEASE:
 ```
 
 ### Keyboard Shortcuts
+
 ```cpp
 case Event::Type::KEY_PRESS:
   if (focusState == FocusState::FOCUSED) {
@@ -197,6 +200,7 @@ case Event::Type::KEY_PRESS:
 ```
 
 ### Scroll Handling
+
 ```cpp
 case Event::Type::MOUSE_SCROLL:
   // event.scrollX and event.scrollY contain scroll deltas
@@ -220,6 +224,7 @@ Try interacting with the panels to see different event handling patterns!
 ## Common Patterns
 
 ### Button-like Component
+
 ```cpp
 bool handleEventSelf(const Event& event) override {
   if (event.type == Event::Type::MOUSE_PRESS && event.button == 0) {
@@ -231,6 +236,7 @@ bool handleEventSelf(const Event& event) override {
 ```
 
 ### Draggable Component
+
 ```cpp
 bool handleEventSelf(const Event& event) override {
   switch (event.type) {
@@ -253,6 +259,7 @@ bool handleEventSelf(const Event& event) override {
 ```
 
 ### Keyboard-Controlled Component
+
 ```cpp
 bool handleEventSelf(const Event& event) override {
   if (event.type == Event::Type::KEY_PRESS &&

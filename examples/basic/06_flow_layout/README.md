@@ -3,6 +3,7 @@
 Automatic wrapping layout that flows children like text, wrapping to new lines as needed.
 
 ## What This Demonstrates
+
 - Using FlowLayout for tag clouds and chip lists
 - Automatic line wrapping when content doesn't fit
 - Configuring horizontal and vertical gaps
@@ -16,12 +17,14 @@ Automatic wrapping layout that flows children like text, wrapping to new lines a
 **Automatic Wrapping**: When a child component doesn't fit on the current line (based on its width + gaps), FlowLayout automatically moves it to the next line. This makes the layout highly responsive to container size changes.
 
 **Gap Configuration**:
+
 - `setHorizontalGap(px)`: Space between items on the same line
 - `setVerticalGap(px)`: Space between lines
 
 **Child Sizing**: FlowLayout respects each child's individual size - it doesn't resize children. This allows variable-width buttons to coexist naturally (like tags of different lengths).
 
 ## Building
+
 ```bash
 cd /home/atom/projects/bombfork/prong
 mise build-examples
@@ -47,6 +50,7 @@ mise build-examples
 5. **Very wide container**: Make the panel wider so all tags fit on one line
 
 **Common Use Cases**:
+
 - Tag clouds (categories, labels, keywords)
 - Filter chips (active filters in a search interface)
 - Skill lists (resume, profile pages)
@@ -56,6 +60,7 @@ mise build-examples
 - Color palette swatches
 
 **Comparison with Other Layouts**:
+
 - **vs StackLayout**: StackLayout only goes in one direction, no wrapping
 - **vs FlexLayout**: FlexLayout can grow/shrink children, FlowLayout keeps original sizes
 - **vs GridLayout**: GridLayout enforces regular grid, FlowLayout allows irregular wrapping

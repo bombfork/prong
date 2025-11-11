@@ -5,6 +5,7 @@
 Prong's layout system provides automatic positioning and sizing of components within containers. Layout managers handle the complex math of arranging UI elements, allowing you to focus on the structure and behavior of your interface.
 
 **Key Features:**
+
 - **Automatic arrangement** - Components positioned automatically based on layout rules
 - **Responsive sizing** - Layouts adapt to container size changes
 - **Composable** - Nest layouts within layouts for complex UIs
@@ -33,11 +34,13 @@ public:
 ```
 
 **Measurement Phase:**
+
 - Calculate minimum space needed for all children
 - Consider preferred sizes, minimum sizes, grow/shrink factors
 - Return total dimensions required
 
 **Layout Phase:**
+
 - Position components within available space
 - Apply alignment, spacing, and distribution rules
 - Set component bounds using local coordinates
@@ -69,6 +72,7 @@ auto panel = create<Panel<>>()
 ### Layout Invalidation
 
 Layouts are recalculated when:
+
 - A child component is added or removed
 - A child's size changes
 - The container is resized
@@ -124,7 +128,8 @@ auto panel = create<Panel<>>()
 ```
 
 **Result (ROW):**
-```
+
+```text
 ┌─────────────────────────────┐
 │ ┌───┐ ┌───┐ ┌───┐          │
 │ │ A │ │ B │ │ C │          │
@@ -134,7 +139,8 @@ auto panel = create<Panel<>>()
 ```
 
 **Result (COLUMN):**
-```
+
+```text
 ┌──────┐
 │ ┌──┐ │
 │ │A │ │
@@ -167,7 +173,7 @@ enum class FlexJustify {
 
 **Visual Guide (ROW direction):**
 
-```
+```text
 START:
 ┌─────────────────────────────┐
 │ [A][B][C]                   │
@@ -215,7 +221,7 @@ enum class FlexAlign {
 
 **Visual Guide (ROW direction, varying heights):**
 
-```
+```text
 STRETCH:
 ┌────────────────┐
 │ ┌──┐ ┌──┐ ┌──┐│
@@ -288,7 +294,8 @@ auto panel = create<Panel<>>()
 ```
 
 **Result (with extra space):**
-```
+
+```text
 ┌─────────────────────────────────────┐
 │ ┌──────┐ ┌──────────────┐ ┌──────┐ │
 │ │  A   │ │      B       │ │  C   │ │
@@ -300,6 +307,7 @@ auto panel = create<Panel<>>()
 ### Common Use Cases
 
 **Toolbar:**
+
 ```cpp
 auto toolbar = create<Panel<FlexLayout>>()
     .withSize(800, 50)
@@ -318,6 +326,7 @@ toolbar->addChild(create<Button>("View").build());
 ```
 
 **Sidebar Layout:**
+
 ```cpp
 auto sidebar = create<Panel<FlexLayout>>()
     .withSize(200, 600)
@@ -336,6 +345,7 @@ sidebar->addChild(create<Button>("Help").build());
 ```
 
 **Form Row:**
+
 ```cpp
 auto formRow = create<Panel<FlexLayout>>()
     .withSize(400, 40)
@@ -404,7 +414,8 @@ auto panel = create<Panel<>>()
 ```
 
 **Result:**
-```
+
+```text
 ┌───────────────────────────┐
 │ ┌───┐  ┌───┐  ┌───┐      │
 │ │ 1 │  │ 2 │  │ 3 │      │
@@ -430,6 +441,7 @@ Forces all cells to be the same size (determined by largest component).
 ### Common Use Cases
 
 **Icon Grid:**
+
 ```cpp
 auto iconGrid = std::make_shared<GridLayout>();
 iconGrid->configure({
@@ -453,6 +465,7 @@ for (int i = 0; i < 12; i++) {
 ```
 
 **Form Grid:**
+
 ```cpp
 auto formGrid = std::make_shared<GridLayout>();
 formGrid->configure({
@@ -474,6 +487,7 @@ auto form = create<Panel<>>()
 ```
 
 **Calculator Layout:**
+
 ```cpp
 auto calcGrid = std::make_shared<GridLayout>();
 calcGrid->configure({
@@ -560,7 +574,8 @@ auto mainWindow = create<Panel<>>()
 ```
 
 **Result:**
-```
+
+```text
 ┌─────────────────────────────────┐
 │         TOP (Toolbar)           │ ← 10% height
 ├──────┬──────────────────────────┤
@@ -576,6 +591,7 @@ auto mainWindow = create<Panel<>>()
 ### Common Use Cases
 
 **IDE Layout:**
+
 ```cpp
 auto ideLayout = std::make_shared<DockLayout>();
 
@@ -623,6 +639,7 @@ ideLayout->addRegion({
 ```
 
 **Dashboard:**
+
 ```cpp
 auto dashboardLayout = std::make_shared<DockLayout>();
 
@@ -696,7 +713,8 @@ auto panel = create<Panel<>>()
 ```
 
 **Result (VERTICAL):**
-```
+
+```text
 ┌────────────┐
 │ ┌────────┐ │
 │ │Button 1│ │
@@ -715,7 +733,8 @@ auto panel = create<Panel<>>()
 ### Alignment Examples
 
 **STRETCH (vertical stack):**
-```
+
+```text
 ┌──────────────────┐
 │ ┌──────────────┐ │
 │ │   Button 1   │ │
@@ -727,7 +746,8 @@ auto panel = create<Panel<>>()
 ```
 
 **CENTER (vertical stack):**
-```
+
+```text
 ┌──────────────────┐
 │    ┌────────┐    │
 │    │Button 1│    │
@@ -741,6 +761,7 @@ auto panel = create<Panel<>>()
 ### Common Use Cases
 
 **Vertical Menu:**
+
 ```cpp
 auto menuLayout = std::make_shared<StackLayout>();
 menuLayout->configure({
@@ -761,6 +782,7 @@ auto menu = create<Panel<>>()
 ```
 
 **Horizontal Button Group:**
+
 ```cpp
 auto buttonGroup = std::make_shared<StackLayout>();
 buttonGroup->configure({
@@ -838,7 +860,8 @@ for (int i = 1; i <= 10; i++) {
 ```
 
 **Result (wraps automatically):**
-```
+
+```text
 ┌───────────────────────────────┐
 │ [1]  [2]  [3]  [4]            │
 │                               │
@@ -851,6 +874,7 @@ for (int i = 1; i <= 10; i++) {
 ### Common Use Cases
 
 **Tag Cloud:**
+
 ```cpp
 auto tagFlow = std::make_shared<FlowLayout>();
 tagFlow->configure({
@@ -877,6 +901,7 @@ for (const auto& tag : tags) {
 ```
 
 **Image Gallery:**
+
 ```cpp
 auto galleryFlow = std::make_shared<FlowLayout>();
 galleryFlow->configure({
@@ -974,7 +999,8 @@ auto mainWindow = create<Panel<>>()
 ```
 
 **Visual Structure:**
-```
+
+```text
 ┌─────────────────────────────────────────┐
 │  ┌───┐ ┌────┐ ┌────┐  (FlexLayout)     │
 │  │File│ │Edit│ │View│                   │
@@ -1106,11 +1132,13 @@ auto button = create<Button>("OK")
 **Symptom:** Components added but not showing
 
 **Causes:**
+
 - Parent size too small (0x0)
 - Components positioned outside parent bounds
 - Layout not configured properly
 
 **Solution:**
+
 ```cpp
 // Check parent size
 int w, h;
@@ -1131,10 +1159,12 @@ panel->performLayout();
 **Symptom:** Components draw on top of each other
 
 **Causes:**
+
 - No layout attached (all at 0,0)
 - Layout spacing = 0 and children same size
 
 **Solution:**
+
 ```cpp
 // Ensure layout is attached
 auto layout = std::make_shared<StackLayout>();
@@ -1149,11 +1179,13 @@ panel->setLayout(layout);
 **Symptom:** Components don't fit properly
 
 **Causes:**
+
 - Grow/shrink factors incorrect
 - Cell alignment wrong
 - Missing size constraints
 
 **Solution:**
+
 ```cpp
 // For FlexLayout, check grow factors
 layout->setItemProperties({
@@ -1172,10 +1204,12 @@ layout->configure({
 **Symptom:** Changes don't reflect visually
 
 **Causes:**
+
 - Layout invalidation not triggered
 - Layout calculations happen lazily
 
 **Solution:**
+
 ```cpp
 // Force layout recalculation
 panel->invalidateLayout();

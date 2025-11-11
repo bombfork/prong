@@ -1,5 +1,6 @@
 [tools]
 cmake = "3.28.6"
+"github:rvben/rumdl" = "latest"
 hk = "1.18.3"
 ninja = "1.13.1"
 pkl = "0.29.1"
@@ -143,6 +144,20 @@ description = "Run clang-format fix"
 depends = ["check-deps"]
 run = """
 clang-format -i
+"""
+
+[tasks.markdown-check]
+description = "Check markdown files for linting issues"
+depends = ["check-deps"]
+run = """
+rumdl check
+"""
+
+[tasks.markdown-fix]
+description = "Auto-fix markdown linting issues"
+depends = ["check-deps"]
+run = """
+rumdl fmt
 """
 
 [tasks.demo]

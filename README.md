@@ -101,7 +101,7 @@ For detailed information, see [docs/coordinate_system.md](docs/coordinate_system
 
 ### Core Components
 
-```
+```text
 bombfork::prong::
 ├── core/                   # Base component system
 │   ├── Scene              # Root scene component (entry point for UI hierarchy)
@@ -315,6 +315,7 @@ void mouseButtonCallback(GLFWwindow* w, int btn, int action, int mods) {
 ```
 
 **Key Features:**
+
 - Scene is the entry point for all events from the window system
 - Events automatically propagate to children with coordinate conversion
 - Children rendered last (topmost) receive events first

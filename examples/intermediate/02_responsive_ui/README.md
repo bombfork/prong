@@ -12,6 +12,7 @@ This example demonstrates how Prong components adapt to window resizing using re
 ## Resize Behaviors Demonstrated
 
 ### 1. FIXED (Left Panel - Purple)
+
 ```cpp
 fixedPanel->setResizeBehavior(Component::ResizeBehavior::FIXED);
 ```
@@ -19,11 +20,13 @@ fixedPanel->setResizeBehavior(Component::ResizeBehavior::FIXED);
 **Behavior**: Component maintains its original size regardless of window resizing.
 
 **Use cases**:
+
 - Fixed-width sidebars
 - Toolbars with specific dimensions
 - Components that should never change size
 
 ### 2. SCALE (Second Panel - Green)
+
 ```cpp
 scalePanel->setResizeBehavior(Component::ResizeBehavior::SCALE);
 ```
@@ -31,11 +34,13 @@ scalePanel->setResizeBehavior(Component::ResizeBehavior::SCALE);
 **Behavior**: Component scales proportionally with the window. If the window doubles in size, the component doubles in size.
 
 **Use cases**:
+
 - Maintaining relative sizes across different screen resolutions
 - Scaling UI elements uniformly
 - Responsive designs that preserve proportions
 
 ### 3. FILL (Third Panel - Blue)
+
 ```cpp
 fillPanel->setResizeBehavior(Component::ResizeBehavior::FILL);
 ```
@@ -43,11 +48,13 @@ fillPanel->setResizeBehavior(Component::ResizeBehavior::FILL);
 **Behavior**: Component expands to fill all available space in its parent.
 
 **Use cases**:
+
 - Main content areas
 - Flexible panels that should use extra space
 - Dynamic layouts where size is unknown
 
 ### 4. PER-AXIS with CONSTRAINTS (Right Panel - Orange)
+
 ```cpp
 // Fixed width (stays 250px), fill height (stretches vertically)
 constrainedPanel->setAxisResizeBehavior(
@@ -67,6 +74,7 @@ constrainedPanel->setConstraints(constraints);
 **Behavior**: Independent control per axis plus min/max boundaries.
 
 **Use cases**:
+
 - Sidebars that keep width but fill height
 - Headers that fill width but keep height
 - Components that need bounded flexibility
@@ -76,6 +84,7 @@ constrainedPanel->setConstraints(constraints);
 To enable window resizing, you need to:
 
 1. **Set up the resize callback**:
+
 ```cpp
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
   if (g_scene) {
@@ -87,12 +96,14 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
 glfwSetFramebufferSizeCallback(glfwWindow, framebufferSizeCallback);
 ```
 
-2. **Make root component responsive**:
+1. **Make root component responsive**:
+
 ```cpp
 rootPanel->setResizeBehavior(Component::ResizeBehavior::FILL);
 ```
 
 The `Scene::handleResize()` method automatically:
+
 - Updates the scene dimensions
 - Triggers resize events for all children
 - Recalculates layouts
@@ -101,14 +112,18 @@ The `Scene::handleResize()` method automatically:
 ## Choosing the Right Resize Behavior
 
 ### ResizeBehavior (Unified)
+
 Best when both axes should behave the same way:
+
 - `FIXED`: Static components
 - `SCALE`: Proportional scaling
 - `FILL`: Maximum flexibility
 - `MAINTAIN_ASPECT`: Preserve aspect ratio while scaling
 
 ### AxisResizeBehavior (Per-Axis)
+
 Best when axes need different behaviors:
+
 ```cpp
 component->setAxisResizeBehavior(
     Component::AxisResizeBehavior::FIXED,   // Horizontal
@@ -117,6 +132,7 @@ component->setAxisResizeBehavior(
 ```
 
 Common patterns:
+
 - **Sidebar**: FIXED horizontal, FILL vertical
 - **Header**: FILL horizontal, FIXED vertical
 - **Corner panel**: FIXED both (same as ResizeBehavior::FIXED)
@@ -162,6 +178,7 @@ Try these modifications:
 ## Common Patterns
 
 ### Responsive Three-Panel Layout
+
 ```cpp
 // Left sidebar: fixed width, fills height
 leftPanel->setAxisResizeBehavior(
@@ -180,6 +197,7 @@ rightPanel->setAxisResizeBehavior(
 ```
 
 ### Header-Content-Footer
+
 ```cpp
 // Header: fills width, fixed height
 header->setAxisResizeBehavior(

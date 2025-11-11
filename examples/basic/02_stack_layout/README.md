@@ -3,6 +3,7 @@
 Simple layout manager that arranges children in a vertical or horizontal stack.
 
 ## What This Demonstrates
+
 - Using Panel with StackLayout template parameter
 - Configuring vertical stacking with spacing
 - Configuring horizontal stacking with spacing
@@ -15,10 +16,12 @@ Simple layout manager that arranges children in a vertical or horizontal stack.
 **Layout Configuration**: Access the layout manager via `panel->getLayoutManager()` to configure direction and spacing. The layout automatically repositions children whenever the panel is resized or children are added/removed.
 
 **Direction**:
+
 - `VERTICAL`: Stack children top-to-bottom
 - `HORIZONTAL`: Stack children left-to-right
 
 ## Building
+
 ```bash
 cd /home/atom/projects/bombfork/prong
 mise build-examples

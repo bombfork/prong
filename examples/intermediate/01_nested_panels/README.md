@@ -12,7 +12,7 @@ This example demonstrates complex nested layout composition in Prong, showing ho
 
 ## Layout Structure
 
-```
+```text
 Root Panel (FlexLayout ROW)
 ├── Left Panel (StackLayout VERTICAL)
 │   ├── Action 1 Button
@@ -62,18 +62,21 @@ centerPanel->setLayoutManager(std::move(gridLayout));
 ### When to Use Each Layout Manager
 
 **FlexLayout**: Use when you need:
+
 - Flexible space distribution
 - Alignment control (justify, align)
 - Grow/shrink behavior
 - Gaps between items
 
 **GridLayout**: Use when you need:
+
 - Fixed rows and columns
 - Uniform cell sizes
 - Regular grid patterns
 - Equal spacing
 
 **StackLayout**: Use when you need:
+
 - Simple sequential arrangement
 - Horizontal or vertical stacking
 - Consistent spacing
@@ -92,6 +95,7 @@ auto centerButton = create<Button>("Centered\nAction")
 ```
 
 This is useful when:
+
 - You need precise control over a few elements
 - Layout managers would be overkill
 - You're creating custom component internals

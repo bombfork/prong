@@ -3,6 +3,7 @@
 The absolute minimal Prong UI application - a single button in a window.
 
 ## What This Demonstrates
+
 - Basic GLFW window creation and OpenGL context setup
 - Prong renderer initialization
 - Creating a Scene (root container for UI)
@@ -19,6 +20,7 @@ The absolute minimal Prong UI application - a single button in a window.
 **Event Loop**: The standard pattern of polling events, updating components, rendering, and swapping buffers.
 
 ## Building
+
 ```bash
 cd /home/atom/projects/bombfork/prong
 mise build-examples
@@ -44,7 +46,8 @@ Experiment with these modifications to learn more:
 5. **Change background**: Modify the `renderer->clear()` RGB values (line 85)
 
 **Tip**: Position is in pixels from the top-left corner (0,0). To center a button, use:
-```
+
+```text
 x = (windowWidth - buttonWidth) / 2
 y = (windowHeight - buttonHeight) / 2
 ```
