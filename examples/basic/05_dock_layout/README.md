@@ -3,6 +3,7 @@
 Application-style layout with panels docked to edges and a center fill area.
 
 ## What This Demonstrates
+
 - Using DockLayout for complex application interfaces
 - Docking panels to TOP, BOTTOM, LEFT, RIGHT positions
 - Center panel that fills remaining space
@@ -14,6 +15,7 @@ Application-style layout with panels docked to edges and a center fill area.
 **DockLayout**: A layout manager designed for application-style interfaces. It divides the container into 5 regions: TOP, BOTTOM, LEFT, RIGHT, and CENTER. Docked panels take fixed sizes from their edges, and the CENTER panel fills whatever space remains.
 
 **Dock Positions**:
+
 - `TOP`: Docked to top edge, spans full width, uses specified height
 - `BOTTOM`: Docked to bottom edge, spans full width, uses specified height
 - `LEFT`: Docked to left edge, spans remaining height, uses specified width
@@ -21,16 +23,19 @@ Application-style layout with panels docked to edges and a center fill area.
 - `CENTER`: Fills all remaining space after other panels are placed
 
 **Size Behavior**:
+
 - TOP/BOTTOM panels: Width is ignored (spans full width), height is used
 - LEFT/RIGHT panels: Height is ignored (spans remaining height), width is used
 - CENTER panel: Both dimensions are ignored (fills remaining space)
 
 **Docking Order**: The order you dock panels matters:
+
 1. TOP and BOTTOM panels are placed first (full width)
 2. LEFT and RIGHT panels are placed next (in remaining height)
 3. CENTER panel fills what's left
 
 ## Building
+
 ```bash
 cd /home/atom/projects/bombfork/prong
 mise build-examples
@@ -62,6 +67,7 @@ mise build-examples
 5. **Toggle visibility**: Add buttons that show/hide sidebar panels dynamically
 
 **Common Use Cases**:
+
 - IDE interfaces (code editor with toolbars, sidebars, output panel)
 - Document editors (toolbar, rulers, document area, status bar)
 - Image editors (tools, canvas, properties, layers panel)

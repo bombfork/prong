@@ -32,6 +32,7 @@ void addPanel() {
 ```
 
 Key points:
+
 - Create component with builder pattern
 - Transfer ownership with `std::move()`
 - Call `invalidateLayout()` to update positions
@@ -50,6 +51,7 @@ void removePanel() {
 ```
 
 Key points:
+
 - Get reference to children vector
 - Pass pointer to child you want removed
 - Layout is automatically recalculated
@@ -97,6 +99,7 @@ The same children are automatically repositioned according to the new layout man
 ### When to Invalidate Layout
 
 Call `invalidateLayout()` when:
+
 - Adding or removing children
 - Changing layout manager
 - Modifying layout properties (gap, direction, etc.)
@@ -162,6 +165,7 @@ This example uses a common pattern: control panel + content area
 ```
 
 Benefits:
+
 - Separate controls from content
 - Easy to add new operations
 - Clear visual organization

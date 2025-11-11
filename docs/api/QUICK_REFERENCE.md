@@ -5,7 +5,9 @@ Condensed reference for all Prong APIs. See individual files for detailed docume
 ## Core Classes
 
 ### Component
+
 Base class for all UI elements.
+
 ```cpp
 class Component {
   virtual void update(double deltaTime) = 0;
@@ -19,7 +21,9 @@ class Component {
 ```
 
 ### Scene
+
 Root container and event coordinator.
+
 ```cpp
 class Scene : public Component {
   Scene(IWindow* window, IRenderer* renderer);
@@ -30,7 +34,9 @@ class Scene : public Component {
 ```
 
 ### ComponentBuilder
+
 Fluent API for component construction.
+
 ```cpp
 auto component = create<ComponentType>(/* constructor args */)
                    .withSize(width, height)
@@ -40,7 +46,9 @@ auto component = create<ComponentType>(/* constructor args */)
 ```
 
 ### Event
+
 Unified event structure.
+
 ```cpp
 struct Event {
   enum class Type { MOUSE_PRESS, MOUSE_RELEASE, MOUSE_MOVE, MOUSE_SCROLL, KEY_PRESS, KEY_RELEASE, CHAR_INPUT };
@@ -56,6 +64,7 @@ struct Event {
 ## UI Components
 
 ### Button
+
 ```cpp
 auto button = create<Button>("Label")
                 .withSize(200, 60)
@@ -64,6 +73,7 @@ auto button = create<Button>("Label")
 ```
 
 ### Panel
+
 ```cpp
 auto panel = create<Panel>()
                .withSize(400, 300)
@@ -72,6 +82,7 @@ auto panel = create<Panel>()
 ```
 
 ### TextInput
+
 ```cpp
 auto input = create<TextInput>()
                .withPlaceholder("Enter text...")
@@ -82,6 +93,7 @@ input->setKeyboard(keyboardPtr);    // Required for key handling
 ```
 
 ### ListBox
+
 ```cpp
 auto listBox = create<ListBox>()
                  .withSize(300, 400)
@@ -92,6 +104,7 @@ listBox->addItem("Item 2");
 ```
 
 ### Dialog
+
 ```cpp
 auto dialog = Dialog::create(renderer, "Title", "Message", DialogType::OK_CANCEL);
 dialog->setButtonCallback([](Dialog::Result result) {
@@ -100,6 +113,7 @@ dialog->setButtonCallback([](Dialog::Result result) {
 ```
 
 ### Toolbar
+
 ```cpp
 auto toolbar = create<Toolbar>()
                  .withSize(800, 50)
@@ -109,6 +123,7 @@ toolbar->addItem("Edit", []() { /* Edit clicked */ });
 ```
 
 ### Viewport
+
 ```cpp
 auto viewport = create<Viewport>()
                   .withSize(600, 400)
@@ -120,7 +135,9 @@ auto viewport = create<Viewport>()
 ## Layout Managers
 
 ### FlexLayout
+
 Flexbox-inspired layout.
+
 ```cpp
 auto layout = std::make_unique<FlexLayout<ParentType>>();
 layout->setDirection(FlexLayout<ParentType>::Direction::ROW);  // or COLUMN
@@ -134,7 +151,9 @@ layout->setItemProperties(childPtr, {.grow = 1.0f, .shrink = 1.0f});
 ```
 
 ### GridLayout
+
 CSS Grid-inspired layout.
+
 ```cpp
 auto layout = std::make_unique<GridLayout<ParentType>>();
 layout->setRows(3);
@@ -144,7 +163,9 @@ panel->setLayoutManager(std::move(layout));
 ```
 
 ### DockLayout
+
 Docking panel layout.
+
 ```cpp
 auto layout = std::make_unique<DockLayout<ParentType>>();
 layout->setGaps(5, 5, 5, 5);  // top, bottom, left, right
@@ -158,7 +179,9 @@ layout->setItemProperties(centerPanel, {.position = DockPosition::CENTER});
 Dock positions: `TOP`, `BOTTOM`, `LEFT`, `RIGHT`, `CENTER`
 
 ### StackLayout
+
 Simple sequential layout.
+
 ```cpp
 auto layout = std::make_unique<StackLayout<ParentType>>();
 layout->setOrientation(StackLayout<ParentType>::Orientation::VERTICAL);  // or HORIZONTAL
@@ -167,7 +190,9 @@ panel->setLayoutManager(std::move(layout));
 ```
 
 ### FlowLayout
+
 Wrapping flow layout.
+
 ```cpp
 auto layout = std::make_unique<FlowLayout<ParentType>>();
 layout->setOrientation(FlowLayout<ParentType>::Orientation::HORIZONTAL);
@@ -179,6 +204,7 @@ panel->setLayoutManager(std::move(layout));
 ## Event Handling
 
 ### Custom Event Handler
+
 ```cpp
 class MyComponent : public Component {
 protected:
@@ -210,6 +236,7 @@ protected:
 ```
 
 ### Focus Management
+
 ```cpp
 component->requestFocus();  // Request focus
 
@@ -221,6 +248,7 @@ if (component->getFocusState() == Component::FocusState::FOCUSED) {
 ## Rendering
 
 ### IRenderer Interface
+
 ```cpp
 class IRenderer {
   virtual bool beginFrame() = 0;
@@ -241,6 +269,7 @@ class IRenderer {
 ```
 
 ### Custom Renderer Example
+
 ```cpp
 class MyRenderer : public IRenderer {
   bool beginFrame() override {
@@ -263,7 +292,9 @@ class MyRenderer : public IRenderer {
 ## Theming
 
 ### ThemeManager
+
 Singleton for global theme management.
+
 ```cpp
 // Get instance
 auto& theme = ThemeManager::getInstance();
@@ -284,6 +315,7 @@ theme.setThemeChangeCallback([]() {
 Color roles: `BACKGROUND`, `TEXT`, `BUTTON_BACKGROUND`, `BUTTON_BACKGROUND_HOVER`, `BUTTON_BACKGROUND_PRESSED`, `BUTTON_TEXT`, `PANEL_BACKGROUND`, `INPUT_BACKGROUND`, `INPUT_TEXT`, etc.
 
 ### Color
+
 ```cpp
 Color color(0.5f, 0.8f, 0.3f, 1.0f);  // RGBA [0.0, 1.0]
 color.setRGB(r, g, b);
@@ -295,6 +327,7 @@ color.getRGBA(r, g, b, a);
 ## Window Abstraction
 
 ### IWindow
+
 ```cpp
 class IWindow {
   virtual bool shouldClose() const = 0;
@@ -306,6 +339,7 @@ class IWindow {
 ```
 
 ### IClipboard (for TextInput)
+
 ```cpp
 class IClipboard {
   virtual std::string getString() = 0;
@@ -314,6 +348,7 @@ class IClipboard {
 ```
 
 ### IKeyboard (for TextInput)
+
 ```cpp
 class IKeyboard {
   virtual Key mapPlatformKey(int platformKey) = 0;
@@ -325,6 +360,7 @@ Platform-agnostic Key enum: `A`-`Z`, `SPACE`, `ENTER`, `BACKSPACE`, `DELETE`, `L
 ## Resize Behavior
 
 ### Unified Behavior
+
 ```cpp
 component->setResizeBehavior(Component::ResizeBehavior::FIXED);   // Keep original size
 component->setResizeBehavior(Component::ResizeBehavior::SCALE);   // Scale proportionally
@@ -333,6 +369,7 @@ component->setResizeBehavior(Component::ResizeBehavior::MAINTAIN_ASPECT);  // Sc
 ```
 
 ### Per-Axis Behavior
+
 ```cpp
 component->setAxisResizeBehavior(
   Component::AxisResizeBehavior::FIXED,  // Horizontal
@@ -341,6 +378,7 @@ component->setAxisResizeBehavior(
 ```
 
 ### Constraints
+
 ```cpp
 Component::ResponsiveConstraints constraints;
 constraints.minWidth = 200;
@@ -353,6 +391,7 @@ component->setConstraints(constraints);
 ## Custom Components and Layouts
 
 ### Custom Component
+
 ```cpp
 class ColorPicker : public Component {
 public:
@@ -377,6 +416,7 @@ protected:
 ```
 
 ### Custom Layout Manager
+
 ```cpp
 template<typename ParentT>
 class CircularLayout : public LayoutManager<CircularLayout<ParentT>> {
@@ -401,6 +441,7 @@ class CircularLayout : public LayoutManager<CircularLayout<ParentT>> {
 ## Common Patterns
 
 ### Application Structure
+
 ```cpp
 int main() {
   // 1. Initialize window system
@@ -450,6 +491,7 @@ int main() {
 ```
 
 ### Three-Panel Layout
+
 ```cpp
 auto root = create<Panel>().withSize(1200, 800).build();
 auto layout = std::make_unique<FlexLayout<Panel>>();
@@ -471,6 +513,7 @@ root->addChild(std::move(right));
 ```
 
 ### Dynamic UI
+
 ```cpp
 // Add components
 parent->addChild(createNewComponent());

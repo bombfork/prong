@@ -37,6 +37,7 @@ auto button = create<Button>("Click Me")
 Two factory functions are provided:
 
 ### `create<ComponentT>()`
+
 Creates a component using its default constructor.
 
 ```cpp
@@ -46,6 +47,7 @@ auto button = create<Button>()
 ```
 
 ### `create<ComponentT>(args...)`
+
 Creates a component by forwarding arguments to its constructor.
 
 ```cpp
@@ -59,6 +61,7 @@ auto button = create<Button>("OK")  // Passes "OK" to Button constructor
 All component types support these methods:
 
 ### Position and Size
+
 ```cpp
 builder.withPosition(int x, int y)
 builder.withSize(int width, int height)
@@ -66,6 +69,7 @@ builder.withBounds(int x, int y, int width, int height)
 ```
 
 ### State
+
 ```cpp
 builder.withVisible(bool visible)
 builder.withEnabled(bool enabled)
@@ -73,16 +77,19 @@ builder.withDebugName(const std::string& name)
 ```
 
 ### Callbacks
+
 ```cpp
 builder.withFocusCallback(Component::FocusCallback callback)
 ```
 
 ### Layout
+
 ```cpp
 builder.withLayout(std::shared_ptr<LayoutT> layout)
 ```
 
 ### Children
+
 ```cpp
 builder.withChild(std::unique_ptr<Component> child)
 builder.withChildren(std::unique_ptr<Component>... children)

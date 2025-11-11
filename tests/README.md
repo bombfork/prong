@@ -5,7 +5,9 @@ This directory contains unit tests for the Prong UI Framework, using CTest as th
 ## Test Files
 
 ### `test_color.cpp`
+
 Tests the `Color` class from `bombfork::prong::theming`:
+
 - Color construction (default and parameterized)
 - Equality operators
 - Predefined colors (WHITE, BLACK, RED, GREEN, BLUE, etc.)
@@ -15,7 +17,9 @@ Tests the `Color` class from `bombfork::prong::theming`:
 - Constexpr operations and compile-time evaluation
 
 ### `test_coordinate_system.cpp`
+
 Tests the `CoordinateSystem` class from `bombfork::prong`:
+
 - Viewport construction and updates
 - Camera position and zoom management
 - Cell size calculations with zoom
@@ -41,20 +45,23 @@ cmake --build .
 
 ## Running Tests
 
-### Run all tests with CTest:
+### Run all tests with CTest
+
 ```bash
 cd build
 ctest --output-on-failure
 ```
 
-### Run individual test executables:
+### Run individual test executables
+
 ```bash
 cd build
 ./tests/test_color
 ./tests/test_coordinate_system
 ```
 
-### Verbose test output:
+### Verbose test output
+
 ```bash
 ctest --verbose
 ```
@@ -62,6 +69,7 @@ ctest --verbose
 ## Test Framework
 
 These tests use a simple assertion-based approach with:
+
 - `assert()` for test conditions
 - Custom helper functions for floating-point comparisons
 - Clear test function organization
@@ -74,12 +82,14 @@ To add a new test:
 
 1. Create a new `.cpp` file in the `tests/` directory
 2. Add the test executable to `CMakeLists.txt`:
+
    ```cmake
    add_executable(test_newfeature test_newfeature.cpp)
    target_link_libraries(test_newfeature PRIVATE prong)
    set_target_properties(test_newfeature PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
    add_test(NAME NewFeatureTest COMMAND test_newfeature)
    ```
+
 3. Follow the existing test structure with:
    - Individual test functions for each feature
    - A main() function that runs all tests

@@ -4,7 +4,7 @@ This directory contains example implementations and applications demonstrating h
 
 ## Directory Structure
 
-```
+```text
 examples/
 ├── adapters/              # Example adapter implementations
 │   ├── glfw_window_adapter.h       # GLFW → IWindow adapter
@@ -29,6 +29,7 @@ Demonstrates how to implement the `IWindow` interface using GLFW. Key features:
 - Handles modifier key state tracking
 
 **Usage:**
+
 ```cpp
 GLFWwindow* glfwWindow = glfwCreateWindow(1280, 720, "App", nullptr, nullptr);
 auto windowAdapter = std::make_unique<GLFWWindowAdapter>(glfwWindow);
@@ -43,6 +44,7 @@ scene.attach();
 Demonstrates how to implement the `IRenderer` interface using OpenGL. This is a minimal implementation focusing on clarity over performance.
 
 **Features:**
+
 - Texture management with OpenGL texture objects
 - Basic primitive rendering (rectangles, sprites)
 - Orthographic 2D projection setup
@@ -50,6 +52,7 @@ Demonstrates how to implement the `IRenderer` interface using OpenGL. This is a 
 
 **Production Notes:**
 A production renderer would include:
+
 - Texture atlas management
 - Batch rendering with vertex buffers
 - Font rendering with FreeType or similar
@@ -57,6 +60,7 @@ A production renderer would include:
 - Performance optimizations
 
 **Usage:**
+
 ```cpp
 auto renderer = std::make_unique<SimpleOpenGLRenderer>();
 renderer->initialize(1280, 720);
@@ -69,11 +73,13 @@ The `demo_app` example demonstrates a comprehensive Prong application showcasing
 ### Building and Running
 
 **Using mise (recommended):**
+
 ```bash
 mise demo
 ```
 
 **Manual build:**
+
 ```bash
 mkdir build && cd build
 cmake .. -DPRONG_BUILD_EXAMPLES=ON
@@ -156,6 +162,7 @@ See `simple_opengl_renderer.h` for a complete example.
 ### Coordinate System
 
 Prong uses a relative coordinate system:
+
 - **Screen origin**: Top-left corner at (0, 0)
 - **Child positions**: Relative to their parent's origin, NOT the screen
 - **Rendering**: Components use global (screen-space) coordinates internally for rendering
@@ -163,6 +170,7 @@ Prong uses a relative coordinate system:
 - **Conversion**: Use `getGlobalPosition()` to convert local to screen coordinates
 
 Example:
+
 ```cpp
 // Panel at screen position (100, 100)
 auto panel = create<Panel<>>()
@@ -184,9 +192,11 @@ panel->addChild(std::move(button));
 If you have an existing application with a rendering system:
 
 ### Option 1: Adapter Pattern
+
 Create adapters that wrap your existing renderer and window classes (recommended for quick integration).
 
 ### Option 2: Direct Implementation
+
 Implement `IWindow` and `IRenderer` directly in your window/renderer classes.
 
 ### Example Integration Flow

@@ -125,6 +125,7 @@ protected:
 ### Event Handling
 
 Override `handleEventSelf()` in derived classes:
+
 ```cpp
 bool handleEventSelf(const Event& event) override {
   if (event.type == Event::Type::MOUSE_PRESS) {
@@ -140,11 +141,13 @@ Events are in **local coordinates** relative to this component.
 ### Resize Behavior
 
 **Unified (both axes same)**:
+
 ```cpp
 component->setResizeBehavior(Component::ResizeBehavior::FILL);
 ```
 
 **Per-axis (independent control)**:
+
 ```cpp
 component->setAxisResizeBehavior(
   Component::AxisResizeBehavior::FIXED,
@@ -153,6 +156,7 @@ component->setAxisResizeBehavior(
 ```
 
 **With constraints**:
+
 ```cpp
 Component::ResponsiveConstraints constraints;
 constraints.minWidth = 200;

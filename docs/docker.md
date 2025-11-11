@@ -26,6 +26,7 @@ mise docker-shell
 ```
 
 All mise Docker tasks are in `mise-tasks/` and automatically handle:
+
 - Image names and tags
 - Volume mounts
 - User ID/GID mapping (prevents permission issues)
@@ -41,12 +42,14 @@ All mise Docker tasks are in `mise-tasks/` and automatically handle:
 ## Architecture
 
 Multi-stage Dockerfile:
+
 1. **toolchain**: Base Arch Linux with C++ compiler
 2. **iwyu-builder**: Builds include-what-you-use from AUR
 3. **mise-tools**: Installs mise-managed tools
 4. **builder**: Final image with all dependencies (library, tests, examples)
 
 Single unified `prong-builder` image includes:
+
 - System packages: clang-format, include-what-you-use
 - Mise tools: cmake, ninja, hk, pkl (versions in `.mise.toml`)
 - Example deps: glfw-wayland, mesa, libgl, libglvnd
@@ -112,6 +115,7 @@ docker build --no-cache -t prong-builder:latest .
 ### Tool Versions
 
 Tool versions are defined in `.mise.toml`. To update:
+
 1. Edit `.mise.toml`
 2. Rebuild: `mise docker-build`
 

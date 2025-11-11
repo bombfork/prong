@@ -11,6 +11,7 @@ This guide provides practical guidelines for building effective, maintainable, a
 Always use `Scene` as the top-level container for your UI hierarchy. Don't create standalone component trees without a scene.
 
 **Good:**
+
 ```cpp
 Scene scene(window, renderer);
 scene.attach();
@@ -27,6 +28,7 @@ while (!window->shouldClose()) {
 ```
 
 **Bad:**
+
 ```cpp
 // Don't manage component trees without Scene
 auto mainPanel = create<Panel<>>(renderer).build();
@@ -125,6 +127,7 @@ public:
 ### When to Use Each Layout
 
 **FlexLayout** - Use for:
+
 - Toolbars and navigation bars
 - Button groups with flexible spacing
 - Responsive lists that adapt to container size
@@ -132,6 +135,7 @@ public:
 - Components that need grow/shrink behavior
 
 **GridLayout** - Use for:
+
 - Icon grids and image galleries
 - Form layouts with labels and inputs
 - Calculator-style button grids
@@ -139,18 +143,21 @@ public:
 - Any regular grid structure
 
 **DockLayout** - Use for:
+
 - Application main windows (IDE-style)
 - Dashboards with fixed panels
 - Resizable side panels
 - Top/bottom toolbars with center content
 
 **StackLayout** - Use for:
+
 - Simple vertical menus
 - Stacked cards or panels
 - Linear lists with consistent spacing
 - When you just need simple stacking (simpler than FlexLayout)
 
 **FlowLayout** - Use for:
+
 - Tag clouds
 - Wrapping button groups
 - Image galleries with automatic wrapping
@@ -158,7 +165,7 @@ public:
 
 ### Layout Decision Tree
 
-```
+```text
 Need multiple regions (top/bottom/sides)?
 ├─ Yes → DockLayout
 └─ No
@@ -208,6 +215,7 @@ panel->addChild(std::move(cancelBtn));
 The builder pattern provides cleaner code and better defaults:
 
 **Good:**
+
 ```cpp
 auto button = create<Button>("Submit")
     .withSize(100, 40)
@@ -217,6 +225,7 @@ auto button = create<Button>("Submit")
 ```
 
 **Acceptable (when you need more control):**
+
 ```cpp
 auto button = std::make_unique<Button>(renderer, "Submit");
 button->setSize(100, 40);
@@ -371,6 +380,7 @@ toolbar->addChild(ui::createSecondaryButton("Cancel"));
 When positioning children, use local coordinates relative to parent:
 
 **Good:**
+
 ```cpp
 void MyPanel::layoutChildren() {
     // Position relative to this panel's origin
@@ -380,6 +390,7 @@ void MyPanel::layoutChildren() {
 ```
 
 **Bad:**
+
 ```cpp
 void MyPanel::layoutChildren() {
     int globalX = getGlobalX();
@@ -394,6 +405,7 @@ void MyPanel::layoutChildren() {
 In `render()` methods, always use global coordinates:
 
 **Good:**
+
 ```cpp
 void MyComponent::render() override {
     int x = getGlobalX();  // Screen-space X
@@ -405,6 +417,7 @@ void MyComponent::render() override {
 ```
 
 **Bad:**
+
 ```cpp
 void MyComponent::render() override {
     // Don't use localX/localY for rendering!
@@ -417,6 +430,7 @@ void MyComponent::render() override {
 Global coordinates can become stale. Always compute on-demand:
 
 **Bad:**
+
 ```cpp
 class MyComponent : public Component {
     int storedGlobalX, storedGlobalY;  // Will become stale!
@@ -433,6 +447,7 @@ class MyComponent : public Component {
 ```
 
 **Good:**
+
 ```cpp
 class MyComponent : public Component {
     void render() override {
@@ -449,6 +464,7 @@ class MyComponent : public Component {
 Don't manually position children if you're using a layout manager:
 
 **Bad:**
+
 ```cpp
 auto panel = create<Panel<FlexLayout>>().build();
 panel->getLayout().configure({...});
@@ -461,6 +477,7 @@ panel->addChild(std::move(btn));
 ```
 
 **Good:**
+
 ```cpp
 auto panel = create<Panel<FlexLayout>>().build();
 panel->getLayout().configure({...});
@@ -912,6 +929,7 @@ layout->configure({
 ### Don't Mix Manual and Layout Positioning
 
 **Problem:**
+
 ```cpp
 auto panel = create<Panel<FlexLayout>>().build();
 auto btn = create<Button>("Click")
@@ -921,6 +939,7 @@ panel->addChild(std::move(btn));
 ```
 
 **Solution:** Choose one or the other:
+
 ```cpp
 // Either use layout
 auto panel = create<Panel<FlexLayout>>().build();
@@ -938,6 +957,7 @@ panel->addChild(std::move(btn));
 ### Don't Forget to Attach Scene
 
 **Problem:**
+
 ```cpp
 Scene scene(window, renderer);
 // scene.attach() not called!
@@ -949,6 +969,7 @@ while (!window->shouldClose()) {
 ```
 
 **Solution:**
+
 ```cpp
 Scene scene(window, renderer);
 scene.attach();  // Always attach!
@@ -964,6 +985,7 @@ scene.detach();  // Clean shutdown
 ### Don't Forget Platform Adapters for TextInput
 
 **Problem:**
+
 ```cpp
 auto textInput = create<TextInput>().build();
 // No clipboard or keyboard set!
@@ -971,6 +993,7 @@ auto textInput = create<TextInput>().build();
 ```
 
 **Solution:**
+
 ```cpp
 auto adapters = GLFWAdapters::create(window);
 auto textInput = create<TextInput>().build();
@@ -982,6 +1005,7 @@ textInput->setKeyboard(adapters.keyboard.get());
 ### Don't Use Raw Pointers for Ownership
 
 **Problem:**
+
 ```cpp
 Component* button = new Button(renderer, "Click");
 panel->addChild(???);  // Can't transfer ownership
@@ -989,6 +1013,7 @@ panel->addChild(???);  // Can't transfer ownership
 ```
 
 **Solution:**
+
 ```cpp
 auto button = std::make_unique<Button>(renderer, "Click");
 panel->addChild(std::move(button));  // Proper ownership transfer
@@ -997,6 +1022,7 @@ panel->addChild(std::move(button));  // Proper ownership transfer
 ### Don't Ignore Const Correctness in Event Handlers
 
 **Problem:**
+
 ```cpp
 bool handleEventSelf(const Event& event) override {
     event.mouseX = 100;  // Compile error: event is const!
@@ -1005,6 +1031,7 @@ bool handleEventSelf(const Event& event) override {
 ```
 
 **Solution:**
+
 ```cpp
 bool handleEventSelf(const Event& event) override {
     int localX = event.mouseX;  // Copy if you need to modify

@@ -5,6 +5,7 @@
 Prong is a modern C++20 UI framework designed for high-performance applications with minimal overhead. It employs a scene-based architecture with a component hierarchy system, CRTP-based polymorphism, and platform abstraction layers for maximum flexibility.
 
 **Core Design Principles:**
+
 - **Header-mostly architecture**: Minimal implementation files, most functionality in headers
 - **Zero-cost abstractions**: CRTP eliminates virtual function overhead
 - **Platform agnostic**: Renderer and window abstractions work with any backend
@@ -13,7 +14,7 @@ Prong is a modern C++20 UI framework designed for high-performance applications 
 
 ## System Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                        Application                          │
 └────────────────────────┬────────────────────────────────────┘
@@ -52,6 +53,7 @@ Prong is a modern C++20 UI framework designed for high-performance applications 
 The `Scene` class is the top-level container that manages the entire UI hierarchy. It serves as the bridge between your application window and the component tree.
 
 **Responsibilities:**
+
 - Owns references to window and renderer interfaces
 - Automatically fills window dimensions
 - Handles window resize events and propagates them to children
@@ -105,6 +107,7 @@ scene.detach();
 The `Component` class is the foundation for all UI elements. It provides essential functionality for rendering, events, geometry management, and parent-child relationships.
 
 **Key Features:**
+
 - **Pure virtual methods**: `update()` and `render()` must be implemented by concrete components
 - **Parent-child tree**: Components form a hierarchy with automatic ownership via `std::unique_ptr`
 - **Relative coordinates**: Local positioning with automatic global coordinate caching
@@ -114,7 +117,7 @@ The `Component` class is the foundation for all UI elements. It provides essenti
 
 **Component Tree Structure:**
 
-```
+```text
 Scene (root)
 ├─ Panel (FlexLayout, horizontal)
 │  ├─ Button "File"
@@ -130,6 +133,7 @@ Scene (root)
 ```
 
 Each component:
+
 - Has a local position relative to its parent
 - Can have zero or more children
 - Receives events in reverse rendering order (topmost first)
@@ -175,19 +179,21 @@ public:
 ```
 
 **Benefits:**
+
 - **Zero overhead**: No virtual function table lookups
 - **Compile-time optimization**: Inlining and dead code elimination
 - **Type safety**: Compile-time type checking
 - **Clean interface**: Similar to traditional inheritance
 
 **Where CRTP is Used:**
+
 - Layout managers (`LayoutManager<DerivedT>`)
 - Template-based component extensions
 - Compile-time behavior customization
 
 ### Component Lifecycle
 
-```
+```text
 ┌──────────────┐
 │   Creation   │  - Constructor initializes state
 │              │  - Renderer passed (or inherited from parent)
@@ -237,12 +243,14 @@ Prong uses a **relative coordinate system** with automatic caching for optimal p
 ### Coordinate Spaces
 
 **Local Coordinates (Relative):**
+
 - Position relative to parent's origin
 - Used for positioning children and layout calculations
 - Set via `setPosition(x, y)` or `setBounds(x, y, w, h)`
 - For root components (no parent), local coordinates ARE global coordinates
 
 **Global Coordinates (Absolute):**
+
 - Absolute screen-space position
 - Calculated by walking up parent chain and summing local positions
 - Cached for performance, automatically invalidated on position changes
@@ -251,7 +259,7 @@ Prong uses a **relative coordinate system** with automatic caching for optimal p
 
 ### Caching System
 
-```
+```text
 Component Position Change
          │
          ▼
@@ -285,6 +293,7 @@ Component Position Change
 ```
 
 **Performance Characteristics:**
+
 - Cache hit: O(1) - return cached values
 - Cache miss (single component): O(1) - calculate from parent's cache
 - Cache miss (entire tree): O(depth) - walk to root once
@@ -381,7 +390,7 @@ Prong uses a **hierarchical event propagation model** where events flow naturall
 
 ### Event Flow
 
-```
+```text
 Window Event
      │
      ▼
@@ -416,17 +425,20 @@ Window Event
 ### Event Types
 
 **Mouse Events:**
+
 - `MOUSE_PRESS` - Mouse button pressed
 - `MOUSE_RELEASE` - Mouse button released
 - `MOUSE_MOVE` - Mouse cursor moved
 - `MOUSE_SCROLL` - Mouse wheel scrolled
 
 **Keyboard Events:**
+
 - `KEY_PRESS` - Key pressed
 - `KEY_RELEASE` - Key released
 - `CHAR_INPUT` - Character input (for text entry)
 
 **Window Events:**
+
 - `WINDOW_RESIZE` - Window size changed
 - `WINDOW_FOCUS` - Window gained/lost focus
 
@@ -456,6 +468,7 @@ protected:
 ```
 
 **Key Points:**
+
 - Event coordinates are automatically converted to local space during propagation
 - Return `true` to stop propagation (event consumed)
 - Return `false` to allow event to continue to other components
@@ -514,7 +527,7 @@ enum class FocusState {
 
 ### Focus Flow
 
-```
+```text
 User Interaction
        │
        ▼
@@ -536,6 +549,7 @@ User Interaction
 ```
 
 **Focus Behavior:**
+
 - Only one component can have keyboard focus at a time
 - Scene manages focus globally via `setFocusedComponent()`
 - Components can subscribe to focus changes via `setFocusCallback()`
@@ -559,6 +573,7 @@ public:
 ```
 
 Implementations available:
+
 - GLFW (`GLFWWindowAdapter` in examples)
 - SDL (community implementations)
 - Native OS APIs (Windows, macOS, Linux)
@@ -568,6 +583,7 @@ Implementations available:
 Some components require additional platform abstractions:
 
 **IClipboard** - For copy/paste operations:
+
 ```cpp
 class IClipboard {
 public:
@@ -577,6 +593,7 @@ public:
 ```
 
 **IKeyboard** - For key code translation:
+
 ```cpp
 class IKeyboard {
 public:
@@ -600,7 +617,7 @@ textInput->setKeyboard(keyboard);
 
 All code lives under `bombfork::prong` with logical subnamespaces:
 
-```
+```text
 bombfork::prong
 ├── core               - Component, Scene, Event
 ├── components         - Button, Panel, ListBox, TextInput, Dialog, Toolbar, Viewport
@@ -645,10 +662,12 @@ auto panel = create<Panel<>>()
 ## Threading Model
 
 **Single-threaded by default:**
+
 - Component tree, event handling, rendering are single-threaded
 - Main thread owns the UI hierarchy
 
 **Thread-safe components:**
+
 - `ThemeManager` - Thread-safe singleton for global theme access
 - `AsyncCallbackQueue` - Thread-safe callback queue for async operations
 
@@ -690,6 +709,7 @@ target_link_libraries(myapp PRIVATE bombfork::prong)
 ```
 
 **Build Options:**
+
 - `PRONG_BUILD_EXAMPLES` - Build example applications (default: ON)
 - `PRONG_BUILD_TESTS` - Build unit tests (default: ON)
 
@@ -698,16 +718,19 @@ target_link_libraries(myapp PRIVATE bombfork::prong)
 ### Header-Mostly Architecture
 
 Only these modules require `.cpp` implementation files:
+
 - `core/coordinate_system.cpp` - World ↔ Screen transformations
 - `core/async_callback_queue.cpp` - Thread-safe callback management
 - `theming/theme_manager.cpp` - Global theme state
 
 All UI components are fully header-only:
+
 - `Button`, `Panel`, `ListBox`, `TextInput`, `Dialog`, `Toolbar`, `Viewport`
 - All layout managers
 - Component base class
 
 **Benefits:**
+
 - Faster compilation (no need to recompile library)
 - Better optimization (compiler sees full implementation)
 - Easier integration (just include headers)
@@ -715,6 +738,7 @@ All UI components are fully header-only:
 ### C++20 Features
 
 The codebase requires C++20 and uses:
+
 - **Concepts** - Template constraints for type safety
 - **Ranges** - Modern iteration and algorithms
 - **Three-way comparison** (spaceship operator `<=>`)
@@ -722,6 +746,7 @@ The codebase requires C++20 and uses:
 - **constexpr improvements** - More compile-time computation
 
 **Compiler Requirements:**
+
 - GCC 10+
 - Clang 13+
 - MSVC 2019 16.11+

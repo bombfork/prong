@@ -14,6 +14,7 @@ Demonstrates creating a custom ColorPicker component from scratch, showing all a
 ## ColorPicker Component
 
 A simple color picker with:
+
 - 18 color swatches in a grid
 - Click to select color
 - Visual feedback for selection

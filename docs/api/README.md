@@ -5,12 +5,14 @@ Comprehensive API documentation for the Prong UI framework.
 ## Quick Navigation
 
 ### Core
+
 - [Component](core/Component.md) - Base class for all UI elements
 - [Scene](core/Scene.md) - Root container and event coordinator
 - [ComponentBuilder](core/ComponentBuilder.md) - Fluent API for component construction
 - [Event](core/Event.md) - Unified event structure
 
 ### Components
+
 - [Button](components/Button.md) - Clickable button widget
 - [Panel](components/Panel.md) - Container panel
 - [TextInput](components/TextInput.md) - Single-line text input
@@ -20,6 +22,7 @@ Comprehensive API documentation for the Prong UI framework.
 - [Viewport](components/Viewport.md) - Scrollable viewport container
 
 ### Layout Managers
+
 - [FlexLayout](layouts/FlexLayout.md) - Flexbox-inspired flexible layout
 - [GridLayout](layouts/GridLayout.md) - CSS Grid-inspired grid layout
 - [DockLayout](layouts/DockLayout.md) - Docking panel layout (top, bottom, left, right, center)
@@ -27,15 +30,18 @@ Comprehensive API documentation for the Prong UI framework.
 - [FlowLayout](layouts/FlowLayout.md) - Wrapping flow layout
 
 ### Events
+
 - [Event Struct](events/Event.md) - Event data structure
 - [IWindow](events/IWindow.md) - Window abstraction interface
 - [IClipboard](events/IClipboard.md) - Clipboard abstraction
 - [IKeyboard](events/IKeyboard.md) - Keyboard key mapping
 
 ### Rendering
+
 - [IRenderer](rendering/IRenderer.md) - Renderer abstraction interface
 
 ### Theming
+
 - [ThemeManager](theming/ThemeManager.md) - Global theme management
 - [Color](theming/Color.md) - RGBA color utility class
 - [AdvancedTheme](theming/AdvancedTheme.md) - Theme data structure
@@ -44,7 +50,7 @@ Comprehensive API documentation for the Prong UI framework.
 
 ### Component Hierarchy
 
-```
+```text
 Component (abstract base)
 ├── Panel (container)
 ├── Button (interactive)
@@ -58,6 +64,7 @@ Component (abstract base)
 ### Coordinate Systems
 
 Prong uses a **relative coordinate system**:
+
 - **Local coordinates**: Position relative to parent (used for positioning children)
 - **Global coordinates**: Absolute screen-space position (used for rendering and hit testing)
 - Coordinates are automatically cached and invalidated as needed
@@ -65,6 +72,7 @@ Prong uses a **relative coordinate system**:
 ### Event Propagation
 
 Events flow hierarchically:
+
 1. Scene receives event from window
 2. Scene propagates to root components
 3. Components check bounds and propagate to children
@@ -74,6 +82,7 @@ Events flow hierarchically:
 ### Layout System
 
 Layout managers use CRTP for zero-overhead polymorphism:
+
 ```cpp
 template<typename ParentT>
 class MyLayout : public LayoutManager<MyLayout<ParentT>> {
@@ -155,6 +164,7 @@ component->setConstraints(constraints);
 ## Examples
 
 Each API page includes usage examples. For complete working examples, see:
+
 - `examples/basic/` - Simple focused examples
 - `examples/intermediate/` - Complex composition patterns
 - `examples/advanced/` - Custom components, layouts, and optimization
@@ -197,6 +207,7 @@ while (!windowAdapter->shouldClose()) {
 ## Platform Integration
 
 Prong is platform-agnostic. You need to provide:
+
 - **Window adapter** (IWindow): GLFW, SDL, or native
 - **Renderer** (IRenderer): OpenGL, Vulkan, or custom
 - **Optional**: IClipboard, IKeyboard for TextInput
