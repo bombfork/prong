@@ -14,7 +14,6 @@
 #include "../../adapters/glfw_window_adapter.h"
 #include "../../adapters/simple_opengl_renderer.h"
 #include <GLFW/glfw3.h>
-#include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/panel.h>
 #include <bombfork/prong/core/component.h>
 #include <bombfork/prong/core/component_builder.h>
@@ -25,8 +24,10 @@
 #include <bombfork/prong/theming/color.h>
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
 
 using namespace bombfork::prong;
 using namespace bombfork::prong::core;

@@ -30,4 +30,5 @@ add_dependencies(04_dynamic_layout format-example-sources)
 # Output to build/examples/intermediate/04_dynamic_layout/
 set_target_properties(04_dynamic_layout PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/intermediate/04_dynamic_layout"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )

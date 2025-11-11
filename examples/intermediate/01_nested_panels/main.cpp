@@ -19,13 +19,19 @@
 #include <GLFW/glfw3.h>
 #include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/panel.h>
+#include <bombfork/prong/core/component.h>
 #include <bombfork/prong/core/component_builder.h>
+#include <bombfork/prong/core/component_traits.h>
 #include <bombfork/prong/core/scene.h>
 #include <bombfork/prong/layout/flex_layout.h>
 #include <bombfork/prong/layout/grid_layout.h>
 #include <bombfork/prong/layout/stack_layout.h>
 
+#include <functional>
 #include <iostream>
+#include <memory>
+#include <string>
+#include <utility>
 
 using namespace bombfork::prong;
 using namespace bombfork::prong::layout;

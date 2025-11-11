@@ -30,4 +30,5 @@ add_dependencies(03_event_handling format-example-sources)
 # Output to build/examples/intermediate/03_event_handling/
 set_target_properties(03_event_handling PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/intermediate/03_event_handling"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )
