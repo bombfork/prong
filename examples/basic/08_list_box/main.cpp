@@ -16,12 +16,15 @@
 #include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/list_box.h>
 #include <bombfork/prong/components/panel.h>
+#include <bombfork/prong/core/component.h>
 #include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/scene.h>
 
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace bombfork::prong;

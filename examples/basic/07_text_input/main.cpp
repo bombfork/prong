@@ -13,15 +13,21 @@
 #include "../../adapters/glfw_window_adapter.h"
 #include "../../adapters/simple_opengl_renderer.h"
 #include "../../common/glfw_adapters/glfw_adapters.h"
+#include "glfw_clipboard.h"
+#include "glfw_keyboard.h"
 #include <GLFW/glfw3.h>
 #include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/panel.h>
 #include <bombfork/prong/components/text_input.h>
+#include <bombfork/prong/core/component.h>
 #include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/scene.h>
 
+#include <functional>
 #include <iostream>
 #include <memory>
+#include <string>
+#include <utility>
 
 using namespace bombfork::prong;
 using namespace bombfork::prong::examples;

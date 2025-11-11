@@ -23,4 +23,5 @@ add_dependencies(08_list_box format-example-sources)
 
 set_target_properties(08_list_box PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/basic/08_list_box"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )
