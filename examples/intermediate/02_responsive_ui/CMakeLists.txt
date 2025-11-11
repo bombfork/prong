@@ -30,4 +30,5 @@ add_dependencies(02_responsive_ui format-example-sources)
 # Output to build/examples/intermediate/02_responsive_ui/
 set_target_properties(02_responsive_ui PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/intermediate/02_responsive_ui"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )

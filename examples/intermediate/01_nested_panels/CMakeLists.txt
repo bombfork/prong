@@ -30,4 +30,5 @@ add_dependencies(01_nested_panels format-example-sources)
 # Output to build/examples/intermediate/01_nested_panels/
 set_target_properties(01_nested_panels PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/intermediate/01_nested_panels"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )
