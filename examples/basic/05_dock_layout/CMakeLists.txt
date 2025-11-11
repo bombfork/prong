@@ -23,4 +23,5 @@ add_dependencies(05_dock_layout format-example-sources)
 
 set_target_properties(05_dock_layout PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/basic/05_dock_layout"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )

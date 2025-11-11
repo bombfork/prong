@@ -30,4 +30,5 @@ add_dependencies(01_hello_button format-example-sources)
 # Output to build/examples/basic/01_hello_button/
 set_target_properties(01_hello_button PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/basic/01_hello_button"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )

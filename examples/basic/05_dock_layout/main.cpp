@@ -14,11 +14,18 @@
 #include <GLFW/glfw3.h>
 #include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/panel.h>
+#include <bombfork/prong/core/component.h>
 #include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/scene.h>
 #include <bombfork/prong/layout/dock_layout.h>
 
+#include <functional>
 #include <iostream>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace bombfork::prong;
 using namespace bombfork::prong::examples;

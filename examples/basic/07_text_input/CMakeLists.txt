@@ -24,4 +24,5 @@ add_dependencies(07_text_input format-example-sources)
 
 set_target_properties(07_text_input PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/basic/07_text_input"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )

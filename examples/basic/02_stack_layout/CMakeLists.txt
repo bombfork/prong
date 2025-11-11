@@ -23,4 +23,5 @@ add_dependencies(02_stack_layout format-example-sources)
 
 set_target_properties(02_stack_layout PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/basic/02_stack_layout"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )

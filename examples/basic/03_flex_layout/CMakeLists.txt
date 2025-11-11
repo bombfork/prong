@@ -23,4 +23,5 @@ add_dependencies(03_flex_layout format-example-sources)
 
 set_target_properties(03_flex_layout PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/basic/03_flex_layout"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )
