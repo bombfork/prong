@@ -141,4 +141,24 @@ add_subdirectory(basic/07_text_input)
 add_subdirectory(basic/08_list_box)
 
 message(STATUS "  + basic examples (8 examples)")
+
+# === Intermediate Examples ===
+# More complex examples showing layout composition and advanced patterns
+
+add_subdirectory(intermediate/01_nested_panels)
+add_subdirectory(intermediate/02_responsive_ui)
+add_subdirectory(intermediate/03_event_handling)
+add_subdirectory(intermediate/04_dynamic_layout)
+
+message(STATUS "  + intermediate examples (4 examples)")
+
+# === Advanced Examples ===
+# Advanced topics: custom components, layouts, renderers, and optimization
+
+add_subdirectory(advanced/01_custom_component)
+add_subdirectory(advanced/02_custom_layout)
+add_subdirectory(advanced/03_custom_renderer)
+add_subdirectory(advanced/04_performance)
+
+message(STATUS "  + advanced examples (4 examples)")
 message(STATUS "")
