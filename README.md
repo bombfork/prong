@@ -37,34 +37,47 @@ target_link_libraries(your_app PRIVATE bombfork::prong)
 
 ### Basic Usage
 
+Prong uses a **Scene-based architecture** where the Scene is the root of your UI hierarchy:
+
 ```cpp
+#include <bombfork/prong/core/scene.h>
 #include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/panel.h>
-#include <bombfork/prong/layout/flex_layout.h>
 
 using namespace bombfork::prong;
 
-class MyApp : public Component {
-public:
-    MyApp(rendering::IRenderer* renderer) : Component(renderer) {
-        // Create UI components
-        auto saveButton = std::make_unique<Button>(renderer, "Save");
-        saveButton->setClickCallback([] { /* save action */ });
+// Create window and renderer (use your preferred implementations)
+IWindow* window = createMyWindow();
+IRenderer* renderer = createMyRenderer();
 
-        auto panel = std::make_unique<Panel>(renderer);
-        panel->addChild(std::move(saveButton));
+// Create scene (root of UI hierarchy)
+Scene scene(window, renderer);
+scene.attach();
 
-        addChild(std::move(panel));
-    }
+// Build UI - components automatically inherit renderer from parent
+auto panel = std::make_unique<Panel<>>();
+panel->setPosition(50, 50);
+panel->setSize(300, 200);
 
-    void update(double deltaTime) override {
-        // Update logic
-    }
+auto button = std::make_unique<Button<>>("Save");
+button->setClickCallback([]() {
+    std::cout << "Save clicked!" << std::endl;
+});
+panel->addChild(std::move(button));
 
-    void render() override {
-        // Rendering handled by component tree
-    }
-};
+scene.addChild(std::move(panel));
+
+// Main loop
+while (!window->shouldClose()) {
+    // Convert window events to Event structs and pass to scene
+    // (in window callbacks: scene.handleEvent(event))
+
+    scene.updateAll(deltaTime);
+    scene.renderAll();
+    scene.present();
+}
+
+scene.detach();
 ```
 
 ## Architecture
@@ -91,6 +104,7 @@ For detailed information, see [docs/coordinate_system.md](docs/coordinate_system
 ```
 bombfork::prong::
 ├── core/                   # Base component system
+│   ├── Scene              # Root scene component (entry point for UI hierarchy)
 │   ├── Component           # CRTP base class with relative coordinates
 │   ├── CoordinateSystem    # World ↔ Screen transformations (for viewports)
 │   └── AsyncCallbackQueue  # Thread-safe callback management
@@ -107,7 +121,7 @@ bombfork::prong::
 ├── theming/                # Theming system
 │   ├── Color              # Color representation
 │   ├── ThemeManager       # Global theme management
-│   └── ThemeParser        # Load themes from files
+│   └── AdvancedTheme      # Advanced theme with hot-reload support
 ├── events/                 # Event handling
 │   ├── Event              # Unified event structure
 │   ├── IClipboard         # Clipboard abstraction interface
@@ -157,11 +171,7 @@ public:
 };
 ```
 
-### Provided Implementations
-
-- **OpenGL Renderer** - Reference implementation (OpenGL 3.3+)
-- **Vulkan Renderer** - High-performance implementation (Vulkan 1.2+)
-- **Software Renderer** - CPU-based fallback
+**Note:** Prong's core is renderer-agnostic. Example renderer implementations (OpenGL) are provided in `examples/adapters/` for demonstration purposes but are not part of the core framework.
 
 ## Window Integration
 
@@ -179,14 +189,19 @@ public:
 };
 ```
 
+**Note:** Example window adapters (GLFW) are provided in `examples/adapters/` and `examples/common/glfw_adapters/` for demonstration purposes. These are not part of the core framework - you implement the interfaces for your chosen windowing system.
+
 ## Theming
+
+Prong provides a flexible theming system through `ThemeManager` and `AdvancedTheme`:
 
 ### Built-in Themes
 
 ```cpp
 using namespace bombfork::prong::theming;
 
-// Use built-in themes
+// Register and use built-in themes (Light, Dark, High Contrast)
+ThemeManager::getInstance().registerBuiltinThemes();
 ThemeManager::getInstance().setCurrentTheme("dark");
 ThemeManager::getInstance().setCurrentTheme("light");
 ThemeManager::getInstance().setCurrentTheme("high-contrast");
@@ -194,40 +209,38 @@ ThemeManager::getInstance().setCurrentTheme("high-contrast");
 
 ### Custom Themes
 
-Load themes from YAML, JSON, or properties files:
-
-```yaml
-# mytheme.yaml
-name: "My Custom Theme"
-colors:
-  primary: "#3498db"
-  background: "#2c3e50"
-  text: "#ecf0f1"
-
-components:
-  button:
-    backgroundColor: "{primary}"
-    textColor: "{text}"
-    hoverColor: "#4a90e2"
-```
+Create custom themes programmatically:
 
 ```cpp
-ThemeParser parser;
-auto result = parser.parseFromFile("mytheme.yaml");
-if (result.success) {
-    ThemeManager::getInstance().registerTheme("custom", std::move(result.theme));
-    ThemeManager::getInstance().setCurrentTheme("custom");
-}
+#include <bombfork/prong/theming/advanced_theme.h>
+#include <bombfork/prong/theming/theme_manager.h>
+
+// Create a custom theme
+auto customTheme = std::make_unique<AdvancedTheme>("custom", "My Custom Theme");
+
+// Define colors
+customTheme->setColor("primary", Color(52, 152, 219));      // #3498db
+customTheme->setColor("background", Color(44, 62, 80));     // #2c3e50
+customTheme->setColor("text", Color(236, 240, 241));        // #ecf0f1
+
+// Register and activate
+ThemeManager::getInstance().registerTheme(std::move(customTheme));
+ThemeManager::getInstance().setCurrentTheme("custom");
+
+// Access colors
+const Color& bg = ThemeManager::getInstance().getCurrentTheme()->getColor("background");
 ```
 
-### Hot Reload
+### Theme Change Notifications
+
+Register callbacks to respond to theme changes:
 
 ```cpp
-ThemeHotReloader reloader("mytheme.yaml", [](auto theme) {
-    ThemeManager::getInstance().updateCurrentTheme(std::move(theme));
+ThemeManager::getInstance().addChangeCallback([](const ThemeChangeEvent& event) {
+    std::cout << "Theme changed from " << event.oldThemeId
+              << " to " << event.newThemeId << std::endl;
+    // Update UI components as needed
 });
-
-reloader.startWatching(1000); // Check every 1000ms
 ```
 
 ## Layout System
@@ -268,31 +281,45 @@ dock.fillCenter(mainView);      // Fill remaining space
 
 ## Event Handling
 
-Events flow hierarchically through the component tree:
+Prong uses a **hierarchical event system** where events flow through the Scene and down the component tree:
 
 ```cpp
-// Create a scene (root of the component hierarchy)
-Scene scene(renderer, window);
+#include <bombfork/prong/core/scene.h>
+#include <bombfork/prong/core/event.h>
 
-// Add components to the scene
-auto button = create<Button>("Click Me")
-    .withClickCallback([]() { std::cout << "Clicked!\n"; })
-    .build();
+// Scene is the entry point for all window events
+Scene scene(window, renderer);
+
+// Add components
+auto button = std::make_unique<Button<>>("Click Me");
+button->setClickCallback([]() {
+    std::cout << "Clicked!\n";
+});
 scene.addChild(std::move(button));
 
-// Window callbacks create events and pass them to the scene
-void mouseButtonCallback(int button, int action, int mods) {
-  Event event {
-    .type = (action == PRESS) ? Event::Type::MOUSE_PRESS : Event::Type::MOUSE_RELEASE,
-    .localX = mouseX,
-    .localY = mouseY,
-    .button = button
-  };
-  scene.handleEvent(event);
+// In your window callbacks, convert platform events to Prong Event structs
+void mouseButtonCallback(GLFWwindow* w, int btn, int action, int mods) {
+    double mx, my;
+    glfwGetCursorPos(w, &mx, &my);
+
+    Event event;
+    event.type = (action == GLFW_PRESS) ? Event::Type::MOUSE_PRESS
+                                         : Event::Type::MOUSE_RELEASE;
+    event.localX = static_cast<int>(mx);
+    event.localY = static_cast<int>(my);
+    event.button = btn;
+    event.modifiers = mods;
+
+    scene.handleEvent(event);  // Scene propagates to children
 }
 ```
 
-Components automatically propagate events to children, converting coordinates to local space.
+**Key Features:**
+- Scene is the entry point for all events from the window system
+- Events automatically propagate to children with coordinate conversion
+- Children rendered last (topmost) receive events first
+- Components must be enabled and visible to receive events
+- Override `handleEventSelf()` in your components for custom event handling
 
 ## Examples
 
@@ -373,11 +400,15 @@ Contributions are welcome! Please see CONTRIBUTING.md for guidelines.
 
 ## Roadmap
 
-- [ ] Accessibility support (screen readers, keyboard navigation)
-- [ ] Animation system
-- [ ] Drag-and-drop framework
-- [ ] Virtual scrolling for large lists
-- [ ] Web backend (WebAssembly + WebGPU)
+See our [GitHub Issues](https://github.com/bombfork/prong/issues) for planned features and enhancements. Notable goals include:
+
+- Accessibility support (screen readers, keyboard navigation)
+- Animation system
+- Drag-and-drop framework
+- Virtual scrolling for large lists
+- Web backend (WebAssembly + WebGPU)
+
+For the complete list and to suggest new features, visit the [issue tracker](https://github.com/bombfork/prong/issues).
 
 ## Acknowledgments
 
