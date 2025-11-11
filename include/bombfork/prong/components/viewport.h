@@ -169,12 +169,6 @@ private:
   PanChangedCallback panCallback;
   SelectionCallback selectionCallback;
 
-  // Scrollbar state
-  bool horizontalScrollbarHover = false;
-  bool verticalScrollbarHover = false;
-  bool horizontalScrollbarDrag = false;
-  bool verticalScrollbarDrag = false;
-
 public:
   explicit Viewport() : Component(nullptr, "Viewport") {
     // Initialize default theme

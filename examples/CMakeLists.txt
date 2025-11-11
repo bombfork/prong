@@ -75,6 +75,11 @@ target_include_directories(glfw_adapters PUBLIC
 
 target_compile_features(glfw_adapters PUBLIC cxx_std_20)
 
+# Enable iwyu for glfw_adapters
+set_target_properties(glfw_adapters PROPERTIES
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
+)
+
 # === Demo App Example ===
 
 add_executable(prong_demo_app
@@ -99,6 +104,11 @@ target_compile_features(prong_demo_app PRIVATE cxx_std_20)
 
 # Suppress unused function warnings for STB (header-only library with many utilities)
 target_compile_options(prong_demo_app PRIVATE -Wno-unused-function)
+
+# Enable iwyu for prong_demo_app
+set_target_properties(prong_demo_app PROPERTIES
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
+)
 
 # Make example depend on formatting target
 add_dependencies(prong_demo_app format-example-sources)

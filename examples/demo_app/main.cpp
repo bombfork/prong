@@ -11,10 +11,10 @@
 #include "scenes/demo_scene.h"
 #include <GLFW/glfw3.h>
 
-#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <string>
 
 #ifdef __linux__
 #include <sys/types.h>
