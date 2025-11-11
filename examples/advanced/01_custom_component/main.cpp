@@ -14,18 +14,21 @@
 #include "../../adapters/glfw_window_adapter.h"
 #include "../../adapters/simple_opengl_renderer.h"
 #include <GLFW/glfw3.h>
-#include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/panel.h>
 #include <bombfork/prong/core/component.h>
 #include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/event.h>
 #include <bombfork/prong/core/scene.h>
 #include <bombfork/prong/rendering/irenderer.h>
+#include <bombfork/prong/theming/color.h>
 
 #include <algorithm>
 #include <cmath>
 #include <functional>
 #include <iostream>
+#include <memory>
+#include <string>
+#include <utility>
 
 using namespace bombfork::prong;
 using namespace bombfork::prong::core;
@@ -42,7 +45,6 @@ private:
   float selectedG = 0.5f;
   float selectedB = 0.0f;
 
-  bool isDragging = false;
   ColorChangeCallback onColorChange;
 
 public:

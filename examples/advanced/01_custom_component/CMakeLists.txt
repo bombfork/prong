@@ -30,4 +30,5 @@ add_dependencies(01_custom_component format-example-sources)
 # Output to build/examples/advanced/01_custom_component/
 set_target_properties(01_custom_component PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/advanced/01_custom_component"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )

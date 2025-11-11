@@ -21,4 +21,5 @@ add_dependencies(03_custom_renderer format-example-sources)
 
 set_target_properties(03_custom_renderer PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/advanced/03_custom_renderer"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )

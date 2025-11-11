@@ -21,4 +21,5 @@ add_dependencies(02_custom_layout format-example-sources)
 
 set_target_properties(02_custom_layout PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/advanced/02_custom_layout"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )
