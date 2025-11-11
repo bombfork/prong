@@ -25,9 +25,6 @@ To build and develop Prong, you need:
 - **CMake 3.14+** - Build system generator
 - **Ninja** - Build system (required, faster than Make)
 - **mise** - Task runner for convenient build commands
-
-### Optional but Recommended
-
 - **clang-format** - Code formatting (enforced by git hooks)
 - **include-what-you-use (iwyu)** - Header dependency checking (enforced by git hooks)
 - **Docker** - For containerized builds (see [docs/docker.md](docs/docker.md))
@@ -39,10 +36,6 @@ mise is used to run build commands consistently. Install it using:
 ```bash
 # Linux/macOS
 curl https://mise.run | sh
-
-# Or via package manager
-# macOS: brew install mise
-# Linux: see https://mise.jdx.dev/getting-started.html
 ```
 
 After installation, you can see all available tasks with:
@@ -111,9 +104,9 @@ CMake configuration options:
 
 ### Code Formatting
 
-**NEVER bypass clang-format!** Code formatting is enforced by git hooks.
+Code formatting is using clang-format and is integrated to cmake and git hooks.
 
-Format all code before committing:
+You can format all code with:
 
 ```bash
 mise format
@@ -133,7 +126,7 @@ This builds and executes all unit tests. All tests must pass before submitting a
 
 ### Include-What-You-Use (IWYU)
 
-**NEVER bypass iwyu checks!** Header dependencies are verified automatically by git hooks.
+Header dependencies are verified automatically by IWYU and is integrated to cmake and git hooks.
 
 IWYU ensures that:
 - Headers only include what they directly use
@@ -150,7 +143,7 @@ The demo app (`examples/demo_app/`) is used for:
 - Gathering user feedback
 - Visual verification of components
 
-Run it frequently when working on UI components:
+Keep it up to date when working on UI components. Run it with:
 
 ```bash
 mise demo
@@ -451,24 +444,27 @@ Fixes #45
 
 ## Git Hooks
 
-Prong uses git hooks to enforce code quality. The hooks automatically:
+Prong uses [hk](https://github.com/jdx/hk) to manage git hooks. The configuration is defined in `hk.pkl` at the root of the repository.
 
-1. **Pre-commit hook:**
-   - Runs clang-format on staged files
-   - Runs iwyu checks on staged files
-   - Prevents commits if formatting or includes are incorrect
+### Pre-commit Hook
 
-2. **Commit-msg hook:**
-   - Validates commit message format
-   - Ensures messages are descriptive
+The pre-commit hook automatically:
+- Runs `clang-format` on all staged C++ files (`**/*.cpp`, `**/*.h`)
+- Checks formatting with `mise run format-check`
+- Automatically fixes formatting issues with `mise run format` when `fix = true`
+- Prevents commits if formatting cannot be fixed
+
+**Note:** The hook only checks C++ source files. Other files (like markdown) are not checked by the pre-commit hook.
 
 ### Installing Hooks
 
-Hooks are automatically installed when you configure the build:
+Install hk hooks with:
 
 ```bash
-mise build  # Hooks installed automatically
+hk install
 ```
+
+This creates the `.git/hooks/pre-commit` wrapper that calls `hk run pre-commit`.
 
 ### Important: Never Bypass Hooks
 
@@ -484,7 +480,7 @@ git add .
 git commit -m "Fix formatting issues"
 ```
 
-Bypassing hooks can break the build for others and will cause your PR to be rejected.
+Bypassing hooks can break the CI build and will cause your PR to be blocked.
 
 ## Questions?
 
