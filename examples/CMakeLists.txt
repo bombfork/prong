@@ -127,4 +127,18 @@ add_custom_command(TARGET prong_demo_app POST_BUILD
 )
 
 message(STATUS "  + prong_demo_app")
+
+# === Basic Examples ===
+# Simple, focused examples demonstrating individual concepts
+
+add_subdirectory(basic/01_hello_button)
+add_subdirectory(basic/02_stack_layout)
+add_subdirectory(basic/03_flex_layout)
+add_subdirectory(basic/04_grid_layout)
+add_subdirectory(basic/05_dock_layout)
+add_subdirectory(basic/06_flow_layout)
+add_subdirectory(basic/07_text_input)
+add_subdirectory(basic/08_list_box)
+
+message(STATUS "  + basic examples (8 examples)")
 message(STATUS "")
