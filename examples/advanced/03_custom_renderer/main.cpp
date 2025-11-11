@@ -12,11 +12,16 @@
 #include <GLFW/glfw3.h>
 #include <bombfork/prong/components/button.h>
 #include <bombfork/prong/components/panel.h>
+#include <bombfork/prong/core/component.h>
 #include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/scene.h>
 #include <bombfork/prong/rendering/irenderer.h>
+#include <bombfork/prong/theming/color.h>
 
+#include <functional>
 #include <iostream>
+#include <memory>
+#include <utility>
 
 using namespace bombfork::prong;
 using namespace bombfork::prong::rendering;

@@ -21,4 +21,5 @@ add_dependencies(04_performance format-example-sources)
 
 set_target_properties(04_performance PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/advanced/04_performance"
+    CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--error;-Xiwyu;--verbose=3"
 )

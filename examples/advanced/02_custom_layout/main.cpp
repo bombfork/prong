@@ -12,9 +12,15 @@
 #include <bombfork/prong/core/component_builder.h>
 #include <bombfork/prong/core/scene.h>
 #include <bombfork/prong/layout/layout_manager.h>
+#include <bombfork/prong/theming/color.h>
 
 #include <cmath>
+#include <functional>
 #include <iostream>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace bombfork::prong;
 using namespace bombfork::prong::layout;
