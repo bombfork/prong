@@ -497,25 +497,21 @@ public:
    * @brief Set per-axis resize behavior for independent horizontal/vertical control
    * @param horizontal Resize behavior for horizontal axis
    * @param vertical Resize behavior for vertical axis
+   *
+   * NOTE: Original dimensions are NOT initialized here. They will be lazily initialized
+   * on the first call to onParentResize() AFTER the component has been laid out with
+   * its proper size. This ensures FIXED behavior captures the post-layout size, not
+   * the pre-layout size (which may be incomplete, e.g., height=0 for panels in FlexLayout).
    */
   void setAxisResizeBehavior(AxisResizeBehavior horizontal, AxisResizeBehavior vertical) {
     horizontalResizeBehavior = horizontal;
     verticalResizeBehavior = vertical;
     usePerAxisBehavior = true;
 
-    // Initialize original dimensions NOW so FIXED behavior works from the start
-    // This captures the component's current size as the "original" before any layout runs
-    if (originalWidth == 0 && originalHeight == 0) {
-      originalLocalX = localX;
-      originalLocalY = localY;
-      originalWidth = width;
-      originalHeight = height;
-
-      // Also initialize parent dimensions if we have a parent
-      if (parent) {
-        parent->getSize(originalParentWidth, originalParentHeight);
-      }
-    }
+    // NOTE: We deliberately do NOT initialize originalWidth/originalHeight here.
+    // They will be initialized on first onParentResize() call after layout has set proper sizes.
+    // This fixes the "jumping effect" where components created with partial sizes (e.g., width=300, height=0)
+    // would capture height=0 as "original", causing incorrect behavior on first resize.
   }
 
   /**
